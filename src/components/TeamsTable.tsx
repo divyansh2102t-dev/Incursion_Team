@@ -402,9 +402,16 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
 
                       {/* Final Composite Incursion Score (Glowing Cyan) */}
                       <td className="py-2.5 px-3 text-right">
-                        <span className="text-base font-black text-cyan-400 neon-glow-cyan font-mono">
-                          {team.computed.finalScore}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-base font-black text-cyan-400 neon-glow-cyan font-mono">
+                            {team.computed.finalScore}
+                          </span>
+                          {team.computed.customScoreApplied && (
+                            <span className="text-[8px] text-cyan-300/80 font-bold uppercase tracking-tighter" title="Calculated using Custom Scoring Formula">
+                              CUSTOM MATH
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Status Badge */}

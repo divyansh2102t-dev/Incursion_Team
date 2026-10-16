@@ -60,6 +60,7 @@ export interface TeamComputedMetrics {
   // Total weighted score
   finalScore: number;
   rank: number;
+  customScoreApplied?: boolean;
 
   // Analysis & Flags
   coveredRoles: RoleCategory[];
@@ -142,6 +143,9 @@ export interface SelectionConfig {
   tieBreakers: TieBreakerConfig;
   anonymizeMode: boolean; // Blind review mode
   formulaCoefficients: FormulaCoefficients;
+  customFormulaEnabled?: boolean;
+  customFormulaExpression?: string;
+  customFormulaName?: string;
 }
 
 export interface ColumnMappingConfig {

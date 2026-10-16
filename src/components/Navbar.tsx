@@ -18,7 +18,6 @@ import {
   Terminal,
   Zap,
   History,
-  Home,
   LayoutDashboard,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
@@ -130,20 +129,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="hidden"
           />
 
-          {/* Home Button */}
-          <button
-            onClick={onGoHome || (() => (window.location.href = '/'))}
-            className={`px-3 py-1.5 font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
-              currentView === 'home'
-                ? 'bg-cyan-500 text-black border-cyan-400 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-zinc-800 hover:border-cyan-500/50'
-            }`}
-            title="Open Incursion Home & Upload Terminal"
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>Home</span>
-          </button>
-
           {/* Leaderboard Button (shown when data is active) */}
           {hasData && onGoDashboard && (
             <button
@@ -163,10 +148,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Upload Button */}
           <button
             onClick={onGoHome ? onGoHome : () => fileInputRef.current?.click()}
-            className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+            className={`px-3 py-1.5 font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              currentView === 'home'
+                ? 'bg-cyan-500 text-black border-cyan-400 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-zinc-800 hover:border-cyan-500/50'
+            }`}
             title="Open Incursion Home Upload Terminal"
           >
-            <Upload className="w-3.5 h-3.5 text-zinc-400" />
+            <Upload className="w-3.5 h-3.5" />
             <span>Upload</span>
           </button>
 

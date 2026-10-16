@@ -19,10 +19,10 @@ import {
   Check,
   Zap,
   History,
-  Home,
 } from 'lucide-react';
 import { triggerDownload } from '@/utils/exportUtils';
 import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
+import { CustomFormulaStudio } from '@/components/CustomFormulaStudio';
 
 export default function FormulasPage() {
   const {
@@ -80,6 +80,9 @@ export default function FormulasPage() {
         weights: config.weights,
         filters: config.filters,
         aggregationStrategy: config.aggregationStrategy,
+        customFormulaEnabled: config.customFormulaEnabled,
+        customFormulaExpression: config.customFormulaExpression,
+        customFormulaName: config.customFormulaName,
       },
       null,
       2
@@ -95,13 +98,24 @@ export default function FormulasPage() {
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-        if (parsed.formulaCoefficients) {
+        if (parsed.formulaCoefficients || parsed.customFormulaExpression !== undefined) {
           updateConfig({
             ...config,
-            formulaCoefficients: {
-              ...config.formulaCoefficients,
-              ...parsed.formulaCoefficients,
-            },
+            ...(parsed.formulaCoefficients
+              ? {
+                  formulaCoefficients: {
+                    ...config.formulaCoefficients,
+                    ...parsed.formulaCoefficients,
+                  },
+                }
+              : {}),
+            ...(parsed.customFormulaExpression !== undefined
+              ? {
+                  customFormulaEnabled: Boolean(parsed.customFormulaEnabled),
+                  customFormulaExpression: parsed.customFormulaExpression,
+                  customFormulaName: parsed.customFormulaName || 'Imported Custom Model',
+                }
+              : {}),
           });
           showNotice('Formulas successfully imported and applied!');
         } else {
@@ -132,16 +146,6 @@ export default function FormulasPage() {
               <span className="text-xs font-black tracking-wider text-zinc-100 group-hover:text-cyan-300 uppercase">
                 INCURSION
               </span>
-            </Link>
-
-            {/* Home Link */}
-            <Link
-              href="/"
-              className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 font-medium"
-              title="Go to Incursion Home"
-            >
-              <Home className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Home</span>
             </Link>
 
             <Link
@@ -264,7 +268,7 @@ export default function FormulasPage() {
           </div>
           <p className="text-zinc-400 leading-relaxed text-[11px] font-sans">
             No two hackathons are alike. Rather than forcing hardcoded numbers, every coefficient below is
-            completely tunable in real-time. Adjust the sliders, and the formulas update immediately on your shortlist.
+            completely tunable in real-time. You can write your own custom mathematical equations or adjust the sub-coefficients.
           </p>
         </div>
 
@@ -825,6 +829,13 @@ export default function FormulasPage() {
             </div>
           </div>
         </div>
+
+        {/* Custom Mathematical Formula Expression Studio (At bottom of page) */}
+        <CustomFormulaStudio
+          config={config}
+          onUpdateConfig={updateConfig}
+          teams={baseTeams}
+        />
       </main>
 
       {/* Scoring History & Audit Vault Modal */}

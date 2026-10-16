@@ -107,17 +107,38 @@ Organizers can capture, name, manage, and restore scoring runs with complete aud
 
 ---
 
+## 🧮 6. Custom Mathematical Formula Expression Studio (`/formulas`)
+
+Organizers are not limited to fixed linear weights. A built-in, injection-safe mathematical expression engine allows organizers to author arbitrary scoring equations using live cohort signals:
+
+```mermaid
+flowchart LR
+    A["Raw Signals\n(tech, exp, synergy, commits, stars, wins, size)"] --> B["Safe AST Parser\n(Zero eval / Zero Injection)"]
+    B --> C["Custom Formula Evaluation\n(e.g. min(100, 0.45*tech + 0.35*exp + wins*5))"]
+    C --> D["Live Sandbox Preview\n(Compare Standard vs Custom Impact)"]
+    D --> E["Instant Leaderboard Re-ranking"]
+```
+
+### Supported Math Syntax & Variables:
+- **Candidate Variables:** `tech` (0-100), `exp` (0-100), `synergy` (0-100), `completeness` (0-100), `commits`, `stars`, `wins`, `team_size`, `skills`.
+- **Operators:** `+`, `-`, `*`, `/`, `%`, `^` (power), `==`, `!=`, `>`, `<`, `>=`, `<=`, and ternary `condition ? trueVal : falseVal`.
+- **Math Functions:** `min(...)`, `max(...)`, `log10(...)`, `sqrt(...)`, `abs(...)`, `round(...)`, `clamp(val, min, max)`.
+- **Live Syntax & Error Validator:** Instant feedback verifying math validity and displaying benchmark test output in green or pinpointing syntax errors in red.
+- **Live Sandbox Simulation:** Real-time side-by-side comparison table showing how top teams' scores and ranks shift before applying.
+
+---
+
 ## 🛠️ Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.
-   - **Live Candidate Leaderboard:** Ranked shortlist with visual Top $X$ Cutoff boundary.
+   - **Live Candidate Leaderboard:** Ranked shortlist with visual Top $X$ Cutoff boundary and Sticky Action buttons.
    - **Filter Pills:** Real-time filtering by Shortlist, Waitlist, and Disqualified.
    - **Responsive Views:** Desktop tabular view and mobile-friendly card view for small screens.
    - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Custom Column Mapper.
 2. **Formula & Algorithm Studio (`/formulas`):**
-   - Direct control over every mathematical multiplier, divisor, and threshold.
-   - Live mathematical equations updating dynamically.
+   - **Custom Formula Expression Studio:** Write and test custom equations with live validator and sandbox simulation.
+   - **Tunable Math Multipliers:** Direct control over every coefficient, divisor, and threshold.
    - **"Reset Defaults"** button to restore factory settings.
    - **"Revert Config"** button for instant undo.
    - **Export & Import** formula configurations as portable JSON files.
