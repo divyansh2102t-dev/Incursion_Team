@@ -1,4 +1,29 @@
-import { SelectionConfig } from '@/types';
+import { FormulaCoefficients, SelectionConfig } from '@/types';
+
+export const DEFAULT_FORMULA_COEFFICIENTS: FormulaCoefficients = {
+  // Resume & Hackathon Experience
+  hackathonPointsPerWin: 25,
+  hackathonMaxPoints: 50,
+  skillPointsPerMatch: 4,
+  skillMaxPoints: 30,
+  verifiableLinksBonusPoints: 20,
+
+  // GitHub & Code Output
+  githubContribMaxPoints: 60,
+  githubContribDivisor: 250,
+  githubStarsMaxPoints: 20,
+  githubStarsDivisor: 15,
+  githubSkillBreadthMaxPoints: 20,
+  githubSkillDivisor: 10,
+
+  // Anti-cheat penalty factor
+  suspiciousAccountDiscount: 0.70,
+
+  // Team Normalization
+  diminishingReturnsBase: 1.5,
+  balancedMeanBonusPerMember: 0.08,
+  balancedMeanMaxCap: 1.40,
+};
 
 export const PRESETS: Record<string, SelectionConfig> = {
   balanced: {
@@ -24,6 +49,7 @@ export const PRESETS: Record<string, SelectionConfig> = {
       order: ['diversity', 'githubContributions', 'completeness', 'earliestSubmission'],
     },
     anonymizeMode: false,
+    formulaCoefficients: { ...DEFAULT_FORMULA_COEFFICIENTS },
   },
 
   deepTech: {
@@ -49,6 +75,12 @@ export const PRESETS: Record<string, SelectionConfig> = {
       order: ['githubContributions', 'diversity', 'completeness', 'earliestSubmission'],
     },
     anonymizeMode: false,
+    formulaCoefficients: {
+      ...DEFAULT_FORMULA_COEFFICIENTS,
+      githubContribMaxPoints: 70,
+      githubContribDivisor: 300,
+      githubStarsMaxPoints: 25,
+    },
   },
 
   beginnerFriendly: {
@@ -74,6 +106,12 @@ export const PRESETS: Record<string, SelectionConfig> = {
       order: ['completeness', 'diversity', 'earliestSubmission', 'githubContributions'],
     },
     anonymizeMode: false,
+    formulaCoefficients: {
+      ...DEFAULT_FORMULA_COEFFICIENTS,
+      hackathonPointsPerWin: 15,
+      skillPointsPerMatch: 6,
+      verifiableLinksBonusPoints: 30,
+    },
   },
 
   aiProduct: {
@@ -99,6 +137,11 @@ export const PRESETS: Record<string, SelectionConfig> = {
       order: ['diversity', 'githubContributions', 'earliestSubmission', 'completeness'],
     },
     anonymizeMode: false,
+    formulaCoefficients: {
+      ...DEFAULT_FORMULA_COEFFICIENTS,
+      hackathonPointsPerWin: 30,
+      skillPointsPerMatch: 5,
+    },
   },
 };
 

@@ -1,4 +1,4 @@
-import { AggregationStrategy, MemberProfile, RoleCategory } from '@/types';
+import { AggregationStrategy, FormulaCoefficients, MemberProfile, RoleCategory } from '@/types';
 
 export interface AggregatedSignals {
   avgGithubContributions: number;
@@ -17,7 +17,8 @@ export interface AggregatedSignals {
  */
 export function aggregateTeamSignals(
   members: MemberProfile[],
-  strategy: AggregationStrategy
+  strategy: AggregationStrategy,
+  coefficients?: FormulaCoefficients
 ): AggregatedSignals {
   if (members.length === 0) {
     return {
@@ -81,7 +82,11 @@ export function aggregateTeamSignals(
     (completenessList.reduce((a, b) => a + b, 0) / members.length).toFixed(2)
   );
 
-  // Compute effective contributions according to strategy
+  // Compute effective contributions according to strategy & dynamic formula coefficients
+  const dimBase = coefficients?.diminishingReturnsBase ?? 1.5;
+  const meanBonus = coefficients?.balancedMeanBonusPerMember ?? 0.08;
+  const meanCap = coefficients?.balancedMeanMaxCap ?? 1.40;
+
   let effectiveContrib: number;
   let explanation = '';
 
@@ -89,16 +94,16 @@ export function aggregateTeamSignals(
     effectiveContrib = maxContrib;
     explanation = `Max-Skill Normalization: Evaluation driven by strongest member's contribution (${maxContrib} contribs). Solo and smaller teams compete on equal footing with top talent.`;
   } else if (strategy === 'DIMINISHING_RETURNS') {
-    // Leader gets 100%, 2nd gets 50%, 3rd gets 25%, etc.
+    // Dynamic diminishing returns base
     let sum = 0;
     contributionsList.forEach((val, idx) => {
-      sum += val / Math.pow(1.5, idx);
+      sum += val / Math.pow(dimBase, idx);
     });
     effectiveContrib = Math.round(sum);
-    explanation = `Diminishing Returns Normalization: Leader counts 100%, 2nd member 66%, 3rd member 44%. Balances group synergy without overwhelming solo prodigies.`;
+    explanation = `Diminishing Returns Normalization: Base ${dimBase.toFixed(1)} dampening per member. Balances group synergy without overwhelming solo prodigies.`;
   } else {
-    // BALANCED_MEAN (capped at 1.4x synergy boost to prevent inflation for large teams)
-    const synergyMultiplier = Math.min(1.4, 1 + (members.length - 1) * 0.08);
+    // BALANCED_MEAN (dynamic synergy boost and cap)
+    const synergyMultiplier = Math.min(meanCap, 1 + (members.length - 1) * meanBonus);
     effectiveContrib = Math.round(avgContrib * synergyMultiplier);
     explanation = `Balanced Mean Normalization: Average member contribution with capped synergy boost (+${Math.round((synergyMultiplier - 1) * 100)}%).`;
   }

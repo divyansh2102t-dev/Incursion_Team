@@ -104,6 +104,31 @@ export interface TieBreakerConfig {
   order: Array<'diversity' | 'githubContributions' | 'completeness' | 'earliestSubmission'>;
 }
 
+export interface FormulaCoefficients {
+  // Resume & Experience formula parameters
+  hackathonPointsPerWin: number;       // default 25
+  hackathonMaxPoints: number;          // default 50
+  skillPointsPerMatch: number;         // default 4
+  skillMaxPoints: number;              // default 30
+  verifiableLinksBonusPoints: number;  // default 20
+
+  // GitHub & Technical depth formula parameters
+  githubContribMaxPoints: number;      // default 60
+  githubContribDivisor: number;        // default 250
+  githubStarsMaxPoints: number;        // default 20
+  githubStarsDivisor: number;          // default 15
+  githubSkillBreadthMaxPoints: number; // default 20
+  githubSkillDivisor: number;          // default 10
+
+  // Anti-cheat penalty factor
+  suspiciousAccountDiscount: number;   // default 0.70 (30% discount)
+
+  // Team Normalization parameters
+  diminishingReturnsBase: number;      // default 1.5
+  balancedMeanBonusPerMember: number;  // default 0.08
+  balancedMeanMaxCap: number;          // default 1.40
+}
+
 export interface SelectionConfig {
   presetName: string;
   shortlistCount: number; // Top X
@@ -113,6 +138,7 @@ export interface SelectionConfig {
   missingDataPolicy: MissingDataPolicy;
   tieBreakers: TieBreakerConfig;
   anonymizeMode: boolean; // Blind review mode
+  formulaCoefficients: FormulaCoefficients;
 }
 
 export interface ColumnMappingConfig {

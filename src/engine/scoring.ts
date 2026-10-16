@@ -2,6 +2,7 @@ import { RoleCategory, SelectionConfig, TeamComputedMetrics, TeamRecord } from '
 import { runGlobalAntiCheatAudit } from './antiCheat';
 import { evaluateHardFilters } from './filters';
 import { aggregateTeamSignals } from './normalization';
+import { DEFAULT_FORMULA_COEFFICIENTS } from '@/presets/defaultPresets';
 
 export function runFullShortlistingEngine(
   teams: TeamRecord[],
@@ -9,29 +10,47 @@ export function runFullShortlistingEngine(
 ): TeamRecord[] {
   // Step 1: Run Anti-Cheat Cross-Team Audit
   const antiCheatMap = runGlobalAntiCheatAudit(teams);
+  const coef = config.formulaCoefficients || DEFAULT_FORMULA_COEFFICIENTS;
 
   // Step 2: Compute individual metrics per team
   const computedTeams: TeamRecord[] = teams.map((team) => {
-    const aggregated = aggregateTeamSignals(team.members, config.aggregationStrategy);
+    const aggregated = aggregateTeamSignals(team.members, config.aggregationStrategy, coef);
     const filterAudit = evaluateHardFilters(team.members, aggregated, config.filters);
     const antiCheatFlags = antiCheatMap.get(team.id) || [];
 
     // --- Dimension 1: Technical Depth (0 - 100) ---
-    // Scale contributions (0 - 300 scale -> 0 - 60) + stars (0 - 20) + skill diversity (0 - 20)
-    const contribNorm = Math.min(60, (aggregated.avgGithubContributions / 250) * 60);
-    const starsNorm = Math.min(20, (aggregated.totalGithubStars / 15) * 20);
-    const skillsCountNorm = Math.min(20, (aggregated.totalUniqueSkills.length / 10) * 20);
+    const contribNorm = Math.min(
+      coef.githubContribMaxPoints,
+      (aggregated.avgGithubContributions / (coef.githubContribDivisor || 1)) * coef.githubContribMaxPoints
+    );
+    const starsNorm = Math.min(
+      coef.githubStarsMaxPoints,
+      (aggregated.totalGithubStars / (coef.githubStarsDivisor || 1)) * coef.githubStarsMaxPoints
+    );
+    const skillsCountNorm = Math.min(
+      coef.githubSkillBreadthMaxPoints,
+      (aggregated.totalUniqueSkills.length / (coef.githubSkillDivisor || 1)) * coef.githubSkillBreadthMaxPoints
+    );
     let rawTechnicalScore = Math.round(contribNorm + starsNorm + skillsCountNorm);
 
     // Apply anti-cheat penalty if forked/suspicious
     if (antiCheatFlags.some((f) => f.includes('Suspicious') || f.includes('forked'))) {
-      rawTechnicalScore = Math.round(rawTechnicalScore * 0.7);
+      rawTechnicalScore = Math.round(rawTechnicalScore * coef.suspiciousAccountDiscount);
     }
 
     // --- Dimension 2: Project Experience & Achievements (0 - 100) ---
-    const hackathonScore = Math.min(50, aggregated.totalHackathonCount * 25);
-    const repoBonus = Math.min(30, aggregated.totalUniqueSkills.length * 4);
-    const rawExperienceScore = Math.min(100, Math.round(hackathonScore + repoBonus + (aggregated.totalGithubStars > 0 ? 20 : 0)));
+    const hackathonScore = Math.min(
+      coef.hackathonMaxPoints,
+      aggregated.totalHackathonCount * coef.hackathonPointsPerWin
+    );
+    const skillsScore = Math.min(
+      coef.skillMaxPoints,
+      aggregated.totalUniqueSkills.length * coef.skillPointsPerMatch
+    );
+    const hasProofBonus =
+      aggregated.totalGithubStars > 0 || team.members.some((m) => m.rawSignals.hasPortfolio);
+    const proofBonus = hasProofBonus ? coef.verifiableLinksBonusPoints : 0;
+    const rawExperienceScore = Math.min(100, Math.round(hackathonScore + skillsScore + proofBonus));
 
     // --- Dimension 3: Skill Complementarity & Diversity (0 - 100) ---
     // Full coverage across 4 key roles (frontend, backend, ai_ml, design) yields 100
