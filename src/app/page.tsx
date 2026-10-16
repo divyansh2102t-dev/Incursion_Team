@@ -15,6 +15,7 @@ import { TeamModal } from '@/components/TeamModal';
 import { ColumnMapperModal } from '@/components/ColumnMapperModal';
 import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
+import { GitHubSyncModal } from '@/components/GitHubSyncModal';
 
 export default function Home() {
   const [config, setConfig] = useState<SelectionConfig>(DEFAULT_CONFIG);
@@ -28,6 +29,7 @@ export default function Home() {
   const [isMapperOpen, setIsMapperOpen] = useState(false);
   const [isSensitivityOpen, setIsSensitivityOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isGitHubSyncOpen, setIsGitHubSyncOpen] = useState(false);
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
   const [compareTeamBId, setCompareTeamBId] = useState<string | undefined>();
 
@@ -142,6 +144,7 @@ export default function Home() {
         onOpenMapper={() => setIsMapperOpen(true)}
         onOpenSensitivity={() => setIsSensitivityOpen(true)}
         onOpenCompare={() => handleLaunchCompare()}
+        onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
         onExportCSV={() => exportShortlistToCSV(rankedTeams, config, config.shortlistCount)}
         onExportJSON={() => exportShortlistWithConfigJSON(rankedTeams, config, config.shortlistCount)}
         hasData={baseTeams.length > 0}
@@ -239,6 +242,15 @@ export default function Home() {
           teams={rankedTeams}
           config={config}
           onClose={() => setIsSensitivityOpen(false)}
+        />
+      )}
+
+      {/* GitHub Multi-Token & Sync Modal */}
+      {isGitHubSyncOpen && (
+        <GitHubSyncModal
+          teams={baseTeams}
+          onUpdateTeamsWithLiveStats={setBaseTeams}
+          onClose={() => setIsGitHubSyncOpen(false)}
         />
       )}
     </div>
