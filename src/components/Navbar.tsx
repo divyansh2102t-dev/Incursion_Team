@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
+import Link from 'next/link';
 import {
   Upload,
   Download,
@@ -13,6 +14,7 @@ import {
   FileSpreadsheet,
   FileCode,
   Code2,
+  Sliders,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 
@@ -101,6 +103,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Upload className="w-3.5 h-3.5" />
             <span>Upload CSV / JSON</span>
           </button>
+
+          {/* Formula Studio Link */}
+          <Link
+            href="/formulas"
+            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg border border-indigo-200 transition-colors flex items-center gap-1.5"
+            title="Open Formula & Algorithm Studio"
+          >
+            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">Formula Studio</span>
+            <span className="sm:hidden">Formulas</span>
+          </Link>
 
           {hasData && (
             <>

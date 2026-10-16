@@ -16,13 +16,21 @@ import { ColumnMapperModal } from '@/components/ColumnMapperModal';
 import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
 import { GitHubSyncModal } from '@/components/GitHubSyncModal';
+import { useApp } from '@/context/AppContext';
 
 export default function Home() {
-  const [config, setConfig] = useState<SelectionConfig>(DEFAULT_CONFIG);
-  const [rawHeaders, setRawHeaders] = useState<string[]>([]);
-  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
-  const [columnMapping, setColumnMapping] = useState<ColumnMappingConfig | null>(null);
-  const [baseTeams, setBaseTeams] = useState<TeamRecord[]>([]);
+  const {
+    config,
+    updateConfig: setConfig,
+    baseTeams,
+    setBaseTeams,
+    rawHeaders,
+    setRawHeaders,
+    rawRows,
+    setRawRows,
+    columnMapping,
+    setColumnMapping,
+  } = useApp();
 
   // Modals state
   const [selectedTeam, setSelectedTeam] = useState<TeamRecord | null>(null);
