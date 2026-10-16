@@ -33,6 +33,7 @@ interface NavbarProps {
   onOpenCompare: () => void;
   onOpenGitHubSync: () => void;
   onOpenResumeSync?: () => void;
+  onOpenParallelSync?: () => void;
   onOpenHistory: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
@@ -51,6 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCompare,
   onOpenGitHubSync,
   onOpenResumeSync,
+  onOpenParallelSync,
   onOpenHistory,
   onExportCSV,
   onExportJSON,
@@ -208,6 +210,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <FileText className="w-3.5 h-3.5 text-cyan-400" />
                   <span className="hidden sm:inline">Resume Sync</span>
+                </button>
+              )}
+
+              {/* Parallel Deep Scan (GitHub + Resumes concurrently) */}
+              {onOpenParallelSync && (
+                <button
+                  onClick={onOpenParallelSync}
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-blue-950/60 to-cyan-950/60 hover:from-blue-900/80 hover:to-cyan-900/80 text-cyan-200 font-bold rounded-lg border border-cyan-400/50 hover:border-cyan-300 transition-colors flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-pointer"
+                  title="Run Live GitHub Velocity & Cloud Resume Parsing Concurrently in Parallel"
+                >
+                  <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span className="hidden sm:inline">Parallel Sync</span>
                 </button>
               )}
 

@@ -17,16 +17,24 @@ import {
   Zap,
   Award,
   ChevronRight,
-  Database
+  Database,
+  Globe,
+  Loader2
 } from 'lucide-react';
 
 interface UploadZoneProps {
   onFileUpload: (file: File, pdfFiles?: File[]) => void;
+  onGoogleSheetSubmit?: (url: string) => Promise<boolean | void>;
 }
 
-export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
+export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload, onGoogleSheetSubmit }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [activeAperture, setActiveAperture] = useState<number | null>(null);
+  const [showSheetsInput, setShowSheetsInput] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [isFetchingSheet, setIsFetchingSheet] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -44,15 +52,20 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const files = Array.from(e.dataTransfer.files);
-      const csvOrJson = files.find(
-        (f) => f.name.endsWith('.csv') || f.name.endsWith('.tsv') || f.name.endsWith('.json')
+      const spreadsheetFile = files.find(
+        (f) =>
+          f.name.endsWith('.csv') ||
+          f.name.endsWith('.tsv') ||
+          f.name.endsWith('.json') ||
+          f.name.endsWith('.xlsx') ||
+          f.name.endsWith('.xls')
       );
       const pdfFiles = files.filter((f) => f.name.endsWith('.pdf'));
 
-      if (csvOrJson) {
-        onFileUpload(csvOrJson, pdfFiles);
+      if (spreadsheetFile) {
+        onFileUpload(spreadsheetFile, pdfFiles);
       } else {
-        alert('Please drop a CSV or JSON hackathon registration file.');
+        alert('Please drop an Excel (.xlsx, .xls), CSV, or JSON registration file.');
       }
     }
   };
@@ -62,16 +75,49 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
     if (files && files.length > 0) {
       const fileList = Array.from(files);
       const candidateFile =
-        fileList.find((f) => /register|team|applicant|submission/i.test(f.name) && (f.name.endsWith('.csv') || f.name.endsWith('.json'))) ||
-        fileList.find((f) => f.name.endsWith('.csv') || f.name.endsWith('.tsv') || f.name.endsWith('.json'));
+        fileList.find(
+          (f) =>
+            /register|team|applicant|submission/i.test(f.name) &&
+            (f.name.endsWith('.csv') ||
+              f.name.endsWith('.json') ||
+              f.name.endsWith('.xlsx') ||
+              f.name.endsWith('.xls'))
+        ) ||
+        fileList.find(
+          (f) =>
+            f.name.endsWith('.csv') ||
+            f.name.endsWith('.tsv') ||
+            f.name.endsWith('.json') ||
+            f.name.endsWith('.xlsx') ||
+            f.name.endsWith('.xls')
+        );
 
       const pdfFiles = fileList.filter((f) => f.name.endsWith('.pdf'));
 
       if (candidateFile) {
         onFileUpload(candidateFile, pdfFiles);
       } else {
-        alert('No CSV or JSON spreadsheet found in the selected folder.');
+        alert('No Excel, CSV, or JSON spreadsheet found in the selected folder.');
       }
+    }
+  };
+
+  const handleImportSheet = async () => {
+    if (!sheetUrl.trim()) return;
+    setIsFetchingSheet(true);
+    setSheetError(null);
+
+    try {
+      if (onGoogleSheetSubmit) {
+        await onGoogleSheetSubmit(sheetUrl.trim());
+      }
+      setShowSheetsInput(false);
+      setSheetUrl('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to import Google Sheet';
+      setSheetError(msg);
+    } finally {
+      setIsFetchingSheet(false);
     }
   };
 
@@ -86,7 +132,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
             onFileUpload(e.target.files[0]);
           }
         }}
-        accept=".csv,.tsv,.json"
+        accept=".csv,.tsv,.json,.xlsx,.xls"
         className="hidden"
       />
 
@@ -157,11 +203,11 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
                 </div>
 
                 {/* Primary Action Buttons */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
                     <span>Select File</span>
@@ -170,17 +216,71 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
                   <button
                     type="button"
                     onClick={() => folderInputRef.current?.click()}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-cyan-300 font-bold text-xs uppercase tracking-wider rounded-xl border border-zinc-700 hover:border-cyan-400 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-cyan-300 font-bold text-xs uppercase tracking-wider rounded-xl border border-zinc-700 hover:border-cyan-400 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     title="Select a directory containing your registration data"
                   >
                     <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
                     <span>Select Folder</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSheetsInput(!showSheetsInput)}
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 font-bold text-xs uppercase tracking-wider rounded-xl border border-emerald-700/60 hover:border-emerald-400 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Import cohort from a Google Sheets document link"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Google Sheets</span>
+                  </button>
                 </div>
               </div>
 
+              {/* Google Sheets Live Import Bar */}
+              {showSheetsInput && (
+                <div className="mt-3 p-3.5 bg-black/80 border border-emerald-500/40 rounded-xl space-y-2 animate-fade-in">
+                  <div className="flex items-center justify-between text-xs text-emerald-400 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5" />
+                      Import Live Google Sheet URL
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-normal">
+                      Must be set to &apos;Anyone with the link can view&apos;
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <input
+                      type="text"
+                      value={sheetUrl}
+                      onChange={(e) => setSheetUrl(e.target.value)}
+                      placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0X.../edit#gid=0"
+                      className="w-full sm:flex-1 px-3 py-2 bg-zinc-900/90 border border-zinc-700 focus:border-emerald-400 rounded-lg text-xs text-zinc-100 font-mono outline-hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleImportSheet}
+                      disabled={isFetchingSheet || !sheetUrl.trim()}
+                      className="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs uppercase rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    >
+                      {isFetchingSheet ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Importing...</span>
+                        </>
+                      ) : (
+                        <span>Fetch & Ingest</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {sheetError && (
+                    <p className="text-[11px] text-amber-400 font-sans">{sheetError}</p>
+                  )}
+                </div>
+              )}
+
               <div className="mt-2.5 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] text-zinc-500 uppercase">
-                <span>Google Forms CSV · Typeform · Devpost · Custom JSON</span>
+                <span>Google Sheets · Excel (.xlsx, .xls) · CSV · JSON</span>
                 <span className="text-cyan-500">Volatile RAM Ingestion</span>
               </div>
             </div>

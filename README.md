@@ -9,7 +9,9 @@ A reusable, 100% zero-cost ($0 API bills) recruitment automation platform design
 
 - **100% Zero-Cost ($0 API Bills):** Eliminates paid LLM tokens by using fast, deterministic client-side regex taxonomy parsing, public REST endpoints, and in-memory Web Workers.
 - **Zero Database Storage / Volatile In-Memory:** Candidate resumes and spreadsheets exist solely in volatile browser RAM and are immediately discarded after scoring. Zero database, zero data retention, and zero GDPR/privacy liability.
-- **Above-The-Fold Cyber Terminal:** Direct file drop, **Select File**, and **Select Folder** directory pickers (`webkitdirectory`) with an Arc-Reactor telemetry HUD wheel featuring planetary gear counter-rotating icons that always stay upright.
+- **Universal Multi-Format Intake:** Ingests cohorts from **CSV, JSON, Excel (`.xlsx`, `.xls`)**, and **Live Google Sheets URLs** with automated server-side CORS resolution.
+- **Concurrent Dual-Stream Parallel Scoring:** Audits candidate GitHub accounts and extracts PDF/Cloud resumes simultaneously in parallel without blocking each other.
+- **Above-The-Fold Cyber Terminal:** Direct file drop, **Select File**, **Select Folder** directory pickers (`webkitdirectory`), and **Google Sheets Link** drawer with an Arc-Reactor telemetry HUD wheel featuring planetary gear counter-rotating icons that always stay upright.
 - **Two-Way Number Input & Sliders:** Both the Settings panel and the **Formula & Algorithm Studio** (`/formulas`) allow organizers to either drag slider bars or manually type exact numbers, with real-time auto-synchronization.
 - **Encrypted Multi-Token GitHub Manager:** Client-side encrypted token vault supporting multiple organizer tokens, live quota tracking, and automatic failover for high-volume cohorts.
 - **Unopinionated & Fully Tunable:** Dedicated **Formula & Algorithm Studio** (`/formulas`) where organizers can tune the exact mathematical multipliers and normalizers with factory reset and undo buttons.
@@ -77,7 +79,51 @@ $$\text{Experience Score} = \min\Big(E_{\max},\; (\text{Wins} \times P_{\text{wi
 
 ---
 
-## ⚖️ 3. Team-Size Normalization Models
+## ⚡ 3. Dual-Stream Concurrent Parallel Scoring Engine
+
+When evaluating large hackathon cohorts, Incursion can run GitHub velocity auditing and Cloud Resume PDF text extraction **concurrently in parallel** without blocking each other.
+
+```mermaid
+flowchart TD
+    A["Cohort Submission Intake\n(CSV / JSON / Excel / Google Sheets)"] --> B["Dual-Stream Parallel Orchestrator"]
+    B --> C["Stream A: Live GitHub Velocity Inspector"]
+    B --> D["Stream B: Resume Intelligence Extractor"]
+    
+    C --> C1["Query GitHub REST API\n(User stats, commit activity, language distributions)"]
+    C --> C2["Anti-Cheat Heuristic\n(Detects 100% fork padding & 0 commits)"]
+    
+    D --> D1["Server-side Stream Resolver\n(/api/parse-resume bypasses CORS)"]
+    D --> D2["Universal unpdf Extractor\n(Extracts skills, hackathons & embedded links)"]
+    
+    C1 & C2 & D1 & D2 --> E["Synchronized Signal Merger"]
+    E --> F["Live Re-Ranking Engine\n(Updates Technical Depth & Experience in Real-Time)"]
+```
+
+### Key Parallel Architecture Highlights:
+- **Zero Blocking / Concurrency:** Stream A iterates through GitHub handles using the active organizer token pool (up to 5,000 req/hr), while Stream B simultaneously streams and parses candidate Google Drive/Dropbox PDF resumes via `unpdf`.
+- **Live Dual-Progress HUD Modal (`Parallel Deep Scan`):** Displays side-by-side animated progress bars showing real-time scanned counts, active usernames, and parsed resume tallies.
+- **Unified Cohort Enrichment:** Once streams complete, newly discovered repositories, commits, verified skills, and competition accolades are merged into candidate profiles and the cohort is immediately re-ranked.
+- **One-Click Trigger:** Accessible from both the top navigation bar (`Parallel Sync`) and the dashboard action bar (`Parallel Deep Scan`).
+
+---
+
+## 📊 4. Universal Data Ingestion: Excel & Live Google Sheets
+
+Organizers can import candidate registrations across any standard tabular format without conversion:
+
+- **Excel Spreadsheets (`.xlsx`, `.xls`):**
+  - Drop or select native Excel files directly into the upload terminal.
+  - Processed entirely in browser memory via binary ArrayBuffer parsing (`xlsx`) with zero disk writes and zero cloud upload.
+- **Live Google Sheets Links:**
+  - Paste any Google Sheet share URL (e.g. `https://docs.google.com/spreadsheets/d/.../edit#gid=0`).
+  - Next.js server-side route (`/api/fetch-sheet`) automatically extracts the Spreadsheet ID and sheet GID, fetches the CSV export stream server-side (bypassing browser CORS restrictions), and ingests the cohort in seconds.
+  - Detects private/locked sheets and instructs the organizer to toggle "Anyone with the link can view".
+- **CSV, TSV & Custom JSON:**
+  - Full support for Google Forms exports, Typeform, Devpost, and Tally registration dumps.
+
+---
+
+## ⚖️ 5. Team-Size Normalization Models
 
 To keep solo prodigies and multi-member teams on equal footing:
 - **`MAX_SKILL`:** Highest skill in each discipline sets the team rating. Solo hackers equalized.
@@ -90,7 +136,7 @@ To keep solo prodigies and multi-member teams on equal footing:
 
 ---
 
-## 🛡️ 4. Qualification Filters & Mandatory GitHub Requirements
+## 🛡️ 6. Qualification Filters & Mandatory GitHub Requirements
 
 The hard-qualification pipeline enforces eligibility before candidates enter the scoring matrix:
 - **Mandatory GitHub Requirement Modes:**
@@ -104,7 +150,7 @@ The hard-qualification pipeline enforces eligibility before candidates enter the
 
 ---
 
-## 🎛️ 5. Two-Way Synchronized Manual Typing & Sliders
+## 🎛️ 7. Two-Way Synchronized Manual Typing & Sliders
 
 Every adjustable metric on the platform provides dual input modes:
 - **Direct Manual Typing:** Type exact numbers or thresholds directly into the `<input type="number" />` field.
@@ -117,7 +163,7 @@ This applies across:
 
 ---
 
-## 📜 6. Scoring Run History & Audit Vault
+## 📜 8. Scoring Run History & Audit Vault
 
 Organizers can capture, name, manage, and restore scoring runs with complete audit fidelity:
 - **Custom Scoring Names:** Name any scoring run snapshot upon creation (e.g., *"Round 1 Cutoff"*, *"Pre-Sponsor Filter"*, *"Equalized Solo Bias"*).
@@ -129,7 +175,7 @@ Organizers can capture, name, manage, and restore scoring runs with complete aud
 
 ---
 
-## 🧮 7. Custom Mathematical Formula Expression Studio (`/formulas`)
+## 🧮 9. Custom Mathematical Formula Expression Studio (`/formulas`)
 
 Organizers are not limited to fixed linear weights. A built-in, injection-safe mathematical expression engine allows organizers to author arbitrary scoring equations using live cohort signals:
 
