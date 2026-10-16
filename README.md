@@ -15,6 +15,8 @@ A reusable, 100% zero-cost ($0 API bills) recruitment automation platform design
 - **Two-Way Number Input & Sliders:** Both the Settings panel and the **Formula & Algorithm Studio** (`/formulas`) allow organizers to either drag slider bars or manually type exact numbers, with real-time auto-synchronization.
 - **Encrypted Multi-Token GitHub Manager:** Client-side encrypted token vault supporting multiple organizer tokens, live quota tracking, and automatic failover for high-volume cohorts.
 - **Unopinionated & Fully Tunable:** Dedicated **Formula & Algorithm Studio** (`/formulas`) where organizers can tune the exact mathematical multipliers and normalizers with factory reset and undo buttons.
+- **Progressive Web App (PWA) & Offline Shell:** Installable on desktop & mobile with standalone window, maskable icons, and a Service Worker providing instant load and offline caching.
+- **Enterprise SEO & Brand Identity:** Custom geometric vector cyber logo (`/icon.svg`), automated OpenGraph & Twitter social cards, JSON-LD schema, dynamic `/sitemap.xml`, and `/robots.txt`.
 - **Mobile-Friendly UI:** Responsive table/card view toggle, mobile search, and touch-optimized controls.
 
 ---
@@ -199,7 +201,26 @@ flowchart LR
 
 ---
 
-## 🛠️ Multi-Page Application Layout
+## 🌐 10. SEO Optimization, Brand Identity & Progressive Web App (PWA)
+
+Incursion is built as a production-grade, installable Progressive Web App (PWA) with comprehensive search engine discovery and custom cyber-industrial branding:
+
+- **Official Cyber Vector Logo (`/icon.svg` & `/logo.svg`):**
+  - Custom geometric apex shield emblem with glowing neon cyan core, reactor pulse gem, and circuit-trace bus lines.
+  - Rendered natively in the top Navigation pill, formulas header, browser tab favicon, and PWA launch icons.
+- **Progressive Web App (PWA) Installability:**
+  - **Service Worker (`/sw.js`):** Intercepts navigation and static assets with a network-first strategy and offline cache fallback, allowing organizers to access scoring history and rankings even during offline venue network drops.
+  - **Web App Manifest (`/manifest.webmanifest` & `/manifest.json`):** Full standalone display configuration with `theme_color: '#06b6d4'`, `background_color: '#030712'`, and adaptive maskable icons (192x192, 512x512).
+  - **Interactive Install Banner:** Detects browser `beforeinstallprompt` and offers a one-click desktop/mobile app installation prompt.
+- **Enterprise Search Engine Optimization (SEO):**
+  - **Next.js Metadata API:** Canonical URLs, rich title templates, comprehensive meta descriptions, author tags, and 15+ high-intent hackathon recruitment keywords.
+  - **Social Graph Sharing:** Pre-configured OpenGraph (`og:image`, `og:title`, `og:type`) and Twitter Cards (`summary_large_image`) for rich previews on Slack, Discord, Twitter/X, and LinkedIn.
+  - **Automated Sitemaps & Robots:** Built-in dynamic `/sitemap.xml` and `/robots.txt` generated directly via Next.js App Router.
+  - **JSON-LD Structured Data:** Injected Schema.org `WebApplication` metadata declaring $0 cost, operating system support, and recruitment features for Google Rich Results.
+
+---
+
+## 🛠️ 11. Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.

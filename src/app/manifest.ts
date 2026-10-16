@@ -1,0 +1,35 @@
+import type { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Incursion — Autonomous Hackathon Recruitment Engine',
+    short_name: 'Incursion',
+    description:
+      'Deterministic, tunable, and explainable team recruitment and candidate shortlisting platform for hackathons.',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#030712',
+    theme_color: '#06b6d4',
+    orientation: 'any',
+    icons: [
+      {
+        src: '/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+      },
+    ],
+    categories: ['productivity', 'developer', 'utilities'],
+  };
+}

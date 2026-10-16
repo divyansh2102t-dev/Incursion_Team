@@ -81,8 +81,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group cursor-pointer text-left"
               title="Open Incursion Home & Upload Terminal"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
-                <Zap className="w-3.5 h-3.5 text-black fill-black" />
+              {/* Official Incursion Cyber Emblem */}
+              <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-transform">
+                <img
+                  src="/icon.svg"
+                  alt="Incursion Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -104,8 +109,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group"
               title="Open Incursion Home & Upload Terminal"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
-                <Zap className="w-3.5 h-3.5 text-black fill-black" />
+              <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-transform">
+                <img
+                  src="/icon.svg"
+                  alt="Incursion Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
