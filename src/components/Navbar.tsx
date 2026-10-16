@@ -19,6 +19,7 @@ import {
   Zap,
   History,
   LayoutDashboard,
+  FileText,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -31,6 +32,7 @@ interface NavbarProps {
   onOpenSensitivity: () => void;
   onOpenCompare: () => void;
   onOpenGitHubSync: () => void;
+  onOpenResumeSync?: () => void;
   onOpenHistory: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
@@ -48,6 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSensitivity,
   onOpenCompare,
   onOpenGitHubSync,
+  onOpenResumeSync,
   onOpenHistory,
   onExportCSV,
   onExportJSON,
@@ -195,6 +198,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Code2 className="w-3.5 h-3.5 text-blue-400" />
                 <span className="hidden sm:inline">GitHub PAT</span>
               </button>
+
+              {/* Resume Intelligence & Sync */}
+              {onOpenResumeSync && (
+                <button
+                  onClick={onOpenResumeSync}
+                  className="px-2.5 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 font-medium rounded-lg border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Scan & Parse Candidate Google Drive & PDF Resumes"
+                >
+                  <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">Resume Sync</span>
+                </button>
+              )}
 
               {/* Mapper */}
               <button

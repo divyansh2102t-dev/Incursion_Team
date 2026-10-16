@@ -44,21 +44,28 @@ $$\text{Tech Score} = \min\left(C_{\max},\; \frac{\text{Commits}}{D_{\text{contr
 
 ---
 
-## 📄 2. Resume & Document Parsing Architecture
+## 📄 2. Resume Intelligence & Cloud Drive Parsing Architecture
 
-Resumes and portfolios are evaluated in real time in volatile browser memory using deterministic Natural Language Processing (NLP) taxonomy matching.
+Resumes and portfolios are evaluated with a 100% zero-cost, unlimited parsing pipeline that processes both local PDF files and cloud storage links (Google Drive, Dropbox, direct URLs) in volatile memory using deterministic Natural Language Processing (NLP) taxonomy matching.
 
 ```mermaid
 flowchart TD
-    A["Candidate Resume\n(PDF file or link)"] --> B["Volatile Browser Buffer\n(ArrayBuffer in Memory)"]
-    B --> C["Client-side Text Extractor\n(Zero Disk / Zero Database)"]
-    C --> D["Taxonomy Matcher\n(Strict word-boundary regex \b)"]
-    D --> E["1. Skill Extraction across 7 disciplines\n(Frontend, Backend, AI/ML, Mobile, Design, DevOps, Cloud)"]
-    D --> F["2. Accolade & Hackathon Scanner\n(1st place, winner, finalist, SIH, ETHIndia, MLH)"]
-    D --> G["3. Proof-of-Work Verifier\n(Working demos, portfolios, live URLs)"]
-    E & F & G --> H["Calculate Normalized Experience Score\n(0 to 100 scale)"]
-    H --> I["Release Buffer from RAM\n(Automatic Browser Garbage Collection)"]
+    A["Candidate Resume Submission"] --> B{"Submission Type"}
+    B -- "Google Drive / Dropbox Link in CSV" --> C["Next.js Server-Side Resolver (/api/parse-resume)\n- Bypasses browser CORS\n- Downloads public stream via File ID"]
+    B -- "Local PDF Files / Folder Drop" --> D["Client-Side In-Memory Buffer\n(ArrayBuffer in volatile RAM)"]
+    C & D --> E["unpdf (Universal PDF Text Extractor)\n- Zero native dependencies\n- 100% free, unlimited, $0 tokens"]
+    E --> F["Full Text Stream\n(Skills, Work History, Education, Accolades)"]
+    F --> G["Taxonomy & Accolade Engine\n- Matches 7-discipline skills (Next.js, PyTorch, Go, etc.)\n- Scans hackathon wins (SIH, ETHIndia, MLH)\n- Detects GitHub / Portfolio links inside PDF"]
+    G --> H["Live Leaderboard Re-ranking\n(Updates Technical Depth & Experience Scores)"]
 ```
+
+### Key Resume Intelligence Capabilities:
+- **Zero-Cost & Unlimited (`unpdf`):** Standard paid PDF parsing APIs cost \$0.01–\$0.05 per document. Incursion uses universal `unpdf` text extraction with zero native dependencies, allowing cohorts of 500+ candidates to be analyzed at \$0 API bill with no rate limits.
+- **Server-Side Google Drive Resolver (`/api/parse-resume`):** Google Drive links in candidate CSVs cannot be fetched directly in the browser due to CORS headers. Incursion's Next.js route extracts the unique file ID (`drive.google.com/file/d/{id}` or `?id={id}`), streams the public file server-side, detects private/permission-locked links, and extracts the text stream.
+- **Local Multi-PDF & Folder Matching:** Drop an entire folder of PDF resumes or select multiple files. The matcher pairs resumes with candidates by name, email handle, or header text occurrences in real-time RAM.
+- **Automatic Signal Discovery:** If a candidate forgot to input their GitHub or portfolio in the registration form, the parser extracts embedded `github.com/...` or LinkedIn handles from their PDF resume and automatically enriches their profile for GitHub evaluation.
+- **Diagnostic Telemetry Modal (`Resume Sync`):** Accessible from the top navigation bar and dashboard action row, the Resume Sync modal displays live status (`PARSED`, `PRIVATE LINK`, `FAILED`), batch-processes links with a progress bar, and re-ranks the cohort with one click.
+- **Zero Database Retention:** Documents are parsed strictly in volatile RAM and immediately discarded. No personal data, PDFs, or candidate information is ever stored to disk or database.
 
 ### Resume Scoring Formula:
 $$\text{Experience Score} = \min\Big(E_{\max},\; (\text{Wins} \times P_{\text{win}}) + (\text{Skills} \times P_{\text{skill}}) + B_{\text{proof}}\Big)$$

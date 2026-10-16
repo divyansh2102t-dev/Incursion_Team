@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 interface UploadZoneProps {
-  onFileUpload: (file: File) => void;
+  onFileUpload: (file: File, pdfFiles?: File[]) => void;
 }
 
 export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
@@ -47,8 +47,10 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
       const csvOrJson = files.find(
         (f) => f.name.endsWith('.csv') || f.name.endsWith('.tsv') || f.name.endsWith('.json')
       );
+      const pdfFiles = files.filter((f) => f.name.endsWith('.pdf'));
+
       if (csvOrJson) {
-        onFileUpload(csvOrJson);
+        onFileUpload(csvOrJson, pdfFiles);
       } else {
         alert('Please drop a CSV or JSON hackathon registration file.');
       }
@@ -63,8 +65,10 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
         fileList.find((f) => /register|team|applicant|submission/i.test(f.name) && (f.name.endsWith('.csv') || f.name.endsWith('.json'))) ||
         fileList.find((f) => f.name.endsWith('.csv') || f.name.endsWith('.tsv') || f.name.endsWith('.json'));
 
+      const pdfFiles = fileList.filter((f) => f.name.endsWith('.pdf'));
+
       if (candidateFile) {
-        onFileUpload(candidateFile);
+        onFileUpload(candidateFile, pdfFiles);
       } else {
         alert('No CSV or JSON spreadsheet found in the selected folder.');
       }
