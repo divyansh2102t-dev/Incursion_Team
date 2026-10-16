@@ -60,6 +60,7 @@ export interface TeamComputedMetrics {
   // Total weighted score
   finalScore: number;
   rank: number;
+  customScoreApplied?: boolean;
 
   // Analysis & Flags
   coveredRoles: RoleCategory[];
@@ -84,10 +85,13 @@ export interface TeamRecord {
 export type AggregationStrategy = 'MAX_SKILL' | 'DIMINISHING_RETURNS' | 'BALANCED_MEAN';
 export type MissingDataPolicy = 'NEUTRAL' | 'PENALTY_10' | 'PENALTY_25';
 
+export type GithubRequirementMode = 'NONE' | 'AT_LEAST_ONE' | 'ALL_MEMBERS';
+
 export interface HardFilterConfig {
   minTeamSize: number;
   maxTeamSize: number;
   requireAtLeastOneGithub: boolean;
+  githubRequirement?: GithubRequirementMode;
   minGithubContributionsOverall: number;
   requireAtLeastOneResumeOrPortfolio: boolean;
   minTotalSkillsCount: number;
@@ -139,6 +143,9 @@ export interface SelectionConfig {
   tieBreakers: TieBreakerConfig;
   anonymizeMode: boolean; // Blind review mode
   formulaCoefficients: FormulaCoefficients;
+  customFormulaEnabled?: boolean;
+  customFormulaExpression?: string;
+  customFormulaName?: string;
 }
 
 export interface ColumnMappingConfig {
@@ -186,3 +193,35 @@ export interface ShortlistRunExport {
     }>;
   }>;
 }
+
+export interface ScoringHistoryEntry {
+  id: string;
+  timestamp: string;
+  name: string;
+  notes?: string;
+  totalTeams: number;
+  shortlistTarget: number;
+  shortlistedCount: number;
+  averageScore: number;
+  highestScore: number;
+  disqualifiedCount: number;
+  pinnedCount: number;
+  excludedCount: number;
+  configSnapshot: SelectionConfig;
+  topTeamsSnapshot: Array<{
+    rank: number;
+    teamName: string;
+    teamSize: number;
+    finalScore: number;
+    isEligible: boolean;
+    status: 'shortlisted' | 'waitlist' | 'rejected' | 'pinned' | 'excluded';
+    scoreBreakdown: {
+      technicalDepth: number;
+      projectExperience: number;
+      skillComplementarity: number;
+      dataCompleteness: number;
+    };
+  }>;
+  baseTeamsSnapshot?: TeamRecord[];
+}
+

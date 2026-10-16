@@ -29,20 +29,38 @@ export function evaluateHardFilters(
     });
   }
 
-  // 2. Require at least one GitHub URL/username
-  if (filters.requireAtLeastOneGithub) {
+  // 2. Mandatory GitHub Profile (At least 1 member vs All participants)
+  const ghReq = filters.githubRequirement || (filters.requireAtLeastOneGithub ? 'AT_LEAST_ONE' : 'NONE');
+  if (ghReq === 'ALL_MEMBERS') {
+    const missingMembers = members.filter(
+      (m) => !Boolean(m.githubUrl || m.rawSignals.githubUsername)
+    );
+    if (missingMembers.length > 0) {
+      failedFilters.push({
+        filterName: 'Mandatory GitHub Profile (All Members)',
+        passed: false,
+        reason: `${missingMembers.length} member(s) (${missingMembers.map((m) => m.name || 'Member').join(', ')}) lack a verifiable GitHub profile link. All participants must provide GitHub.`,
+      });
+    } else {
+      passedFilters.push({
+        filterName: 'Mandatory GitHub Profile (All Members)',
+        passed: true,
+        reason: `All ${members.length} team participant(s) provided a verified GitHub profile.`,
+      });
+    }
+  } else if (ghReq === 'AT_LEAST_ONE') {
     const hasAnyGithub = members.some(
       (m) => Boolean(m.githubUrl || m.rawSignals.githubUsername)
     );
     if (!hasAnyGithub) {
       failedFilters.push({
-        filterName: 'Mandatory GitHub Profile',
+        filterName: 'Mandatory GitHub Profile (≥1 Member)',
         passed: false,
         reason: 'No team member submitted a verifiable GitHub profile link.',
       });
     } else {
       passedFilters.push({
-        filterName: 'Mandatory GitHub Profile',
+        filterName: 'Mandatory GitHub Profile (≥1 Member)',
         passed: true,
         reason: 'At least one member provided a GitHub profile.',
       });

@@ -3,6 +3,7 @@ import { runGlobalAntiCheatAudit } from './antiCheat';
 import { evaluateHardFilters } from './filters';
 import { aggregateTeamSignals } from './normalization';
 import { DEFAULT_FORMULA_COEFFICIENTS } from '@/presets/defaultPresets';
+import { evaluateCustomFormula, MathScope } from '@/utils/mathEvaluator';
 
 export function runFullShortlistingEngine(
   teams: TeamRecord[],
@@ -110,7 +111,37 @@ export function runFullShortlistingEngine(
         rawCompletenessScore * config.weights.dataCompleteness) /
       safeTotalWeights;
 
-    const finalScore = Number((weightedScoreRaw * policyMultiplier).toFixed(2));
+    const standardScore = Number((weightedScoreRaw * policyMultiplier).toFixed(2));
+    let finalScore = standardScore;
+    let customScoreApplied = false;
+
+    // Check if Custom Scoring Formula is enabled & populated
+    if (config.customFormulaEnabled && config.customFormulaExpression?.trim()) {
+      const scope: MathScope = {
+        tech: rawTechnicalScore,
+        exp: rawExperienceScore,
+        synergy: rawComplementarityScore,
+        roles: rawComplementarityScore,
+        completeness: rawCompletenessScore,
+        commits: aggregated.maxGithubContributions || aggregated.avgGithubContributions || 0,
+        stars: aggregated.totalGithubStars || 0,
+        wins: aggregated.totalHackathonCount || 0,
+        hackathon_wins: aggregated.totalHackathonCount || 0,
+        team_size: team.members.length,
+        size: team.members.length,
+        skills: aggregated.totalUniqueSkills.length,
+        skills_count: aggregated.totalUniqueSkills.length,
+      };
+
+      const customEvaluated = evaluateCustomFormula(
+        config.customFormulaExpression,
+        scope,
+        standardScore
+      );
+
+      finalScore = Number((customEvaluated * policyMultiplier).toFixed(2));
+      customScoreApplied = true;
+    }
 
     const computedMetrics: TeamComputedMetrics = {
       isEligible: filterAudit.isEligible,
@@ -121,6 +152,7 @@ export function runFullShortlistingEngine(
       skillComplementarityScore: rawComplementarityScore,
       dataCompletenessScore: rawCompletenessScore,
       finalScore,
+      customScoreApplied,
       rank: 0, // Assigned in step 3
       coveredRoles: coveredRolesList,
       missingRoles: missingRolesList,
