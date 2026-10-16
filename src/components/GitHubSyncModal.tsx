@@ -224,19 +224,19 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
   const activeTokenItem = tokens.find((t) => t.isActive);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col my-auto text-xs text-slate-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="bg-zinc-950 rounded-2xl max-w-2xl w-full shadow-[0_0_50px_rgba(0,0,0,0.9)] border border-cyan-950/80 overflow-hidden max-h-[92vh] flex flex-col my-auto text-xs text-zinc-300 font-mono">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-6 py-4 bg-black/60 border-b border-cyan-950/60 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Code2 className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-bold text-slate-800">
-              GitHub API Tokens & Live Rate Limit Manager
+            <Code2 className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-sm font-black text-cyan-400 tracking-tight uppercase neon-glow-cyan">
+              GitHub API Tokens & Live Rate Limit Vault
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -245,12 +245,12 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
         {/* Body */}
         <div className="p-6 overflow-y-auto space-y-5">
           {/* Encryption & Multi-Account Info */}
-          <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 space-y-1.5">
-            <div className="font-bold text-emerald-900 flex items-center gap-1.5 text-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <div className="bg-black/50 border border-cyan-900/40 rounded-xl p-3.5 space-y-1.5">
+            <div className="font-bold text-cyan-300 flex items-center gap-1.5 text-xs">
+              <ShieldCheck className="w-4 h-4 text-cyan-400" />
               <span>Encrypted & Masked Local Storage</span>
             </div>
-            <p className="text-[11px] text-emerald-800 leading-relaxed">
+            <p className="text-[11px] text-zinc-400 font-sans leading-relaxed">
               Tokens are <strong>encrypted and masked</strong> locally in your browser. They are never exposed in cleartext, never sent to external servers, and never included in audit exports.
             </p>
           </div>
@@ -258,13 +258,13 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
           {/* Token List & Switcher */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+              <span className="font-bold text-zinc-300 uppercase tracking-wider text-[11px]">
                 Configured Organizer Tokens ({tokens.length})
               </span>
               <button
                 type="button"
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="text-blue-600 hover:text-blue-800 font-semibold text-xs flex items-center gap-1"
+                className="text-cyan-400 hover:text-cyan-300 font-bold text-xs flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Another Token</span>
@@ -279,27 +279,27 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                     key={tok.id}
                     className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
                       tok.isActive
-                        ? 'bg-blue-50/80 border-blue-400 shadow-2xs'
-                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-cyan-950/30 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                        : 'bg-black/40 border-zinc-800 hover:border-zinc-700'
                     }`}
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">{tok.label}</span>
+                        <span className="font-bold text-zinc-100">{tok.label}</span>
                         {tok.isActive && (
-                          <span className="text-[10px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded-full">
-                            Active Token
+                          <span className="text-[9px] bg-cyan-500 text-black font-extrabold px-1.5 py-0.2 rounded">
+                            ACTIVE
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
-                        <Lock className="w-3 h-3 text-slate-400" />
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-500">
+                        <Lock className="w-3 h-3 text-zinc-500" />
                         <span>{tok.masked}</span>
                       </div>
                       {tok.quotaRemaining !== undefined && (
-                        <div className="text-[10px] text-slate-600">
+                        <div className="text-[10px] text-zinc-400">
                           Quota:{' '}
-                          <strong className="text-blue-700">
+                          <strong className="text-cyan-400">
                             {tok.quotaRemaining} / {tok.quotaLimit} remaining
                           </strong>{' '}
                           (5,000 req/hr free pool)
@@ -312,7 +312,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleSetActiveToken(tok.id)}
-                          className="px-2.5 py-1 bg-white border border-slate-300 hover:bg-blue-600 hover:text-white rounded text-[11px] font-medium transition-colors"
+                          className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 hover:border-cyan-400 hover:text-cyan-300 rounded text-[11px] font-bold transition-colors cursor-pointer"
                         >
                           Use This Token
                         </button>
@@ -320,7 +320,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteToken(tok.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        className="p-1 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/50 rounded transition-colors cursor-pointer"
                         title="Remove Token"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -330,10 +330,10 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-500 text-xs">
+              <div className="p-3 bg-black/40 border border-zinc-800 rounded-xl text-center text-zinc-500 text-xs">
                 No tokens added. Operating in <strong>Public Anonymous Mode (60 req/hr)</strong>.
                 {unauthenticatedQuota && (
-                  <div className="text-[11px] text-slate-400 mt-1">
+                  <div className="text-[11px] text-zinc-500 mt-1">
                     Remaining: {unauthenticatedQuota.remaining} / {unauthenticatedQuota.limit}
                   </div>
                 )}
@@ -344,15 +344,15 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
             {showAddForm && (
               <form
                 onSubmit={handleAddToken}
-                className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3"
+                className="p-4 bg-black/60 border border-cyan-900/50 rounded-xl space-y-3"
               >
-                <div className="font-bold text-slate-800 flex items-center justify-between">
+                <div className="font-bold text-zinc-200 flex items-center justify-between">
                   <span>Add Free GitHub Personal Access Token (PAT)</span>
                   <a
                     href="https://github.com/settings/tokens"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5 font-normal"
+                    className="text-[11px] text-cyan-400 hover:underline flex items-center gap-0.5 font-normal"
                   >
                     <span>Generate on GitHub</span>
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -361,24 +361,24 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[11px] text-slate-600 font-medium">Token Label:</label>
+                    <label className="text-[11px] text-zinc-400 font-medium">Token Label:</label>
                     <input
                       type="text"
-                      placeholder="e.g. Organizer 1 (Primary) or Organizer 2"
+                      placeholder="e.g. Primary Token or Teammate 2"
                       value={newLabel}
                       onChange={(e) => setNewLabel(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded p-1.5 text-xs focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 rounded p-1.5 text-xs focus:border-cyan-400 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] text-slate-600 font-medium">Personal Access Token:</label>
+                    <label className="text-[11px] text-zinc-400 font-medium">Personal Access Token:</label>
                     <input
                       type="password"
                       placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                       value={newTokenValue}
                       onChange={(e) => setNewTokenValue(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded p-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-zinc-900 border border-zinc-700 text-cyan-300 rounded p-1.5 text-xs font-mono focus:border-cyan-400 outline-none"
                       required
                     />
                   </div>
@@ -388,14 +388,14 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="px-3 py-1 text-slate-500 hover:bg-slate-200 rounded text-xs"
+                    className="px-3 py-1 text-zinc-400 hover:bg-zinc-900 rounded text-xs cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!newTokenValue.trim() || isCheckingQuota}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shadow-xs disabled:opacity-50"
+                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black rounded text-xs font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)] disabled:opacity-50 cursor-pointer"
                   >
                     {isCheckingQuota ? 'Verifying...' : 'Encrypt & Save Token'}
                   </button>
@@ -405,13 +405,13 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
           </div>
 
           {/* Sync Trigger Area */}
-          <div className="border-t border-slate-200 pt-4 space-y-3">
+          <div className="border-t border-cyan-950/60 pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-bold text-slate-800">
+                <div className="font-bold text-zinc-100">
                   Enrich Candidate Data from GitHub API
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-zinc-500">
                   {uniqueUsernames.length} unique candidate GitHub handles found across {teams.length} teams.
                 </div>
               </div>
@@ -419,10 +419,10 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
               <button
                 onClick={startLiveSync}
                 disabled={isSyncing || uniqueUsernames.length === 0}
-                className={`px-4 py-2 rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-colors ${
+                className={`px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
                   isSyncing
-                    ? 'bg-blue-400 text-white cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                    : 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_15px_rgba(6,182,212,0.3)]'
                 }`}
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -432,8 +432,8 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
             {/* Progress Bar */}
             {isSyncing && progress && (
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1.5">
-                <div className="flex justify-between text-[11px] text-slate-600">
+              <div className="bg-black/60 border border-zinc-800 p-3 rounded-lg space-y-1.5">
+                <div className="flex justify-between text-[11px] text-zinc-400">
                   <span>
                     Fetching <strong>@{progress.user}</strong>...
                   </span>
@@ -441,9 +441,9 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                     {progress.current} of {progress.total}
                   </span>
                 </div>
-                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-blue-600 h-full transition-all duration-200"
+                    className="bg-cyan-400 h-full transition-all duration-200 shadow-[0_0_10px_#22d3ee]"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
                   />
                 </div>
@@ -452,8 +452,8 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
             {/* Success notice */}
             {syncCompleted && (
-              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-emerald-800 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="bg-cyan-950/40 border border-cyan-500/50 p-3 rounded-lg text-cyan-300 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
                 <span>
                   Successfully enriched candidate GitHub profiles with live repos, star stats, and languages! Shortlist re-ranked.
                 </span>
@@ -463,10 +463,10 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <div className="px-6 py-3 bg-black/60 border-t border-cyan-950/60 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-semibold text-xs transition-colors"
+            className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg font-bold text-xs transition-colors cursor-pointer"
           >
             Close
           </button>

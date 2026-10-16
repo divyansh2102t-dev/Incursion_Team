@@ -1,14 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UploadCloud, FileSpreadsheet, Sparkles, Shield, Cpu, Sliders, CheckCircle } from 'lucide-react';
+import { 
+  UploadCloud, 
+  FileSpreadsheet, 
+  Sparkles, 
+  ShieldCheck, 
+  Cpu, 
+  Sliders, 
+  Play, 
+  Code2, 
+  Layers 
+} from 'lucide-react';
 
 interface UploadZoneProps {
   onFileUpload: (file: File) => void;
+  onLoadDemo?: () => void;
 }
 
 export const UploadZone: React.FC<UploadZoneProps> = ({
   onFileUpload,
+  onLoadDemo,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -21,23 +33,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 space-y-8">
-      {/* Hero Title */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" />
-          Track 3 – Automated & Transparent Team Recruitment
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Shortlist Top Teams with Explainable, Zero-Cost Scoring
-        </h1>
-        <p className="text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-          Drop in your Google Forms CSV or JSON registrations. Automatically detect skills,
-          normalize team sizes, apply anti-cheat heuristics, and tune selection weights in real-time.
-        </p>
-      </div>
-
-      {/* Drop Zone Box */}
+    <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
+      {/* Drop Zone Box with Cyberpunk styling */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -45,10 +42,10 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer bg-white ${
+        className={`relative overflow-hidden border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer bg-zinc-950/80 backdrop-blur-xl ${
           isDragging
-            ? 'border-blue-500 bg-blue-50/50 scale-[1.01]'
-            : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50/50'
+            ? 'border-cyan-400 bg-cyan-950/30 scale-[1.01] shadow-[0_0_30px_rgba(6,182,212,0.3)]'
+            : 'border-cyan-900/40 hover:border-cyan-500/60 hover:bg-zinc-900/60 shadow-xl'
         }`}
         onClick={() => {
           const input = document.createElement('input');
@@ -61,60 +58,89 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           input.click();
         }}
       >
-        <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 mx-auto mb-4 shadow-xs">
-          <UploadCloud className="w-8 h-8" />
-        </div>
-        <h3 className="text-base font-bold text-slate-800 mb-1">
-          Drag and drop your Registration CSV or JSON
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">
-          Compatible with Google Forms, Typeform, Devpost, or custom spreadsheets
-        </p>
+        {/* Subtle cyber background grid inside */}
+        <div className="absolute inset-0 bg-cyber-grid-dense opacity-20 pointer-events-none" />
 
-        <div className="inline-flex flex-col items-center justify-center gap-3">
-          <span className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors">
-            Browse & Upload Spreadsheet
-          </span>
-          <a
-            href="/demo_hackathon_registrations.csv"
-            download="demo_hackathon_registrations.csv"
-            onClick={(e) => e.stopPropagation()}
-            className="text-xs text-blue-600 hover:text-blue-800 underline font-medium"
-          >
-            Need a sample file? Download Demo CSV (Google Forms format)
-          </a>
+        <div className="relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto mb-4 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+            <UploadCloud className="w-8 h-8 animate-pulse" />
+          </div>
+
+          <h3 className="text-lg font-bold text-zinc-100 mb-1 tracking-tight">
+            Drag & Drop Candidate Spreadsheet
+          </h3>
+          <p className="text-xs text-zinc-400 mb-6 max-w-md mx-auto">
+            Directly parses CSV or JSON from Google Forms, Typeform, Devpost, or custom hackathon registration portals.
+          </p>
+
+          <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all cursor-pointer"
+            >
+              Browse Local Files
+            </button>
+
+            {onLoadDemo && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLoadDemo();
+                }}
+                className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-cyan-300 font-bold text-xs uppercase tracking-wider rounded-lg border border-cyan-800/50 hover:border-cyan-500 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-cyan-400 text-cyan-400" />
+                <span>Instant Load Demo Cohort</span>
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <a
+              href="/demo_hackathon_registrations.csv"
+              download="demo_hackathon_registrations.csv"
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-cyan-400/80 hover:text-cyan-300 underline font-mono tracking-tight"
+            >
+              ↓ Download Sample Registration CSV (20+ Teams with edge cases)
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Feature Highlights Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-        <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1 font-bold">
-            $0
+      {/* Cyber Feature Highlights Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
+        <div className="p-4 bg-zinc-950/70 border border-zinc-800/80 rounded-xl space-y-2 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-emerald-400 font-bold text-sm">$0.00</span>
+            <span className="text-[10px] text-zinc-500">CLIENT-SIDE</span>
           </div>
-          <div className="font-bold text-slate-800">100% Zero-Cost Solution</div>
-          <p className="text-slate-500 text-[11px] leading-relaxed">
-            Runs client-side in your browser using fast regex taxonomy parsing and free public APIs. Zero token costs or server fees.
+          <div className="font-bold text-zinc-200">Zero-Cost Architecture</div>
+          <p className="text-zinc-400 text-[11px] font-sans leading-relaxed">
+            Eliminates paid LLMs using fast regex taxonomy parsing and free public APIs. $0 monthly bill.
           </p>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1.5">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
-            <Sliders className="w-4 h-4" />
+        <div className="p-4 bg-zinc-950/70 border border-zinc-800/80 rounded-xl space-y-2 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-cyan-400 font-bold text-sm">0 KB STORED</span>
+            <span className="text-[10px] text-zinc-500">VOLATILE RAM</span>
           </div>
-          <div className="font-bold text-slate-800">Unopinionated & Tunable</div>
-          <p className="text-slate-500 text-[11px] leading-relaxed">
-            Adjust weights, eligibility gates, and team-size normalization curves on the fly with instant live re-ranking.
+          <div className="font-bold text-zinc-200">Zero Database Privacy</div>
+          <p className="text-zinc-400 text-[11px] font-sans leading-relaxed">
+            Candidate resumes and profiles exist solely in volatile browser RAM and are immediately discarded.
           </p>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1.5">
-          <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-1">
-            <Shield className="w-4 h-4" />
+        <div className="p-4 bg-zinc-950/70 border border-zinc-800/80 rounded-xl space-y-2 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-blue-400 font-bold text-sm">5,000 REQ/HR</span>
+            <span className="text-[10px] text-zinc-500">PAT ENCRYPTION</span>
           </div>
-          <div className="font-bold text-slate-800">Explainable & Auditable</div>
-          <p className="text-slate-500 text-[11px] leading-relaxed">
-            Every shortlisted or rejected team has an itemized breakdown. Anti-cheat detects fork-padding and duplicate entries.
+          <div className="font-bold text-zinc-200">Multi-Token GitHub PAT</div>
+          <p className="text-zinc-400 text-[11px] font-sans leading-relaxed">
+            Store and rotate multiple organizer tokens in encrypted local storage with 100% deterministic fallback.
           </p>
         </div>
       </div>

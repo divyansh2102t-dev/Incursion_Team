@@ -59,7 +59,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({ coverage, size = 220 }) 
               key={idx}
               points={ringPoints}
               fill="none"
-              stroke="#e2e8f0"
+              stroke="rgba(6, 182, 212, 0.2)"
               strokeWidth="1"
               strokeDasharray={ring === 1.0 ? 'none' : '3 3'}
             />
@@ -76,7 +76,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({ coverage, size = 220 }) 
               y1={center}
               x2={x}
               y2={y}
-              stroke="#cbd5e1"
+              stroke="rgba(6, 182, 212, 0.25)"
               strokeWidth="1"
             />
           );
@@ -85,10 +85,10 @@ export const RadarChart: React.FC<RadarChartProps> = ({ coverage, size = 220 }) 
         {/* Data polygon */}
         <polygon
           points={pointsString}
-          fill="rgba(59, 130, 246, 0.25)"
-          stroke="#2563eb"
+          fill="rgba(6, 182, 212, 0.2)"
+          stroke="#06b6d4"
           strokeWidth="2.5"
-          className="transition-all duration-300"
+          className="transition-all duration-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]"
         />
 
         {/* Data vertices */}
@@ -101,23 +101,23 @@ export const RadarChart: React.FC<RadarChartProps> = ({ coverage, size = 220 }) 
               cx={x}
               cy={y}
               r="4"
-              fill="#1d4ed8"
-              stroke="#ffffff"
-              strokeWidth="1.5"
+              fill="#22d3ee"
+              stroke="#030712"
+              strokeWidth="2"
             />
           );
         })}
 
         {/* Labels */}
         {axes.map((axis, i) => {
-          const { x, y } = getCoordinates(i, 1.22);
+          const { x, y } = getCoordinates(i, 1.24);
           return (
             <text
               key={i}
               x={x}
               y={y + 3}
               textAnchor="middle"
-              className="text-[10px] font-semibold fill-slate-600 select-none"
+              className="text-[10px] font-mono font-bold fill-zinc-400 select-none tracking-tight"
             >
               {axis.label}
             </text>

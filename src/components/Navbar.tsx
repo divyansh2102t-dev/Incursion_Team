@@ -15,6 +15,8 @@ import {
   FileCode,
   Code2,
   Sliders,
+  Terminal,
+  Zap,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 
@@ -52,30 +54,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-        {/* Brand & Track Info */}
+    <header className="bg-black/80 backdrop-blur-xl border-b border-cyan-950/60 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Brand Pill Container (Replicating Image 1 / Image 2 badge) */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black shadow-xs tracking-tighter">
-            IN
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Incursion Recruitment Engine
-              </h1>
-              <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200 uppercase">
-                Track 3
-              </span>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group"
+          >
+            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
+              <Zap className="w-3.5 h-3.5 text-black fill-black" />
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Reusable, tunable & explainable hackathon team shortlisting (100% Zero-Cost)
-            </p>
-          </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black tracking-wider text-zinc-100 group-hover:text-cyan-300 uppercase transition-colors">
+                  INCURSION
+                </span>
+                <span className="text-[9px] font-mono font-bold bg-cyan-950/80 text-cyan-400 px-1.5 py-0.2 rounded border border-cyan-800/60">
+                  TRACK 3
+                </span>
+              </div>
+              <p className="text-[9px] font-mono text-zinc-400 tracking-tight">
+                AUTONOMOUS RECRUITMENT ENGINE
+              </p>
+            </div>
+          </Link>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center flex-wrap gap-2 text-xs">
+        {/* Center / Right Telemetry & Actions */}
+        <div className="flex items-center flex-wrap gap-2 text-xs font-mono">
           <input
             type="file"
             ref={fileInputRef}
@@ -84,110 +91,109 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="hidden"
           />
 
-          {/* Download Demo File Button */}
+          {/* Download Demo CSV */}
           <a
             href="/demo_hackathon_registrations.csv"
             download="demo_hackathon_registrations.csv"
-            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium rounded-lg border border-slate-300 transition-colors flex items-center gap-1.5"
-            title="Download Sample Registration CSV File to test uploading"
+            className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5"
+            title="Download Sample Registration CSV File"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Download Demo CSV</span>
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Demo CSV</span>
           </a>
 
           {/* Upload Button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg border border-slate-300 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Upload CSV / JSON</span>
+            <Upload className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Upload</span>
           </button>
 
           {/* Formula Studio Link */}
           <Link
             href="/formulas"
-            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg border border-indigo-200 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 font-bold rounded-lg border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
             title="Open Formula & Algorithm Studio"
           >
-            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden sm:inline">Formula Studio</span>
-            <span className="sm:hidden">Formulas</span>
+            <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Formulas</span>
           </Link>
 
           {hasData && (
             <>
-              {/* GitHub Sync & Quota */}
+              {/* GitHub PAT & Sync */}
               <button
                 onClick={onOpenGitHubSync}
-                className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5"
+                className="px-2.5 py-1.5 bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 font-medium rounded-lg border border-blue-500/30 hover:border-blue-400 transition-colors flex items-center gap-1.5 cursor-pointer"
                 title="Manage GitHub Tokens, Rate Limits & Live Enrichment"
               >
-                <Code2 className="w-3.5 h-3.5 text-blue-600" />
-                <span>GitHub PAT & Sync</span>
+                <Code2 className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden sm:inline">GitHub PAT</span>
               </button>
 
-              {/* Column Mapper */}
+              {/* Mapper */}
               <button
                 onClick={onOpenMapper}
-                className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium rounded-lg border border-slate-200 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
                 title="Inspect / Edit Column Mappings"
               >
-                <Columns className="w-3.5 h-3.5" />
-                <span>Mapper</span>
+                <Columns className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="hidden md:inline">Mapper</span>
               </button>
 
-              {/* Head-to-Head Compare */}
+              {/* Compare */}
               <button
                 onClick={onOpenCompare}
-                className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium rounded-lg border border-slate-200 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
                 title="Pairwise Head-to-Head Comparison"
               >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-                <span>Compare</span>
+                <ArrowRightLeft className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="hidden md:inline">Compare</span>
               </button>
 
-              {/* Sensitivity Analysis */}
+              {/* Sensitivity */}
               <button
                 onClick={onOpenSensitivity}
-                className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium rounded-lg border border-slate-200 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
                 title="Sensitivity & Shortlist Robustness"
               >
-                <Activity className="w-3.5 h-3.5 text-blue-600" />
-                <span>Sensitivity</span>
+                <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden md:inline">Sensitivity</span>
               </button>
 
-              {/* Blind Review Mode Toggle */}
+              {/* Blind Mode Toggle */}
               <button
                 onClick={() => onUpdateConfig({ ...config, anonymizeMode: !config.anonymizeMode })}
-                className={`px-3 py-1.5 rounded-lg font-medium border transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   config.anonymizeMode
-                    ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    ? 'bg-purple-950/80 text-purple-300 border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                    : 'bg-zinc-900/80 text-zinc-400 border-zinc-800 hover:border-zinc-700'
                 }`}
                 title="Anonymize candidate names, emails, and personal identifiers to reduce bias"
               >
-                {config.anonymizeMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                <span>Blind Mode {config.anonymizeMode ? 'ON' : 'OFF'}</span>
+                {config.anonymizeMode ? <EyeOff className="w-3.5 h-3.5 text-purple-400" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>Blind {config.anonymizeMode ? 'ON' : 'OFF'}</span>
               </button>
 
-              {/* Export Dropdown / Buttons */}
-              <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+              {/* Export Buttons */}
+              <div className="flex items-center border border-zinc-800 rounded-lg overflow-hidden bg-zinc-900/80">
                 <button
                   onClick={onExportCSV}
-                  className="px-2.5 py-1.5 hover:bg-slate-200 text-slate-700 font-medium flex items-center gap-1 border-r border-slate-200"
+                  className="px-2.5 py-1.5 hover:bg-zinc-800 text-zinc-300 font-medium flex items-center gap-1 border-r border-zinc-800 transition-colors cursor-pointer"
                   title="Export Ranked Shortlist as CSV"
                 >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
                   <span>CSV</span>
                 </button>
                 <button
                   onClick={onExportJSON}
-                  className="px-2.5 py-1.5 hover:bg-slate-200 text-slate-700 font-medium flex items-center gap-1"
+                  className="px-2.5 py-1.5 hover:bg-zinc-800 text-zinc-300 font-medium flex items-center gap-1 transition-colors cursor-pointer"
                   title="Export Audit Bundle with Exact Config & Teams as JSON"
                 >
-                  <FileCode className="w-3.5 h-3.5 text-blue-600" />
-                  <span>JSON Bundle</span>
+                  <FileCode className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>JSON</span>
                 </button>
               </div>
             </>

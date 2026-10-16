@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { ColumnMappingConfig, SelectionConfig, TeamRecord } from '@/types';
 import { DEFAULT_CONFIG } from '@/presets/defaultPresets';
 import { parseCSVString, parseRawDataToTeams } from '@/engine/parser';
@@ -8,6 +8,7 @@ import { runFullShortlistingEngine } from '@/engine/scoring';
 import { exportShortlistToCSV, exportShortlistWithConfigJSON } from '@/utils/exportUtils';
 
 import { Navbar } from '@/components/Navbar';
+import { CyberHero } from '@/components/CyberHero';
 import { UploadZone } from '@/components/UploadZone';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { TeamsTable } from '@/components/TeamsTable';
@@ -41,6 +42,9 @@ export default function Home() {
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
   const [compareTeamBId, setCompareTeamBId] = useState<string | undefined>();
 
+  const dashboardRef = useRef<HTMLDivElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -50,7 +54,6 @@ export default function Home() {
           try {
             const parsed = JSON.parse(content);
             if (Array.isArray(parsed)) {
-              // Convert JSON array to rows
               const headers = Object.keys(parsed[0] || {});
               const res = parseCSVString(
                 [headers.join(','), ...parsed.map((obj) => Object.values(obj).join(','))].join('\n')
@@ -59,6 +62,9 @@ export default function Home() {
               setRawRows(res.rawRows);
               setColumnMapping(res.detectedMapping);
               setBaseTeams(res.teams);
+              setTimeout(() => {
+                dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
             }
           } catch (err) {
             alert('Failed to parse JSON file.');
@@ -70,10 +76,33 @@ export default function Home() {
           setRawRows(res.rawRows);
           setColumnMapping(res.detectedMapping);
           setBaseTeams(res.teams);
+          setTimeout(() => {
+            dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
         }
       }
     };
     reader.readAsText(file);
+  };
+
+  // Instant 1-Click Demo Cohort Loader
+  const handleLoadDemoCohort = async () => {
+    try {
+      const response = await fetch('/demo_hackathon_registrations.csv');
+      const csvText = await response.text();
+      if (csvText) {
+        const res = parseCSVString(csvText);
+        setRawHeaders(res.headers);
+        setRawRows(res.rawRows);
+        setColumnMapping(res.detectedMapping);
+        setBaseTeams(res.teams);
+        setTimeout(() => {
+          dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } catch (err) {
+      alert('Could not load demo registrations file.');
+    }
   };
 
   const handleSaveMapping = (updatedMapping: ColumnMappingConfig) => {
@@ -105,7 +134,6 @@ export default function Home() {
         return t;
       })
     );
-    // Also update selectedTeam state if open
     setSelectedTeam((prev) =>
       prev && prev.id === teamId
         ? {
@@ -143,8 +171,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-800">
-      {/* Navbar */}
+    <div className="min-h-screen bg-[#030712] flex flex-col font-sans text-zinc-100 bg-cyber-grid selection:bg-cyan-500 selection:text-black">
+      {/* Hidden file input for hero upload button */}
+      <input
+        type="file"
+        ref={uploadInputRef}
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileUpload(e.target.files[0]);
+          }
+        }}
+        accept=".csv,.tsv,.json"
+        className="hidden"
+      />
+
+      {/* Cyber Navbar */}
       <Navbar
         config={config}
         onUpdateConfig={setConfig}
@@ -158,56 +199,71 @@ export default function Home() {
         hasData={baseTeams.length > 0}
       />
 
-      {/* Main Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {baseTeams.length === 0 ? (
-          <UploadZone onFileUpload={handleFileUpload} />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column: Tunable Configuration Panel (4 cols) */}
-            <div className="lg:col-span-4 sticky top-18 space-y-4">
-              <ConfigPanel
-                config={config}
-                onChange={setConfig}
-                totalTeamsCount={baseTeams.length}
-              />
-            </div>
+      {/* Cinematic Cyber Hero Section (Image 1 reference) */}
+      <CyberHero
+        onLoadDemo={handleLoadDemoCohort}
+        onTriggerUpload={() => uploadInputRef.current?.click()}
+        onScrollToDashboard={() => dashboardRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        hasData={baseTeams.length > 0}
+        totalTeamsCount={baseTeams.length}
+      />
 
-            {/* Right Column: Ranked Shortlist Table (8 cols) */}
-            <div className="lg:col-span-8 space-y-4">
-              {/* Stat bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-slate-500">Total Registered:</span>
-                  <div className="text-xl font-bold text-slate-800">{baseTeams.length} Teams</div>
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-slate-500">Shortlisted:</span>
-                  <div className="text-xl font-bold text-emerald-600">
-                    {shortlistedCount} <span className="text-xs text-slate-400 font-normal">/ {config.shortlistCount} target</span>
-                  </div>
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-slate-500">Active Philosophy:</span>
-                  <div className="text-xs font-bold text-blue-700 truncate mt-1">
-                    {config.presetName}
-                  </div>
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-slate-500">Review Mode:</span>
-                  <div className="text-xs font-bold text-slate-800 mt-1">
-                    {config.anonymizeMode ? '🕶️ Blind (Anonymized)' : '👁️ Standard'}
-                  </div>
+      {/* Main Workspace / Dashboard */}
+      <main ref={dashboardRef} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        {baseTeams.length === 0 ? (
+          <UploadZone
+            onFileUpload={handleFileUpload}
+            onLoadDemo={handleLoadDemoCohort}
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* Cyber Telemetry Stats Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
+                <span className="text-zinc-500 block uppercase">TOTAL REGISTERED:</span>
+                <div className="text-xl font-black text-zinc-100 mt-0.5">{baseTeams.length} Teams</div>
+              </div>
+              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
+                <span className="text-zinc-500 block uppercase">SHORTLISTED TARGET:</span>
+                <div className="text-xl font-black text-cyan-400 neon-glow-cyan mt-0.5">
+                  {shortlistedCount} <span className="text-xs text-zinc-500 font-normal">/ {config.shortlistCount} target</span>
                 </div>
               </div>
+              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
+                <span className="text-zinc-500 block uppercase">ACTIVE PHILOSOPHY:</span>
+                <div className="text-xs font-bold text-blue-400 truncate mt-1.5">
+                  {config.presetName}
+                </div>
+              </div>
+              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
+                <span className="text-zinc-500 block uppercase">REVIEW MODE:</span>
+                <div className="text-xs font-bold text-purple-400 mt-1.5">
+                  {config.anonymizeMode ? '🕶️ Blind (Anonymized)' : '👁️ Standard'}
+                </div>
+              </div>
+            </div>
 
-              {/* Table */}
-              <TeamsTable
-                teams={rankedTeams}
-                config={config}
-                onSelectTeam={setSelectedTeam}
-                onCompareTeams={(teamAId) => handleLaunchCompare(teamAId)}
-              />
+            {/* Split View: Config Panel (4 cols) & Cyber Leaderboard (8 cols) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Tunable Configuration Panel (4 cols) */}
+              <div className="lg:col-span-4 sticky top-18 space-y-4">
+                <ConfigPanel
+                  config={config}
+                  onChange={setConfig}
+                  totalTeamsCount={baseTeams.length}
+                />
+              </div>
+
+              {/* Right Column: Incursion Cyber Leaderboard (8 cols) */}
+              <div className="lg:col-span-8 space-y-4">
+                <TeamsTable
+                  teams={rankedTeams}
+                  config={config}
+                  onSelectTeam={setSelectedTeam}
+                  onCompareTeams={(teamAId) => handleLaunchCompare(teamAId)}
+                  onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
+                />
+              </div>
             </div>
           </div>
         )}
