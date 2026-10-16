@@ -17,7 +17,7 @@ import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
 import { GitHubSyncModal } from '@/components/GitHubSyncModal';
 import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
-import { BookmarkPlus, History } from 'lucide-react';
+import { BookmarkPlus, History, Sliders, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export default function Home() {
@@ -36,13 +36,14 @@ export default function Home() {
     saveScoringSnapshot,
   } = useApp();
 
-  // Modals state
+  // Modals & UI state
   const [selectedTeam, setSelectedTeam] = useState<TeamRecord | null>(null);
   const [isMapperOpen, setIsMapperOpen] = useState(false);
   const [isSensitivityOpen, setIsSensitivityOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isGitHubSyncOpen, setIsGitHubSyncOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
   const [compareTeamBId, setCompareTeamBId] = useState<string | undefined>();
 
@@ -181,7 +182,7 @@ export default function Home() {
       />
 
       {/* Main Workspace / Dashboard - Fits right on the first page! */}
-      <main ref={dashboardRef} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main ref={dashboardRef} className="flex-1 w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
         {baseTeams.length === 0 ? (
           /* All-in-one first page: Unified telemetry + select file & folder right above the fold! */
           <UploadZone onFileUpload={handleFileUpload} />
@@ -229,7 +230,26 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {/* Toggle Filter Sidebar Button */}
+                <button
+                  onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}
+                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title={isConfigCollapsed ? 'Show Filters Sidebar' : 'Hide Filters Sidebar to Expand Leaderboard'}
+                >
+                  {isConfigCollapsed ? (
+                    <>
+                      <PanelLeftOpen className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Show Filters</span>
+                    </>
+                  ) : (
+                    <>
+                      <PanelLeftClose className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Hide Filters</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   onClick={() => {
                     const customName = prompt(
@@ -259,19 +279,21 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Split View: Config Panel (4 cols) & Cyber Leaderboard (8 cols) */}
+            {/* Split View: Config Panel (3 cols) & Cyber Leaderboard (9 cols or full 12 cols when collapsed) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Tunable Configuration Panel (4 cols) */}
-              <div className="lg:col-span-4 sticky top-18 space-y-4">
-                <ConfigPanel
-                  config={config}
-                  onChange={setConfig}
-                  totalTeamsCount={baseTeams.length}
-                />
-              </div>
+              {/* Left Column: Tunable Configuration Panel (3 cols on XL) */}
+              {!isConfigCollapsed && (
+                <div className="lg:col-span-4 xl:col-span-3 sticky top-18 space-y-4">
+                  <ConfigPanel
+                    config={config}
+                    onChange={setConfig}
+                    totalTeamsCount={baseTeams.length}
+                  />
+                </div>
+              )}
 
-              {/* Right Column: Incursion Cyber Leaderboard (8 cols) */}
-              <div className="lg:col-span-8 space-y-4">
+              {/* Right Column: Incursion Cyber Leaderboard (9 cols on XL, 12 cols when collapsed) */}
+              <div className={`${isConfigCollapsed ? 'col-span-12' : 'lg:col-span-8 xl:col-span-9'} space-y-4`}>
                 <TeamsTable
                   teams={rankedTeams}
                   config={config}

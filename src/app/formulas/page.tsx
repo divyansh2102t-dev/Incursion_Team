@@ -117,7 +117,7 @@ export default function FormulasPage() {
     <div className="min-h-screen bg-[#030712] flex flex-col font-sans text-zinc-100 bg-cyber-grid selection:bg-cyan-500 selection:text-black">
       {/* Top Cyber Header */}
       <header className="bg-black/80 backdrop-blur-xl border-b border-cyan-950/60 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
+        <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -218,7 +218,7 @@ export default function FormulasPage() {
       )}
 
       {/* Main Content Area */}
-      <main className="max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
+      <main className="w-full max-w-[1850px] mx-auto p-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 flex-1">
         {/* Navigation Tabs between Pages */}
         <div className="flex items-center gap-3 border-b border-cyan-950/60 pb-3 text-xs font-mono">
           <Link

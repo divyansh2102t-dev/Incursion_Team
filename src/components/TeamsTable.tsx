@@ -363,16 +363,18 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse font-mono">
             <thead>
-              <tr className="bg-black/60 border-b border-cyan-950/60 text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
-                <th className="py-3.5 px-3 text-center w-12">#</th>
-                <th className="py-3.5 px-4">TEAM / CANDIDATES</th>
-                <th className="py-3.5 px-3 text-center">SIZE</th>
-                <th className="py-3.5 px-4 text-right">TECH SCORE</th>
-                <th className="py-3.5 px-4 text-right">EXPERIENCE</th>
-                <th className="py-3.5 px-4 text-right">ROLES</th>
-                <th className="py-3.5 px-4 text-right">INCURSION SCORE</th>
-                <th className="py-3.5 px-3 text-center">STATUS</th>
-                <th className="py-3.5 px-4 text-center">ACTIONS</th>
+              <tr className="bg-black/80 border-b border-cyan-950/60 text-zinc-400 font-bold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-2 text-center w-10">#</th>
+                <th className="py-3 px-3">TEAM / CANDIDATES</th>
+                <th className="py-3 px-2 text-center w-12">SIZE</th>
+                <th className="py-3 px-2.5 text-right">TECH</th>
+                <th className="py-3 px-2.5 text-right">EXP</th>
+                <th className="py-3 px-2.5 text-right">ROLES</th>
+                <th className="py-3 px-3 text-right text-cyan-300">SCORE</th>
+                <th className="py-3 px-2.5 text-center">STATUS</th>
+                <th className="py-3 px-3 text-center sticky right-0 z-20 bg-black/95 border-l border-cyan-950/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)] w-48">
+                  ACTIONS
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900">
@@ -392,8 +394,6 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                   ? `Team [${team.id.slice(0, 8)}]`
                   : team.teamName;
 
-                const firstLetter = teamDisplayName.charAt(0).toUpperCase();
-
                 return (
                   <React.Fragment key={team.id}>
                     <tr
@@ -406,7 +406,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       }`}
                     >
                       {/* Rank with Gold / Silver / Bronze style */}
-                      <td className="py-3 px-3 text-center font-bold">
+                      <td className="py-2.5 px-2 text-center font-bold">
                         {team.computed.manualStatus === 'pinned' ? (
                           <span className="inline-flex items-center text-purple-400 font-extrabold">
                             <Pin className="w-3.5 h-3.5 mr-0.5 fill-purple-400" />
@@ -431,55 +431,50 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         )}
                       </td>
 
-                      {/* Team & Member Handles (with Avatar Square from Image 2) */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-zinc-300 group-hover:border-cyan-500/50 transition-colors">
-                            {firstLetter}
-                          </div>
-                          <div>
-                            <div className="font-bold text-zinc-100 flex items-center gap-1.5">
-                              <span className="truncate max-w-[200px]">{teamDisplayName}</span>
-                              {team.computed.antiCheatFlags.length > 0 && (
-                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                              )}
-                            </div>
-                            <div className="text-[11px] text-zinc-500 truncate max-w-[260px]">
-                              {team.computed.coveredRoles.join(', ') || 'General / Unspecified'}
-                            </div>
-                          </div>
+                      {/* Team Name & Roles (Logo box removed as requested) */}
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-zinc-100 flex items-center gap-1.5">
+                          <span className="truncate max-w-[220px] font-semibold">{teamDisplayName}</span>
+                          {team.computed.antiCheatFlags.length > 0 && (
+                            <span title="Flagged for suspicious commits or forks" className="inline-flex items-center">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-zinc-500 truncate max-w-[240px]">
+                          {team.computed.coveredRoles.join(', ') || 'General / Unspecified'}
                         </div>
                       </td>
 
                       {/* Size */}
-                      <td className="py-3 px-3 text-center text-zinc-400 font-medium">
+                      <td className="py-2.5 px-2 text-center text-zinc-400 font-medium">
                         {team.members.length}
                       </td>
 
                       {/* Tech Score */}
-                      <td className="py-3 px-4 text-right font-medium text-zinc-300">
+                      <td className="py-2.5 px-2.5 text-right font-medium text-zinc-300">
                         {team.computed.technicalDepthScore}
                       </td>
 
                       {/* Experience */}
-                      <td className="py-3 px-4 text-right font-medium text-zinc-300">
+                      <td className="py-2.5 px-2.5 text-right font-medium text-zinc-300">
                         {team.computed.projectExperienceScore}
                       </td>
 
                       {/* Roles */}
-                      <td className="py-3 px-4 text-right font-medium text-zinc-300">
+                      <td className="py-2.5 px-2.5 text-right font-medium text-zinc-300">
                         {team.computed.skillComplementarityScore}
                       </td>
 
                       {/* Final Composite Incursion Score (Glowing Cyan) */}
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-2.5 px-3 text-right">
                         <span className="text-base font-black text-cyan-400 neon-glow-cyan font-mono">
                           {team.computed.finalScore}
                         </span>
                       </td>
 
                       {/* Status Badge */}
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-2.5 px-2.5 text-center">
                         {team.computed.manualStatus === 'pinned' ? (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950 text-purple-300 border border-purple-800">
                             PINNED
@@ -499,22 +494,24 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         )}
                       </td>
 
-                      {/* Action buttons */}
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                      {/* Action buttons (Sticky right-0 so Scorecard and Compare are always visible) */}
+                      <td className="py-2.5 px-3 text-center sticky right-0 z-10 bg-zinc-950/95 group-hover:bg-[#071c2a] border-l border-cyan-950/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)]">
+                        <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
                           <button
                             onClick={() => onSelectTeam(team)}
-                            className="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-500 hover:text-black rounded text-[11px] font-bold text-zinc-300 border border-zinc-800 hover:border-cyan-400 transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-500 hover:text-black rounded text-[11px] font-bold text-zinc-200 hover:text-black border border-zinc-800 hover:border-cyan-400 transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                            title="Open Candidate Scorecard Drilldown"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5 text-cyan-400 group-hover:text-black" />
                             <span>Scorecard</span>
                           </button>
                           <button
                             onClick={() => onCompareTeams(team.id)}
-                            className="p-1 hover:bg-zinc-800 rounded text-zinc-400 transition-colors cursor-pointer"
-                            title="Compare Head-to-Head"
+                            className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 rounded text-[11px] font-medium border border-zinc-800 hover:border-cyan-500/50 transition-all flex items-center gap-1 cursor-pointer"
+                            title="Compare Head-to-Head against another team"
                           >
-                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                            <ArrowRightLeft className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Compare</span>
                           </button>
                         </div>
                       </td>
