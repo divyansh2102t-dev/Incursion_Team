@@ -17,7 +17,17 @@ import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
 import { GitHubSyncModal } from '@/components/GitHubSyncModal';
 import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
-import { BookmarkPlus, History, Sliders, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  BookmarkPlus,
+  History,
+  Sliders,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ArrowRight,
+  Trash2,
+  LayoutDashboard,
+  Zap,
+} from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export default function Home() {
@@ -34,10 +44,12 @@ export default function Home() {
     setColumnMapping,
     scoringHistory,
     saveScoringSnapshot,
+    clearCohort,
   } = useApp();
 
   // Modals & UI state
   const [selectedTeam, setSelectedTeam] = useState<TeamRecord | null>(null);
+  const [currentView, setCurrentView] = useState<'home' | 'dashboard'>('dashboard');
   const [isMapperOpen, setIsMapperOpen] = useState(false);
   const [isSensitivityOpen, setIsSensitivityOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
@@ -68,6 +80,7 @@ export default function Home() {
               setColumnMapping(res.detectedMapping);
               setBaseTeams(res.teams);
               saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, res.teams);
+              setCurrentView('dashboard');
             }
           } catch (err) {
             alert('Failed to parse JSON file.');
@@ -80,6 +93,7 @@ export default function Home() {
           setColumnMapping(res.detectedMapping);
           setBaseTeams(res.teams);
           saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, res.teams);
+          setCurrentView('dashboard');
         }
       }
     };
@@ -179,13 +193,64 @@ export default function Home() {
         onExportCSV={() => exportShortlistToCSV(rankedTeams, config, config.shortlistCount)}
         onExportJSON={() => exportShortlistWithConfigJSON(rankedTeams, config, config.shortlistCount)}
         hasData={baseTeams.length > 0}
+        onGoHome={() => setCurrentView('home')}
+        onGoDashboard={() => setCurrentView('dashboard')}
+        currentView={baseTeams.length === 0 ? 'home' : currentView}
       />
 
       {/* Main Workspace / Dashboard - Fits right on the first page! */}
       <main ref={dashboardRef} className="flex-1 w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
-        {baseTeams.length === 0 ? (
-          /* All-in-one first page: Unified telemetry + select file & folder right above the fold! */
-          <UploadZone onFileUpload={handleFileUpload} />
+        {baseTeams.length === 0 || currentView === 'home' ? (
+          <div className="space-y-4">
+            {baseTeams.length > 0 && (
+              <div className="bg-zinc-950/80 border border-cyan-500/40 p-3.5 sm:p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 font-mono text-xs shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-cyan-400">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-zinc-100 flex items-center gap-2">
+                      <span>Active Cohort Loaded:</span>
+                      <span className="text-cyan-400 font-black">{baseTeams.length} Registered Teams</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      You can select a folder or drop a new dataset below, or return directly to your scoring leaderboard.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentView('dashboard')}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-black font-black rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Return to Leaderboard</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Clear currently loaded cohort and start fresh?')) {
+                        clearCohort();
+                        setCurrentView('home');
+                      }
+                    }}
+                    className="px-3 py-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    title="Clear current candidate data"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Clear Cohort</span>
+                  </button>
+                </div>
+              </div>
+            )}
+            <UploadZone
+              onFileUpload={(file) => {
+                handleFileUpload(file);
+                setCurrentView('dashboard');
+              }}
+            />
+          </div>
         ) : (
           <div className="space-y-6">
             {/* Cyber Telemetry Stats Bar */}

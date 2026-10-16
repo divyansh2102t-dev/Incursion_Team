@@ -30,6 +30,7 @@ interface AppContextType {
   deleteHistoryEntry: (id: string) => void;
   clearAllHistory: () => void;
   restoreHistoryEntry: (id: string) => boolean;
+  clearCohort: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -53,9 +54,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const storedConfig = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (storedConfig) {
         const parsed = JSON.parse(storedConfig);
+        const effectiveStrategy =
+          parsed.aggregationStrategy === 'DIMINISHING_RETURNS' &&
+          (!parsed.presetName || parsed.presetName === 'Balanced Hackathon (Generalist)')
+            ? 'BALANCED_MEAN'
+            : (parsed.aggregationStrategy || 'BALANCED_MEAN');
+
         setConfigState({
           ...DEFAULT_CONFIG,
           ...parsed,
+          aggregationStrategy: effectiveStrategy,
           formulaCoefficients: {
             ...DEFAULT_FORMULA_COEFFICIENTS,
             ...(parsed.formulaCoefficients || {}),
@@ -269,6 +277,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
+  const clearCohort = () => {
+    setBaseTeams([]);
+    setRawRows([]);
+    setRawHeaders([]);
+    setColumnMapping(null);
+    try {
+      localStorage.removeItem(TEAMS_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -291,6 +311,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteHistoryEntry,
         clearAllHistory,
         restoreHistoryEntry,
+        clearCohort,
       }}
     >
       {children}

@@ -365,19 +365,97 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         </div>
 
-        {/* Toggles */}
-        <div className="space-y-2 pt-1 text-[11px]">
-          <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-            <input
-              type="checkbox"
-              checked={config.filters.requireAtLeastOneGithub}
-              onChange={(e) => updateFilter('requireAtLeastOneGithub', e.target.checked)}
-              className="rounded accent-cyan-400"
-            />
-            <span>Mandatory GitHub (≥1 member has GitHub profile)</span>
-          </label>
+        {/* Toggles & Mandatory GitHub Scope */}
+        <div className="space-y-2.5 pt-1 text-[11px]">
+          {/* Mandatory GitHub with Scope Selection */}
+          <div className="bg-black/40 p-2.5 rounded-lg border border-zinc-800/80 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={
+                    Boolean(config.filters.githubRequirement && config.filters.githubRequirement !== 'NONE') ||
+                    Boolean(config.filters.requireAtLeastOneGithub)
+                  }
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    const nextMode = checked
+                      ? (config.filters.githubRequirement === 'ALL_MEMBERS' ? 'ALL_MEMBERS' : 'AT_LEAST_ONE')
+                      : 'NONE';
+                    onChange({
+                      ...config,
+                      filters: {
+                        ...config.filters,
+                        githubRequirement: nextMode,
+                        requireAtLeastOneGithub: checked,
+                      },
+                    });
+                  }}
+                  className="rounded accent-cyan-400"
+                />
+                <span className="font-semibold text-zinc-200">Mandatory GitHub</span>
+              </label>
 
-          <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+              {/* Scope Switcher: >=1 Member vs All Participants */}
+              {((config.filters.githubRequirement && config.filters.githubRequirement !== 'NONE') ||
+                config.filters.requireAtLeastOneGithub) && (
+                <div className="flex items-center bg-zinc-900 border border-zinc-700/80 rounded-md p-0.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange({
+                        ...config,
+                        filters: {
+                          ...config.filters,
+                          githubRequirement: 'AT_LEAST_ONE',
+                          requireAtLeastOneGithub: true,
+                        },
+                      });
+                    }}
+                    className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                      config.filters.githubRequirement !== 'ALL_MEMBERS'
+                        ? 'bg-cyan-500 text-black font-bold shadow-xs'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="At least one team member must have a GitHub profile"
+                  >
+                    ≥1 Member
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange({
+                        ...config,
+                        filters: {
+                          ...config.filters,
+                          githubRequirement: 'ALL_MEMBERS',
+                          requireAtLeastOneGithub: true,
+                        },
+                      });
+                    }}
+                    className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                      config.filters.githubRequirement === 'ALL_MEMBERS'
+                        ? 'bg-cyan-500 text-black font-bold shadow-xs'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="All participants in the team must have a verified GitHub profile"
+                  >
+                    All Participants (100%)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] text-zinc-400 pl-5">
+              {config.filters.githubRequirement === 'ALL_MEMBERS'
+                ? 'Strict: Every single registered member in the team must provide a verified GitHub profile.'
+                : ((config.filters.githubRequirement && config.filters.githubRequirement !== 'NONE') || config.filters.requireAtLeastOneGithub)
+                ? 'Standard: At least one teammate must provide a verified GitHub profile.'
+                : 'Optional: No GitHub profile check required.'}
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer text-zinc-300 bg-black/40 p-2.5 rounded-lg border border-zinc-800/80">
             <input
               type="checkbox"
               checked={config.filters.requireAtLeastOneResumeOrPortfolio}

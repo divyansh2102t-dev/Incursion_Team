@@ -106,74 +106,8 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
           </div>
         </div>
 
-        {/* 2. Cyber Telemetry Cards (Replicating Image 2's quest cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-5 font-mono text-xs">
-          {/* Card 1: Cohort Telemetry */}
-          <div className="p-3.5 bg-black/50 border border-cyan-900/40 rounded-xl relative group hover:border-cyan-500/50 transition-colors">
-            <span className="text-[10px] text-zinc-500 block uppercase tracking-wider">
-              YOUR RECRUITMENT JOURNEY
-            </span>
-            <div className="mt-1 flex items-baseline justify-between">
-              <div>
-                <span className="text-sm font-bold text-zinc-200">
-                  {teams.length} Registered Teams
-                </span>
-                <span className="text-[11px] text-cyan-400 block mt-0.5">
-                  Top {config.shortlistCount} Shortlist Target
-                </span>
-              </div>
-              <span className="px-2 py-1 bg-cyan-950 text-cyan-300 text-[10px] rounded border border-cyan-800">
-                ACTIVE
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2: GitHub Quota */}
-          <div className="p-3.5 bg-black/50 border border-cyan-900/40 rounded-xl relative group hover:border-cyan-500/50 transition-colors">
-            <span className="text-[10px] text-zinc-500 block uppercase tracking-wider">
-              ⚡ GITHUB RATE LIMIT
-            </span>
-            <div className="mt-1 flex items-baseline justify-between">
-              <div>
-                <span className="text-sm font-bold text-zinc-200">5,000 / 5,000</span>
-                <span className="text-[11px] text-blue-400 block mt-0.5">
-                  PAT Encrypted Vault
-                </span>
-              </div>
-              {onOpenGitHubSync && (
-                <button
-                  onClick={onOpenGitHubSync}
-                  className="px-2 py-1 bg-blue-950/80 hover:bg-blue-900 text-blue-300 text-[10px] rounded border border-blue-800 transition-colors cursor-pointer"
-                >
-                  SET TOKEN
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Card 3: Normalization */}
-          <div className="p-3.5 bg-black/50 border border-cyan-900/40 rounded-xl relative group hover:border-cyan-500/50 transition-colors">
-            <span className="text-[10px] text-zinc-500 block uppercase tracking-wider">
-              ALGORITHM NORMALIZATION
-            </span>
-            <div className="mt-1 flex items-baseline justify-between">
-              <div>
-                <span className="text-sm font-bold text-zinc-200">
-                  {config.aggregationStrategy}
-                </span>
-                <span className="text-[11px] text-emerald-400 block mt-0.5">
-                  $0 Zero-Cost DB Free
-                </span>
-              </div>
-              <span className="px-2 py-1 bg-zinc-900 text-zinc-300 text-[10px] rounded border border-zinc-700">
-                ACTIVE
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Category Navigation Tabs (Replicating Image 2's OVERALL, LEETCODE, etc.) */}
-        <div className="flex items-center gap-1 sm:gap-4 overflow-x-auto mt-6 border-b border-zinc-800/80 text-xs font-mono">
+        {/* Category Navigation Tabs */}
+        <div className="flex items-center gap-1 sm:gap-4 overflow-x-auto mt-4 border-b border-zinc-800/80 text-xs font-mono">
           {[
             { id: 'OVERALL', label: 'OVERALL' },
             { id: 'GITHUB', label: 'GITHUB CODE' },

@@ -18,6 +18,8 @@ import {
   Terminal,
   Zap,
   History,
+  Home,
+  LayoutDashboard,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -34,6 +36,9 @@ interface NavbarProps {
   onExportCSV: () => void;
   onExportJSON: () => void;
   hasData: boolean;
+  onGoHome?: () => void;
+  onGoDashboard?: () => void;
+  currentView?: 'home' | 'dashboard';
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -48,6 +53,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onExportCSV,
   onExportJSON,
   hasData,
+  onGoHome,
+  onGoDashboard,
+  currentView = 'dashboard',
 }) => {
   const { scoringHistory } = useApp();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -61,29 +69,55 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="bg-black/80 backdrop-blur-xl border-b border-cyan-950/60 sticky top-0 z-40">
       <div className="w-full max-w-[1850px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
-        {/* Left: Brand Pill Container (Replicating Image 1 / Image 2 badge) */}
+        {/* Left: Brand Pill Container (Clicking opens Home page) */}
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group"
-          >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
-              <Zap className="w-3.5 h-3.5 text-black fill-black" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-wider text-zinc-100 group-hover:text-cyan-300 uppercase transition-colors">
-                  INCURSION
-                </span>
-                <span className="text-[9px] font-mono font-bold bg-cyan-950/80 text-cyan-400 px-1.5 py-0.2 rounded border border-cyan-800/60">
-                  TRACK 3
-                </span>
+          {onGoHome ? (
+            <button
+              onClick={onGoHome}
+              className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group cursor-pointer text-left"
+              title="Open Incursion Home & Upload Terminal"
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
+                <Zap className="w-3.5 h-3.5 text-black fill-black" />
               </div>
-              <p className="text-[9px] font-mono text-zinc-400 tracking-tight">
-                AUTONOMOUS RECRUITMENT ENGINE
-              </p>
-            </div>
-          </Link>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black tracking-wider text-zinc-100 group-hover:text-cyan-300 uppercase transition-colors">
+                    INCURSION
+                  </span>
+                  <span className="text-[9px] font-mono font-bold bg-cyan-950/80 text-cyan-400 px-1.5 py-0.2 rounded border border-cyan-800/60">
+                    TRACK 3
+                  </span>
+                </div>
+                <p className="text-[9px] font-mono text-zinc-400 tracking-tight">
+                  AUTONOMOUS RECRUITMENT ENGINE
+                </p>
+              </div>
+            </button>
+          ) : (
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group"
+              title="Open Incursion Home & Upload Terminal"
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
+                <Zap className="w-3.5 h-3.5 text-black fill-black" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black tracking-wider text-zinc-100 group-hover:text-cyan-300 uppercase transition-colors">
+                    INCURSION
+                  </span>
+                  <span className="text-[9px] font-mono font-bold bg-cyan-950/80 text-cyan-400 px-1.5 py-0.2 rounded border border-cyan-800/60">
+                    TRACK 3
+                  </span>
+                </div>
+                <p className="text-[9px] font-mono text-zinc-400 tracking-tight">
+                  AUTONOMOUS RECRUITMENT ENGINE
+                </p>
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Center / Right Telemetry & Actions */}
@@ -96,10 +130,41 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="hidden"
           />
 
+          {/* Home Button */}
+          <button
+            onClick={onGoHome || (() => (window.location.href = '/'))}
+            className={`px-3 py-1.5 font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              currentView === 'home'
+                ? 'bg-cyan-500 text-black border-cyan-400 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-zinc-800 hover:border-cyan-500/50'
+            }`}
+            title="Open Incursion Home & Upload Terminal"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>Home</span>
+          </button>
+
+          {/* Leaderboard Button (shown when data is active) */}
+          {hasData && onGoDashboard && (
+            <button
+              onClick={onGoDashboard}
+              className={`px-3 py-1.5 font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                currentView === 'dashboard'
+                  ? 'bg-cyan-500 text-black border-cyan-400 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                  : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-zinc-800 hover:border-cyan-500/50'
+              }`}
+              title="Open Shortlist Leaderboard"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Leaderboard</span>
+            </button>
+          )}
+
           {/* Upload Button */}
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={onGoHome ? onGoHome : () => fileInputRef.current?.click()}
             className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="Open Incursion Home Upload Terminal"
           >
             <Upload className="w-3.5 h-3.5 text-zinc-400" />
             <span>Upload</span>

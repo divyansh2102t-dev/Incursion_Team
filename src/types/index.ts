@@ -84,10 +84,13 @@ export interface TeamRecord {
 export type AggregationStrategy = 'MAX_SKILL' | 'DIMINISHING_RETURNS' | 'BALANCED_MEAN';
 export type MissingDataPolicy = 'NEUTRAL' | 'PENALTY_10' | 'PENALTY_25';
 
+export type GithubRequirementMode = 'NONE' | 'AT_LEAST_ONE' | 'ALL_MEMBERS';
+
 export interface HardFilterConfig {
   minTeamSize: number;
   maxTeamSize: number;
   requireAtLeastOneGithub: boolean;
+  githubRequirement?: GithubRequirementMode;
   minGithubContributionsOverall: number;
   requireAtLeastOneResumeOrPortfolio: boolean;
   minTotalSkillsCount: number;
