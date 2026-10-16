@@ -12,6 +12,7 @@ import {
   ArrowRightLeft,
   FileSpreadsheet,
   FileCode,
+  Code2,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 
@@ -22,6 +23,7 @@ interface NavbarProps {
   onOpenMapper: () => void;
   onOpenSensitivity: () => void;
   onOpenCompare: () => void;
+  onOpenGitHubSync: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
   hasData: boolean;
@@ -34,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenMapper,
   onOpenSensitivity,
   onOpenCompare,
+  onOpenGitHubSync,
   onExportCSV,
   onExportJSON,
   hasData,
@@ -101,6 +104,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {hasData && (
             <>
+              {/* GitHub Sync & Quota */}
+              <button
+                onClick={onOpenGitHubSync}
+                className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5"
+                title="Manage GitHub Tokens, Rate Limits & Live Enrichment"
+              >
+                <Code2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>GitHub PAT & Sync</span>
+              </button>
+
               {/* Column Mapper */}
               <button
                 onClick={onOpenMapper}

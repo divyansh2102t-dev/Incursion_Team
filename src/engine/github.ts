@@ -16,6 +16,43 @@ export interface GitHubStats {
 // In-memory cache for the session to prevent duplicate network calls
 const GITHUB_CACHE = new Map<string, GitHubStats>();
 
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetDate: Date;
+  isAuthenticated: boolean;
+}
+
+export async function checkGitHubRateLimit(userToken?: string): Promise<RateLimitInfo> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github.v3+json',
+  };
+  if (userToken) {
+    headers.Authorization = `token ${userToken}`;
+  }
+  try {
+    const res = await fetch('https://api.github.com/rate_limit', { headers });
+    if (res.ok) {
+      const data = await res.json();
+      const core = data.resources?.core;
+      return {
+        limit: core?.limit || (userToken ? 5000 : 60),
+        remaining: core?.remaining || 0,
+        resetDate: new Date((core?.reset || 0) * 1000),
+        isAuthenticated: Boolean(userToken),
+      };
+    }
+  } catch {
+    // fallback
+  }
+  return {
+    limit: userToken ? 5000 : 60,
+    remaining: userToken ? 5000 : 60,
+    resetDate: new Date(Date.now() + 3600000),
+    isAuthenticated: Boolean(userToken),
+  };
+}
+
 export function extractGithubUsername(urlOrHandle: string): string | null {
   if (!urlOrHandle) return null;
   const trimmed = urlOrHandle.trim();

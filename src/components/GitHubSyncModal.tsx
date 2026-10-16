@@ -1,0 +1,477 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { TeamRecord } from '@/types';
+import {
+  X,
+  Key,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  Code2,
+  ExternalLink,
+  Plus,
+  Trash2,
+  ShieldCheck,
+  Check,
+  Lock,
+} from 'lucide-react';
+import { checkGitHubRateLimit, fetchGitHubStats, RateLimitInfo } from '@/engine/github';
+import { encryptTokenString, decryptTokenString, maskToken } from '@/utils/cryptoUtils';
+
+export interface StoredTokenItem {
+  id: string;
+  label: string;
+  encrypted: string;
+  masked: string;
+  quotaRemaining?: number;
+  quotaLimit?: number;
+  isActive: boolean;
+}
+
+interface GitHubSyncModalProps {
+  teams: TeamRecord[];
+  onUpdateTeamsWithLiveStats: (
+    updater: (prevTeams: TeamRecord[]) => TeamRecord[]
+  ) => void;
+  onClose: () => void;
+}
+
+const TOKENS_STORAGE_KEY = 'incursion_enc_tokens_list_v1';
+
+export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
+  teams,
+  onUpdateTeamsWithLiveStats,
+  onClose,
+}) => {
+  const [tokens, setTokens] = useState<StoredTokenItem[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newTokenValue, setNewTokenValue] = useState('');
+  const [isCheckingQuota, setIsCheckingQuota] = useState(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [progress, setProgress] = useState<{ current: number; total: number; user: string } | null>(null);
+  const [syncCompleted, setSyncCompleted] = useState<boolean>(false);
+  const [unauthenticatedQuota, setUnauthenticatedQuota] = useState<RateLimitInfo | null>(null);
+
+  // Load tokens from localStorage on mount
+  useEffect(() => {
+    loadTokens();
+  }, []);
+
+  const loadTokens = async () => {
+    try {
+      const stored = localStorage.getItem(TOKENS_STORAGE_KEY);
+      let list: StoredTokenItem[] = stored ? JSON.parse(stored) : [];
+
+      // If active token exists, check quota
+      if (list.length > 0) {
+        setIsCheckingQuota(true);
+        const updated = await Promise.all(
+          list.map(async (item) => {
+            const rawToken = decryptTokenString(item.encrypted);
+            if (rawToken) {
+              const info = await checkGitHubRateLimit(rawToken);
+              return {
+                ...item,
+                quotaRemaining: info.remaining,
+                quotaLimit: info.limit,
+              };
+            }
+            return item;
+          })
+        );
+        setTokens(updated);
+        setIsCheckingQuota(false);
+      } else {
+        // Check unauthenticated quota
+        const unauth = await checkGitHubRateLimit();
+        setUnauthenticatedQuota(unauth);
+      }
+    } catch {
+      // Fallback
+    }
+  };
+
+  const saveTokensList = (updated: StoredTokenItem[]) => {
+    setTokens(updated);
+    localStorage.setItem(TOKENS_STORAGE_KEY, JSON.stringify(updated));
+  };
+
+  const handleAddToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanToken = newTokenValue.trim();
+    if (!cleanToken) return;
+
+    const label = newLabel.trim() || `Organizer Token #${tokens.length + 1}`;
+    const encrypted = encryptTokenString(cleanToken);
+    const masked = maskToken(cleanToken);
+
+    // Check rate limit for this token
+    setIsCheckingQuota(true);
+    const info = await checkGitHubRateLimit(cleanToken);
+    setIsCheckingQuota(false);
+
+    const isFirst = tokens.length === 0;
+
+    const newItem: StoredTokenItem = {
+      id: `tok-${Date.now()}`,
+      label,
+      encrypted,
+      masked,
+      quotaRemaining: info.remaining,
+      quotaLimit: info.limit,
+      isActive: isFirst, // First token active by default
+    };
+
+    saveTokensList([...tokens, newItem]);
+    setNewLabel('');
+    setNewTokenValue('');
+    setShowAddForm(false);
+  };
+
+  const handleSetActiveToken = (id: string) => {
+    const updated = tokens.map((t) => ({
+      ...t,
+      isActive: t.id === id,
+    }));
+    saveTokensList(updated);
+  };
+
+  const handleDeleteToken = (id: string) => {
+    const remaining = tokens.filter((t) => t.id !== id);
+    if (remaining.length > 0 && !remaining.some((t) => t.isActive)) {
+      remaining[0].isActive = true;
+    }
+    saveTokensList(remaining);
+  };
+
+  const getActiveDecryptedToken = (): string | undefined => {
+    const active = tokens.find((t) => t.isActive);
+    if (active) {
+      return decryptTokenString(active.encrypted);
+    }
+    return undefined;
+  };
+
+  // Find all unique candidate GitHub usernames across all teams
+  const uniqueUsernames = Array.from(
+    new Set(
+      teams.flatMap((t) =>
+        t.members
+          .map((m) => m.rawSignals.githubUsername)
+          .filter((u): u is string => Boolean(u))
+      )
+    )
+  );
+
+  const startLiveSync = async () => {
+    setIsSyncing(true);
+    setSyncCompleted(false);
+
+    let currentToken = getActiveDecryptedToken();
+    const statsMap = new Map<string, any>();
+    let processed = 0;
+
+    for (const username of uniqueUsernames) {
+      setProgress({
+        current: processed + 1,
+        total: uniqueUsernames.length,
+        user: username,
+      });
+
+      try {
+        const stats = await fetchGitHubStats(username, currentToken);
+        statsMap.set(username.toLowerCase(), stats);
+      } catch (err: any) {
+        console.error('GitHub fetch error for:', username, err);
+      }
+
+      processed++;
+    }
+
+    // Update teams with live fetched stats
+    onUpdateTeamsWithLiveStats((prev) =>
+      prev.map((team) => {
+        const updatedMembers = team.members.map((member) => {
+          const ghUser = member.rawSignals.githubUsername;
+          if (ghUser && statsMap.has(ghUser.toLowerCase())) {
+            const liveStats = statsMap.get(ghUser.toLowerCase());
+            return {
+              ...member,
+              rawSignals: {
+                ...member.rawSignals,
+                githubMetrics: liveStats,
+              },
+            };
+          }
+          return member;
+        });
+
+        return {
+          ...team,
+          members: updatedMembers,
+        };
+      })
+    );
+
+    setIsSyncing(false);
+    setSyncCompleted(true);
+    loadTokens(); // Refresh quota indicators
+  };
+
+  const activeTokenItem = tokens.find((t) => t.isActive);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col my-auto text-xs text-slate-700">
+        {/* Header */}
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Code2 className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base font-bold text-slate-800">
+              GitHub API Tokens & Live Rate Limit Manager
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto space-y-5">
+          {/* Encryption & Multi-Account Info */}
+          <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 space-y-1.5">
+            <div className="font-bold text-emerald-900 flex items-center gap-1.5 text-xs">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Encrypted & Masked Local Storage</span>
+            </div>
+            <p className="text-[11px] text-emerald-800 leading-relaxed">
+              Tokens are <strong>encrypted and masked</strong> locally in your browser. They are never exposed in cleartext, never sent to external servers, and never included in audit exports.
+            </p>
+          </div>
+
+          {/* Token List & Switcher */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                Configured Organizer Tokens ({tokens.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="text-blue-600 hover:text-blue-800 font-semibold text-xs flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Another Token</span>
+              </button>
+            </div>
+
+            {/* List of Tokens */}
+            {tokens.length > 0 ? (
+              <div className="space-y-2">
+                {tokens.map((tok) => (
+                  <div
+                    key={tok.id}
+                    className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                      tok.isActive
+                        ? 'bg-blue-50/80 border-blue-400 shadow-2xs'
+                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{tok.label}</span>
+                        {tok.isActive && (
+                          <span className="text-[10px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded-full">
+                            Active Token
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        <span>{tok.masked}</span>
+                      </div>
+                      {tok.quotaRemaining !== undefined && (
+                        <div className="text-[10px] text-slate-600">
+                          Quota:{' '}
+                          <strong className="text-blue-700">
+                            {tok.quotaRemaining} / {tok.quotaLimit} remaining
+                          </strong>{' '}
+                          (5,000 req/hr free pool)
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {!tok.isActive && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetActiveToken(tok.id)}
+                          className="px-2.5 py-1 bg-white border border-slate-300 hover:bg-blue-600 hover:text-white rounded text-[11px] font-medium transition-colors"
+                        >
+                          Use This Token
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteToken(tok.id)}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        title="Remove Token"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-500 text-xs">
+                No tokens added. Operating in <strong>Public Anonymous Mode (60 req/hr)</strong>.
+                {unauthenticatedQuota && (
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Remaining: {unauthenticatedQuota.remaining} / {unauthenticatedQuota.limit}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Add Another Token Form */}
+            {showAddForm && (
+              <form
+                onSubmit={handleAddToken}
+                className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3"
+              >
+                <div className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>Add Free GitHub Personal Access Token (PAT)</span>
+                  <a
+                    href="https://github.com/settings/tokens"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5 font-normal"
+                  >
+                    <span>Generate on GitHub</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-slate-600 font-medium">Token Label:</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Organizer 1 (Primary) or Organizer 2"
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded p-1.5 text-xs focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-slate-600 font-medium">Personal Access Token:</label>
+                    <input
+                      type="password"
+                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={newTokenValue}
+                      onChange={(e) => setNewTokenValue(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded p-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="px-3 py-1 text-slate-500 hover:bg-slate-200 rounded text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!newTokenValue.trim() || isCheckingQuota}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shadow-xs disabled:opacity-50"
+                  >
+                    {isCheckingQuota ? 'Verifying...' : 'Encrypt & Save Token'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* Sync Trigger Area */}
+          <div className="border-t border-slate-200 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-bold text-slate-800">
+                  Enrich Candidate Data from GitHub API
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {uniqueUsernames.length} unique candidate GitHub handles found across {teams.length} teams.
+                </div>
+              </div>
+
+              <button
+                onClick={startLiveSync}
+                disabled={isSyncing || uniqueUsernames.length === 0}
+                className={`px-4 py-2 rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-colors ${
+                  isSyncing
+                    ? 'bg-blue-400 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync Live GitHub Stats'}</span>
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            {isSyncing && progress && (
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1.5">
+                <div className="flex justify-between text-[11px] text-slate-600">
+                  <span>
+                    Fetching <strong>@{progress.user}</strong>...
+                  </span>
+                  <span>
+                    {progress.current} of {progress.total}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-full transition-all duration-200"
+                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Success notice */}
+            {syncCompleted && (
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Successfully enriched candidate GitHub profiles with live repos, star stats, and languages! Shortlist re-ranked.
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-semibold text-xs transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

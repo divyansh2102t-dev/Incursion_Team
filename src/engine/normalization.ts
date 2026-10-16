@@ -97,9 +97,10 @@ export function aggregateTeamSignals(
     effectiveContrib = Math.round(sum);
     explanation = `Diminishing Returns Normalization: Leader counts 100%, 2nd member 66%, 3rd member 44%. Balances group synergy without overwhelming solo prodigies.`;
   } else {
-    // BALANCED_MEAN
-    effectiveContrib = Math.round(avgContrib * (1 + (members.length - 1) * 0.15));
-    explanation = `Balanced Mean Normalization: Average member contribution with a modest team synergy boost (+15% per additional member).`;
+    // BALANCED_MEAN (capped at 1.4x synergy boost to prevent inflation for large teams)
+    const synergyMultiplier = Math.min(1.4, 1 + (members.length - 1) * 0.08);
+    effectiveContrib = Math.round(avgContrib * synergyMultiplier);
+    explanation = `Balanced Mean Normalization: Average member contribution with capped synergy boost (+${Math.round((synergyMultiplier - 1) * 100)}%).`;
   }
 
   // Count distinct covered core roles (frontend, backend, ai_ml, design, devops, mobile)

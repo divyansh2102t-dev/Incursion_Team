@@ -34,8 +34,20 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
   // 3. Scan for member repetitions (e.g., Member 1, Member 2... or Leader, Teammate 1...)
   const memberColumns: ColumnMappingConfig['memberColumns'] = [];
   
-  // Try detection for up to 6 members
-  for (let m = 1; m <= 6; m++) {
+  // Dynamically detect the highest member index referenced in the headers (up to 100)
+  let maxMemberIndexFound = 1;
+  for (const h of headers) {
+    const match = h.match(/(?:member|participant|teammate|person|applicant|m)[_\s]*(\d+)/i);
+    if (match && match[1]) {
+      const parsedIdx = parseInt(match[1]);
+      if (parsedIdx > maxMemberIndexFound && parsedIdx <= 100) {
+        maxMemberIndexFound = parsedIdx;
+      }
+    }
+  }
+  const scanLimit = Math.max(6, maxMemberIndexFound);
+
+  for (let m = 1; m <= scanLimit; m++) {
     const memberPrefixPatterns = [
       new RegExp(`member\\s*${m}\\b`, 'i'),
       new RegExp(`member_${m}\\b`, 'i'),
