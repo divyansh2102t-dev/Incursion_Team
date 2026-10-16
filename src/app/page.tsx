@@ -4,9 +4,10 @@ import React, { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { ColumnMappingConfig, SelectionConfig, TeamRecord } from '@/types';
 import { DEFAULT_CONFIG } from '@/presets/defaultPresets';
-import { parseCSVString, parseRawDataToTeams } from '@/engine/parser';
+import { parseCSVString, parseRawDataToTeams, parseExcelArrayBuffer } from '@/engine/parser';
 import { runFullShortlistingEngine } from '@/engine/scoring';
 import { exportShortlistToCSV, exportShortlistWithConfigJSON } from '@/utils/exportUtils';
+import { parseLocalPdfFile, matchResumeToCandidate } from '@/engine/resumeParser';
 
 import { Navbar } from '@/components/Navbar';
 import { UploadZone } from '@/components/UploadZone';
@@ -17,6 +18,8 @@ import { ColumnMapperModal } from '@/components/ColumnMapperModal';
 import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
 import { GitHubSyncModal } from '@/components/GitHubSyncModal';
+import { ResumeSyncModal } from '@/components/ResumeSyncModal';
+import { ParallelSyncModal } from '@/components/ParallelSyncModal';
 import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
 import {
   BookmarkPlus,
@@ -28,6 +31,7 @@ import {
   Trash2,
   LayoutDashboard,
   Zap,
+  FileText,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
@@ -55,6 +59,8 @@ export default function Home() {
   const [isSensitivityOpen, setIsSensitivityOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isGitHubSyncOpen, setIsGitHubSyncOpen] = useState(false);
+  const [isResumeSyncOpen, setIsResumeSyncOpen] = useState(false);
+  const [isParallelSyncOpen, setIsParallelSyncOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
@@ -63,11 +69,81 @@ export default function Home() {
   const dashboardRef = useRef<HTMLDivElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileUpload = (file: File) => {
+  const enrichWithPdfs = async (teams: TeamRecord[], pdfFiles: File[]): Promise<TeamRecord[]> => {
+    let updated = [...teams];
+    const candidateList = updated.flatMap((t) =>
+      t.members.map((m) => ({ memberId: m.id, name: m.name, email: m.email }))
+    );
+
+    for (const pdf of pdfFiles) {
+      try {
+        const parsedPdf = await parseLocalPdfFile(pdf);
+        const matchedId = matchResumeToCandidate(pdf.name, parsedPdf.snippet || '', candidateList);
+        if (matchedId && parsedPdf.success) {
+          updated = updated.map((team) => ({
+            ...team,
+            members: team.members.map((member) => {
+              if (member.id === matchedId) {
+                return {
+                  ...member,
+                  rawSignals: {
+                    ...member.rawSignals,
+                    skills: Array.from(new Set([...member.rawSignals.skills, ...parsedPdf.skills])),
+                    hackathonExperienceCount: Math.max(
+                      member.rawSignals.hackathonExperienceCount || 0,
+                      parsedPdf.hackathonMentionCount
+                    ),
+                    hasResume: true,
+                  },
+                };
+              }
+              return member;
+            }),
+          }));
+        }
+      } catch {
+        // Ignore corrupt local pdf
+      }
+    }
+    return updated;
+  };
+
+  const handleFileUpload = (file: File, pdfFiles?: File[]) => {
+    // Check if Excel spreadsheet (.xlsx, .xls)
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const arrayReader = new FileReader();
+      arrayReader.onload = async (e) => {
+        const buffer = e.target?.result as ArrayBuffer;
+        if (buffer) {
+          try {
+            const res = parseExcelArrayBuffer(buffer);
+            setRawHeaders(res.headers);
+            setRawRows(res.rawRows);
+            setColumnMapping(res.detectedMapping);
+            let initialTeams = res.teams;
+
+            if (pdfFiles && pdfFiles.length > 0 && initialTeams.length > 0) {
+              initialTeams = await enrichWithPdfs(initialTeams, pdfFiles);
+            }
+
+            setBaseTeams(initialTeams);
+            saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, initialTeams);
+            setCurrentView('dashboard');
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to parse Excel file.';
+            alert(msg);
+          }
+        }
+      };
+      arrayReader.readAsArrayBuffer(file);
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const content = e.target?.result as string;
       if (content) {
+        let initialTeams: TeamRecord[] = [];
         if (file.name.endsWith('.json')) {
           try {
             const parsed = JSON.parse(content);
@@ -79,12 +155,11 @@ export default function Home() {
               setRawHeaders(res.headers);
               setRawRows(res.rawRows);
               setColumnMapping(res.detectedMapping);
-              setBaseTeams(res.teams);
-              saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, res.teams);
-              setCurrentView('dashboard');
+              initialTeams = res.teams;
             }
-          } catch (err) {
+          } catch {
             alert('Failed to parse JSON file.');
+            return;
           }
         } else {
           // CSV / TSV
@@ -92,13 +167,47 @@ export default function Home() {
           setRawHeaders(res.headers);
           setRawRows(res.rawRows);
           setColumnMapping(res.detectedMapping);
-          setBaseTeams(res.teams);
-          saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, res.teams);
-          setCurrentView('dashboard');
+          initialTeams = res.teams;
         }
+
+        // If local PDF resumes were included in the folder upload, parse them in-memory
+        if (pdfFiles && pdfFiles.length > 0 && initialTeams.length > 0) {
+          initialTeams = await enrichWithPdfs(initialTeams, pdfFiles);
+        }
+
+        setBaseTeams(initialTeams);
+        saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, initialTeams);
+        setCurrentView('dashboard');
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleGoogleSheetSubmit = async (url: string) => {
+    try {
+      const res = await fetch('/api/fetch-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch Google Sheet');
+      }
+
+      const parsedRes = parseCSVString(data.csvContent);
+      setRawHeaders(parsedRes.headers);
+      setRawRows(parsedRes.rawRows);
+      setColumnMapping(parsedRes.detectedMapping);
+      setBaseTeams(parsedRes.teams);
+      saveScoringSnapshot('Intake: Google Sheet', undefined, parsedRes.teams);
+      setCurrentView('dashboard');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error importing Google Sheet';
+      alert(msg);
+      throw err;
+    }
   };
 
   const handleSaveMapping = (updatedMapping: ColumnMappingConfig) => {
@@ -190,6 +299,8 @@ export default function Home() {
         onOpenSensitivity={() => setIsSensitivityOpen(true)}
         onOpenCompare={() => handleLaunchCompare()}
         onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
+        onOpenResumeSync={() => setIsResumeSyncOpen(true)}
+        onOpenParallelSync={() => setIsParallelSyncOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onExportCSV={() => exportShortlistToCSV(rankedTeams, config, config.shortlistCount)}
         onExportJSON={() => exportShortlistWithConfigJSON(rankedTeams, config, config.shortlistCount)}
@@ -254,10 +365,11 @@ export default function Home() {
               </div>
             )}
             <UploadZone
-              onFileUpload={(file) => {
-                handleFileUpload(file);
+              onFileUpload={(file, pdfFiles) => {
+                handleFileUpload(file, pdfFiles);
                 setCurrentView('dashboard');
               }}
+              onGoogleSheetSubmit={handleGoogleSheetSubmit}
             />
           </div>
         ) : (
@@ -315,10 +427,30 @@ export default function Home() {
               </div>
 
               <div className="flex items-center flex-wrap gap-2">
+                {/* Resume Intelligence & Sync Button */}
+                <button
+                  onClick={() => setIsResumeSyncOpen(true)}
+                  className="px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 font-bold rounded-lg border border-cyan-800 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Scan & Parse Candidate Google Drive & PDF Resumes"
+                >
+                  <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Resume Sync</span>
+                </button>
+
+                {/* Parallel Deep Scan Button (Dual-stream Concurrent GitHub + Resume Auditor) */}
+                <button
+                  onClick={() => setIsParallelSyncOpen(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-950/70 to-cyan-950/70 hover:from-blue-900/90 hover:to-cyan-900/90 text-cyan-200 font-bold rounded-lg border border-cyan-400/60 hover:border-cyan-300 transition-colors flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                  title="Run Live GitHub Velocity & Cloud Resume Parsing Concurrently in Parallel"
+                >
+                  <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span>Parallel Deep Scan</span>
+                </button>
+
                 {/* Formulae Studio Button */}
                 <Link
                   href="/formulas"
-                  className="px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 font-bold rounded-lg border border-cyan-800 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
                   title="Open Formula & Algorithm Studio"
                 >
                   <Sliders className="w-3.5 h-3.5 text-cyan-400" />
@@ -447,6 +579,27 @@ export default function Home() {
           teams={baseTeams}
           onUpdateTeamsWithLiveStats={setBaseTeams}
           onClose={() => setIsGitHubSyncOpen(false)}
+        />
+      )}
+
+      {/* Resume Intelligence & Cloud Drive Parser Modal */}
+      {isResumeSyncOpen && (
+        <ResumeSyncModal
+          teams={baseTeams}
+          onUpdateTeamsWithParsedResumes={setBaseTeams}
+          onClose={() => setIsResumeSyncOpen(false)}
+        />
+      )}
+
+      {/* Parallel Deep Scan Modal (Concurrent GitHub & Resume Scoring) */}
+      {isParallelSyncOpen && (
+        <ParallelSyncModal
+          teams={baseTeams}
+          onApplyEnrichedTeams={(updated) => {
+            setBaseTeams(updated);
+            saveScoringSnapshot('Enriched: Parallel GitHub & Resume Scan', undefined, updated);
+          }}
+          onClose={() => setIsParallelSyncOpen(false)}
         />
       )}
 

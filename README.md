@@ -9,10 +9,14 @@ A reusable, 100% zero-cost ($0 API bills) recruitment automation platform design
 
 - **100% Zero-Cost ($0 API Bills):** Eliminates paid LLM tokens by using fast, deterministic client-side regex taxonomy parsing, public REST endpoints, and in-memory Web Workers.
 - **Zero Database Storage / Volatile In-Memory:** Candidate resumes and spreadsheets exist solely in volatile browser RAM and are immediately discarded after scoring. Zero database, zero data retention, and zero GDPR/privacy liability.
-- **Above-The-Fold Cyber Terminal:** Direct file drop, **Select File**, and **Select Folder** directory pickers (`webkitdirectory`) with an Arc-Reactor telemetry HUD wheel featuring planetary gear counter-rotating icons that always stay upright.
+- **Universal Multi-Format Intake:** Ingests cohorts from **CSV, JSON, Excel (`.xlsx`, `.xls`)**, and **Live Google Sheets URLs** with automated server-side CORS resolution.
+- **Concurrent Dual-Stream Parallel Scoring:** Audits candidate GitHub accounts and extracts PDF/Cloud resumes simultaneously in parallel without blocking each other.
+- **Above-The-Fold Cyber Terminal:** Direct file drop, **Select File**, **Select Folder** directory pickers (`webkitdirectory`), and **Google Sheets Link** drawer with an Arc-Reactor telemetry HUD wheel featuring planetary gear counter-rotating icons that always stay upright.
 - **Two-Way Number Input & Sliders:** Both the Settings panel and the **Formula & Algorithm Studio** (`/formulas`) allow organizers to either drag slider bars or manually type exact numbers, with real-time auto-synchronization.
 - **Encrypted Multi-Token GitHub Manager:** Client-side encrypted token vault supporting multiple organizer tokens, live quota tracking, and automatic failover for high-volume cohorts.
 - **Unopinionated & Fully Tunable:** Dedicated **Formula & Algorithm Studio** (`/formulas`) where organizers can tune the exact mathematical multipliers and normalizers with factory reset and undo buttons.
+- **Progressive Web App (PWA) & Offline Shell:** Installable on desktop & mobile with standalone window, maskable icons, and a Service Worker providing instant load and offline caching.
+- **Enterprise SEO & Brand Identity:** Custom geometric vector cyber logo (`/icon.svg`), automated OpenGraph & Twitter social cards, JSON-LD schema, dynamic `/sitemap.xml`, and `/robots.txt`.
 - **Mobile-Friendly UI:** Responsive table/card view toggle, mobile search, and touch-optimized controls.
 
 ---
@@ -44,21 +48,28 @@ $$\text{Tech Score} = \min\left(C_{\max},\; \frac{\text{Commits}}{D_{\text{contr
 
 ---
 
-## 📄 2. Resume & Document Parsing Architecture
+## 📄 2. Resume Intelligence & Cloud Drive Parsing Architecture
 
-Resumes and portfolios are evaluated in real time in volatile browser memory using deterministic Natural Language Processing (NLP) taxonomy matching.
+Resumes and portfolios are evaluated with a 100% zero-cost, unlimited parsing pipeline that processes both local PDF files and cloud storage links (Google Drive, Dropbox, direct URLs) in volatile memory using deterministic Natural Language Processing (NLP) taxonomy matching.
 
 ```mermaid
 flowchart TD
-    A["Candidate Resume\n(PDF file or link)"] --> B["Volatile Browser Buffer\n(ArrayBuffer in Memory)"]
-    B --> C["Client-side Text Extractor\n(Zero Disk / Zero Database)"]
-    C --> D["Taxonomy Matcher\n(Strict word-boundary regex \b)"]
-    D --> E["1. Skill Extraction across 7 disciplines\n(Frontend, Backend, AI/ML, Mobile, Design, DevOps, Cloud)"]
-    D --> F["2. Accolade & Hackathon Scanner\n(1st place, winner, finalist, SIH, ETHIndia, MLH)"]
-    D --> G["3. Proof-of-Work Verifier\n(Working demos, portfolios, live URLs)"]
-    E & F & G --> H["Calculate Normalized Experience Score\n(0 to 100 scale)"]
-    H --> I["Release Buffer from RAM\n(Automatic Browser Garbage Collection)"]
+    A["Candidate Resume Submission"] --> B{"Submission Type"}
+    B -- "Google Drive / Dropbox Link in CSV" --> C["Next.js Server-Side Resolver (/api/parse-resume)\n- Bypasses browser CORS\n- Downloads public stream via File ID"]
+    B -- "Local PDF Files / Folder Drop" --> D["Client-Side In-Memory Buffer\n(ArrayBuffer in volatile RAM)"]
+    C & D --> E["unpdf (Universal PDF Text Extractor)\n- Zero native dependencies\n- 100% free, unlimited, $0 tokens"]
+    E --> F["Full Text Stream\n(Skills, Work History, Education, Accolades)"]
+    F --> G["Taxonomy & Accolade Engine\n- Matches 7-discipline skills (Next.js, PyTorch, Go, etc.)\n- Scans hackathon wins (SIH, ETHIndia, MLH)\n- Detects GitHub / Portfolio links inside PDF"]
+    G --> H["Live Leaderboard Re-ranking\n(Updates Technical Depth & Experience Scores)"]
 ```
+
+### Key Resume Intelligence Capabilities:
+- **Zero-Cost & Unlimited (`unpdf`):** Standard paid PDF parsing APIs cost \$0.01–\$0.05 per document. Incursion uses universal `unpdf` text extraction with zero native dependencies, allowing cohorts of 500+ candidates to be analyzed at \$0 API bill with no rate limits.
+- **Server-Side Google Drive Resolver (`/api/parse-resume`):** Google Drive links in candidate CSVs cannot be fetched directly in the browser due to CORS headers. Incursion's Next.js route extracts the unique file ID (`drive.google.com/file/d/{id}` or `?id={id}`), streams the public file server-side, detects private/permission-locked links, and extracts the text stream.
+- **Local Multi-PDF & Folder Matching:** Drop an entire folder of PDF resumes or select multiple files. The matcher pairs resumes with candidates by name, email handle, or header text occurrences in real-time RAM.
+- **Automatic Signal Discovery:** If a candidate forgot to input their GitHub or portfolio in the registration form, the parser extracts embedded `github.com/...` or LinkedIn handles from their PDF resume and automatically enriches their profile for GitHub evaluation.
+- **Diagnostic Telemetry Modal (`Resume Sync`):** Accessible from the top navigation bar and dashboard action row, the Resume Sync modal displays live status (`PARSED`, `PRIVATE LINK`, `FAILED`), batch-processes links with a progress bar, and re-ranks the cohort with one click.
+- **Zero Database Retention:** Documents are parsed strictly in volatile RAM and immediately discarded. No personal data, PDFs, or candidate information is ever stored to disk or database.
 
 ### Resume Scoring Formula:
 $$\text{Experience Score} = \min\Big(E_{\max},\; (\text{Wins} \times P_{\text{win}}) + (\text{Skills} \times P_{\text{skill}}) + B_{\text{proof}}\Big)$$
@@ -70,7 +81,51 @@ $$\text{Experience Score} = \min\Big(E_{\max},\; (\text{Wins} \times P_{\text{wi
 
 ---
 
-## ⚖️ 3. Team-Size Normalization Models
+## ⚡ 3. Dual-Stream Concurrent Parallel Scoring Engine
+
+When evaluating large hackathon cohorts, Incursion can run GitHub velocity auditing and Cloud Resume PDF text extraction **concurrently in parallel** without blocking each other.
+
+```mermaid
+flowchart TD
+    A["Cohort Submission Intake\n(CSV / JSON / Excel / Google Sheets)"] --> B["Dual-Stream Parallel Orchestrator"]
+    B --> C["Stream A: Live GitHub Velocity Inspector"]
+    B --> D["Stream B: Resume Intelligence Extractor"]
+    
+    C --> C1["Query GitHub REST API\n(User stats, commit activity, language distributions)"]
+    C --> C2["Anti-Cheat Heuristic\n(Detects 100% fork padding & 0 commits)"]
+    
+    D --> D1["Server-side Stream Resolver\n(/api/parse-resume bypasses CORS)"]
+    D --> D2["Universal unpdf Extractor\n(Extracts skills, hackathons & embedded links)"]
+    
+    C1 & C2 & D1 & D2 --> E["Synchronized Signal Merger"]
+    E --> F["Live Re-Ranking Engine\n(Updates Technical Depth & Experience in Real-Time)"]
+```
+
+### Key Parallel Architecture Highlights:
+- **Zero Blocking / Concurrency:** Stream A iterates through GitHub handles using the active organizer token pool (up to 5,000 req/hr), while Stream B simultaneously streams and parses candidate Google Drive/Dropbox PDF resumes via `unpdf`.
+- **Live Dual-Progress HUD Modal (`Parallel Deep Scan`):** Displays side-by-side animated progress bars showing real-time scanned counts, active usernames, and parsed resume tallies.
+- **Unified Cohort Enrichment:** Once streams complete, newly discovered repositories, commits, verified skills, and competition accolades are merged into candidate profiles and the cohort is immediately re-ranked.
+- **One-Click Trigger:** Accessible from both the top navigation bar (`Parallel Sync`) and the dashboard action bar (`Parallel Deep Scan`).
+
+---
+
+## 📊 4. Universal Data Ingestion: Excel & Live Google Sheets
+
+Organizers can import candidate registrations across any standard tabular format without conversion:
+
+- **Excel Spreadsheets (`.xlsx`, `.xls`):**
+  - Drop or select native Excel files directly into the upload terminal.
+  - Processed entirely in browser memory via binary ArrayBuffer parsing (`xlsx`) with zero disk writes and zero cloud upload.
+- **Live Google Sheets Links:**
+  - Paste any Google Sheet share URL (e.g. `https://docs.google.com/spreadsheets/d/.../edit#gid=0`).
+  - Next.js server-side route (`/api/fetch-sheet`) automatically extracts the Spreadsheet ID and sheet GID, fetches the CSV export stream server-side (bypassing browser CORS restrictions), and ingests the cohort in seconds.
+  - Detects private/locked sheets and instructs the organizer to toggle "Anyone with the link can view".
+- **CSV, TSV & Custom JSON:**
+  - Full support for Google Forms exports, Typeform, Devpost, and Tally registration dumps.
+
+---
+
+## ⚖️ 5. Team-Size Normalization Models
 
 To keep solo prodigies and multi-member teams on equal footing:
 - **`MAX_SKILL`:** Highest skill in each discipline sets the team rating. Solo hackers equalized.
@@ -83,7 +138,7 @@ To keep solo prodigies and multi-member teams on equal footing:
 
 ---
 
-## 🛡️ 4. Qualification Filters & Mandatory GitHub Requirements
+## 🛡️ 6. Qualification Filters & Mandatory GitHub Requirements
 
 The hard-qualification pipeline enforces eligibility before candidates enter the scoring matrix:
 - **Mandatory GitHub Requirement Modes:**
@@ -97,7 +152,7 @@ The hard-qualification pipeline enforces eligibility before candidates enter the
 
 ---
 
-## 🎛️ 5. Two-Way Synchronized Manual Typing & Sliders
+## 🎛️ 7. Two-Way Synchronized Manual Typing & Sliders
 
 Every adjustable metric on the platform provides dual input modes:
 - **Direct Manual Typing:** Type exact numbers or thresholds directly into the `<input type="number" />` field.
@@ -110,7 +165,7 @@ This applies across:
 
 ---
 
-## 📜 6. Scoring Run History & Audit Vault
+## 📜 8. Scoring Run History & Audit Vault
 
 Organizers can capture, name, manage, and restore scoring runs with complete audit fidelity:
 - **Custom Scoring Names:** Name any scoring run snapshot upon creation (e.g., *"Round 1 Cutoff"*, *"Pre-Sponsor Filter"*, *"Equalized Solo Bias"*).
@@ -122,7 +177,7 @@ Organizers can capture, name, manage, and restore scoring runs with complete aud
 
 ---
 
-## 🧮 7. Custom Mathematical Formula Expression Studio (`/formulas`)
+## 🧮 9. Custom Mathematical Formula Expression Studio (`/formulas`)
 
 Organizers are not limited to fixed linear weights. A built-in, injection-safe mathematical expression engine allows organizers to author arbitrary scoring equations using live cohort signals:
 
@@ -146,7 +201,26 @@ flowchart LR
 
 ---
 
-## 🛠️ Multi-Page Application Layout
+## 🌐 10. SEO Optimization, Brand Identity & Progressive Web App (PWA)
+
+Incursion is built as a production-grade, installable Progressive Web App (PWA) with comprehensive search engine discovery and custom cyber-industrial branding:
+
+- **Official Cyber Vector Logo (`/icon.svg` & `/logo.svg`):**
+  - Custom geometric apex shield emblem with glowing neon cyan core, reactor pulse gem, and circuit-trace bus lines.
+  - Rendered natively in the top Navigation pill, formulas header, browser tab favicon, and PWA launch icons.
+- **Progressive Web App (PWA) Installability:**
+  - **Service Worker (`/sw.js`):** Intercepts navigation and static assets with a network-first strategy and offline cache fallback, allowing organizers to access scoring history and rankings even during offline venue network drops.
+  - **Web App Manifest (`/manifest.webmanifest` & `/manifest.json`):** Full standalone display configuration with `theme_color: '#06b6d4'`, `background_color: '#030712'`, and adaptive maskable icons (192x192, 512x512).
+  - **Interactive Install Banner:** Detects browser `beforeinstallprompt` and offers a one-click desktop/mobile app installation prompt.
+- **Enterprise Search Engine Optimization (SEO):**
+  - **Next.js Metadata API:** Canonical URLs, rich title templates, comprehensive meta descriptions, author tags, and 15+ high-intent hackathon recruitment keywords.
+  - **Social Graph Sharing:** Pre-configured OpenGraph (`og:image`, `og:title`, `og:type`) and Twitter Cards (`summary_large_image`) for rich previews on Slack, Discord, Twitter/X, and LinkedIn.
+  - **Automated Sitemaps & Robots:** Built-in dynamic `/sitemap.xml` and `/robots.txt` generated directly via Next.js App Router.
+  - **JSON-LD Structured Data:** Injected Schema.org `WebApplication` metadata declaring $0 cost, operating system support, and recruitment features for Google Rich Results.
+
+---
+
+## 🛠️ 11. Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.

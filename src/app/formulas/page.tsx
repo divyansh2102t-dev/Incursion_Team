@@ -140,8 +140,8 @@ export default function FormulasPage() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group"
               title="Return to Incursion Home"
             >
-              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-[10px]">
-                <Zap className="w-3 h-3 text-black fill-black" />
+              <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+                <img src="/icon.svg" alt="Incursion Logo" className="w-full h-full object-cover" />
               </div>
               <span className="text-xs font-black tracking-wider text-zinc-100 group-hover:text-cyan-300 uppercase">
                 INCURSION

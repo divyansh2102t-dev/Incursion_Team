@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { ColumnMappingConfig, MemberProfile, TeamRecord } from '@/types';
 import { extractSkillsAndRoles } from './taxonomy';
 import { extractGithubUsername, generateHeuristicFallback } from './github';
@@ -8,6 +9,33 @@ export interface ParseResult {
   rawRows: Record<string, string>[];
   detectedMapping: ColumnMappingConfig;
   teams: TeamRecord[];
+}
+
+export function extractGoogleSheetsExportUrl(inputUrl: string): string | null {
+  const clean = inputUrl.trim();
+  const match = clean.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/i);
+  if (!match || !match[1]) {
+    // If user provided just the raw spreadsheet ID
+    if (/^[a-zA-Z0-9-_]{25,60}$/.test(clean)) {
+      return `https://docs.google.com/spreadsheets/d/${clean}/export?format=csv&gid=0`;
+    }
+    return null;
+  }
+  const spreadsheetId = match[1];
+  const gidMatch = clean.match(/[#&?]gid=([0-9]+)/i);
+  const gid = gidMatch ? gidMatch[1] : '0';
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+}
+
+export function parseExcelArrayBuffer(buffer: ArrayBuffer): ParseResult {
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error('Excel workbook contains no sheets.');
+  }
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  const csvContent = XLSX.utils.sheet_to_csv(worksheet);
+  return parseCSVString(csvContent);
 }
 
 export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig {

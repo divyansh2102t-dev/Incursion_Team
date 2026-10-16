@@ -19,6 +19,7 @@ import {
   Zap,
   History,
   LayoutDashboard,
+  FileText,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -31,6 +32,8 @@ interface NavbarProps {
   onOpenSensitivity: () => void;
   onOpenCompare: () => void;
   onOpenGitHubSync: () => void;
+  onOpenResumeSync?: () => void;
+  onOpenParallelSync?: () => void;
   onOpenHistory: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
@@ -48,6 +51,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSensitivity,
   onOpenCompare,
   onOpenGitHubSync,
+  onOpenResumeSync,
+  onOpenParallelSync,
   onOpenHistory,
   onExportCSV,
   onExportJSON,
@@ -76,8 +81,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group cursor-pointer text-left"
               title="Open Incursion Home & Upload Terminal"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
-                <Zap className="w-3.5 h-3.5 text-black fill-black" />
+              {/* Official Incursion Cyber Emblem */}
+              <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-transform">
+                <img
+                  src="/icon.svg"
+                  alt="Incursion Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -99,8 +109,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-cyan-500/30 hover:border-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.15)] group"
               title="Open Incursion Home & Upload Terminal"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-black font-black text-xs shadow-xs">
-                <Zap className="w-3.5 h-3.5 text-black fill-black" />
+              <div className="relative w-6 h-6 rounded-lg overflow-hidden shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-transform">
+                <img
+                  src="/icon.svg"
+                  alt="Incursion Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -195,6 +209,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Code2 className="w-3.5 h-3.5 text-blue-400" />
                 <span className="hidden sm:inline">GitHub PAT</span>
               </button>
+
+              {/* Resume Intelligence & Sync */}
+              {onOpenResumeSync && (
+                <button
+                  onClick={onOpenResumeSync}
+                  className="px-2.5 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 font-medium rounded-lg border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Scan & Parse Candidate Google Drive & PDF Resumes"
+                >
+                  <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">Resume Sync</span>
+                </button>
+              )}
+
+              {/* Parallel Deep Scan (GitHub + Resumes concurrently) */}
+              {onOpenParallelSync && (
+                <button
+                  onClick={onOpenParallelSync}
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-blue-950/60 to-cyan-950/60 hover:from-blue-900/80 hover:to-cyan-900/80 text-cyan-200 font-bold rounded-lg border border-cyan-400/50 hover:border-cyan-300 transition-colors flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-pointer"
+                  title="Run Live GitHub Velocity & Cloud Resume Parsing Concurrently in Parallel"
+                >
+                  <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span className="hidden sm:inline">Parallel Sync</span>
+                </button>
+              )}
 
               {/* Mapper */}
               <button

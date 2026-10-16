@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGlow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#083344" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#030712" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#02040a"/>
+    </radialGradient>
+
+    <!-- Neon Cyber Gradients -->
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <linearGradient id="coreGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a5f3fc"/>
+      <stop offset="50%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+
+    <!-- Drop Shadows & Glow Filters -->
+    <filter id="neonBloom" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="coreBloom" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Base Dark Squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#cyanGrad)" stroke-width="3" stroke-opacity="0.4"/>
+
+  <!-- Subtle Cyber Radar Grid -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="4 8" opacity="0.3"/>
+  <circle cx="256" cy="256" r="120" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-opacity="0.2"/>
+  <circle cx="256" cy="256" r="60" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="2 6" opacity="0.4"/>
+
+  <!-- Circuit Trace Accents -->
+  <path d="M 80 180 L 140 180 L 170 210" fill="none" stroke="#06b6d4" stroke-width="2" opacity="0.4"/>
+  <circle cx="80" cy="180" r="4" fill="#22d3ee" opacity="0.6"/>
+  
+  <path d="M 432 332 L 372 332 L 342 302" fill="none" stroke="#06b6d4" stroke-width="2" opacity="0.4"/>
+  <circle cx="432" cy="332" r="4" fill="#22d3ee" opacity="0.6"/>
+
+  <!-- Primary Hexagonal Outer Shield -->
+  <polygon points="256,64 394,144 394,304 256,384 118,304 118,144" 
+           fill="#05121e" 
+           fill-opacity="0.8" 
+           stroke="url(#blueGrad)" 
+           stroke-width="5" 
+           stroke-linejoin="round"
+           filter="url(#neonBloom)"/>
+
+  <!-- Inner Angular Chevron Apex (Incursion 'I' Crown) -->
+  <path d="M 176 136 L 256 90 L 336 136 L 312 168 L 256 136 L 200 168 Z" 
+        fill="url(#cyanGrad)" 
+        filter="url(#neonBloom)"/>
+
+  <!-- Central Energy Core Pillar (Incursion 'I' Body) -->
+  <path d="M 230 180 L 282 180 L 290 320 L 256 348 L 222 320 Z" 
+        fill="url(#coreGlow)" 
+        filter="url(#coreBloom)"/>
+
+  <!-- Arc Reactor Center Pulse Gem -->
+  <polygon points="256,220 286,245 286,275 256,300 226,275 226,245" 
+           fill="#ecfeff" 
+           stroke="#22d3ee" 
+           stroke-width="3" 
+           filter="url(#coreBloom)"/>
+  
+  <!-- Central Glowing Node -->
+  <circle cx="256" cy="260" r="10" fill="#ffffff" filter="url(#coreBloom)"/>
+
+  <!-- Lower Anchor Chevron (Incursion 'I' Base) -->
+  <path d="M 176 376 L 256 422 L 336 376 L 312 344 L 256 376 L 200 344 Z" 
+        fill="url(#cyanGrad)" 
+        filter="url(#neonBloom)"/>
+
+  <!-- Energy Radiance Beams -->
+  <line x1="256" y1="90" x2="256" y2="40" stroke="#a5f3fc" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <line x1="256" y1="422" x2="256" y2="472" stroke="#a5f3fc" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="256" cy="40" r="3" fill="#ffffff"/>
+  <circle cx="256" cy="472" r="3" fill="#ffffff"/>
+</svg>
