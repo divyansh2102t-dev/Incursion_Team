@@ -131,6 +131,10 @@ body {
   animation: spinSlow 35s linear infinite;
 }
 
+.animate-spin-counter {
+  animation: spinSlowReverse 35s linear infinite;
+}
+
 .animate-spin-reverse {
   animation: spinSlowReverse 25s linear infinite;
 }

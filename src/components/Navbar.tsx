@@ -91,16 +91,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="hidden"
           />
 
-          {/* Download Demo CSV */}
-          <a
-            href="/demo_hackathon_registrations.csv"
-            download="demo_hackathon_registrations.csv"
-            className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5"
-            title="Download Sample Registration CSV File"
-          >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Demo CSV</span>
-          </a>
 
           {/* Upload Button */}
           <button

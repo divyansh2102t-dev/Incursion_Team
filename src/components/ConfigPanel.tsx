@@ -84,16 +84,30 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
       <hr className="border-cyan-950/60" />
 
-      {/* Top X Cutoff Selector */}
+      {/* Top X Cutoff Selector (With Manual Number Typing + Auto-Updating Slider) */}
       <div className="bg-black/50 border border-cyan-900/40 p-3.5 rounded-xl space-y-2">
         <div className="flex justify-between items-center text-xs font-semibold text-zinc-200">
           <span className="flex items-center gap-1.5">
             <Award className="w-4 h-4 text-amber-400" />
             <span>Shortlist Cutoff (Top X):</span>
           </span>
-          <span className="text-sm font-black text-cyan-400 neon-glow-cyan">
-            {config.shortlistCount} <span className="text-[10px] font-normal text-zinc-500">/ {totalTeamsCount} teams</span>
-          </span>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min="1"
+              max={Math.max(5, totalTeamsCount || 500)}
+              value={config.shortlistCount}
+              onChange={(e) =>
+                onChange({
+                  ...config,
+                  shortlistCount: Math.max(1, parseInt(e.target.value) || 1),
+                })
+              }
+              className="w-16 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+              title="Type exact cutoff number to auto-set the bar"
+            />
+            <span className="text-[10px] text-zinc-500">/ {totalTeamsCount} teams</span>
+          </div>
         </div>
         <input
           type="range"
@@ -110,20 +124,36 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      {/* Multi-Criteria Scoring Weights */}
+      {/* Multi-Criteria Scoring Weights (With Manual Number Input + Auto-Updating Sliders) */}
       <div className="space-y-3.5 text-xs">
         <div className="flex items-center justify-between">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
             Scoring Dimensions (Weights)
           </h3>
-          <span className="text-[10px] text-zinc-500">0 - 100% Relative</span>
+          <span className="text-[10px] text-zinc-500">Type or drag bar</span>
         </div>
 
         {/* 1. Technical Depth */}
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-zinc-300">
+          <div className="flex justify-between items-center text-xs text-zinc-300">
             <span>💻 Technical Depth (GitHub repos, commits)</span>
-            <span className="font-bold text-cyan-400">{config.weights.technicalDepth}%</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={config.weights.technicalDepth}
+                onChange={(e) =>
+                  updateWeight(
+                    'technicalDepth',
+                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                  )
+                }
+                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                title="Type exact weight to auto-set the bar"
+              />
+              <span className="text-zinc-500 text-xs font-bold">%</span>
+            </div>
           </div>
           <input
             type="range"
@@ -137,9 +167,25 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
         {/* 2. Project Experience */}
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-zinc-300">
+          <div className="flex justify-between items-center text-xs text-zinc-300">
             <span>🏆 Projects & Hackathon Accolades</span>
-            <span className="font-bold text-cyan-400">{config.weights.projectExperience}%</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={config.weights.projectExperience}
+                onChange={(e) =>
+                  updateWeight(
+                    'projectExperience',
+                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                  )
+                }
+                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                title="Type exact weight to auto-set the bar"
+              />
+              <span className="text-zinc-500 text-xs font-bold">%</span>
+            </div>
           </div>
           <input
             type="range"
@@ -153,9 +199,25 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
         {/* 3. Skill Complementarity */}
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-zinc-300">
+          <div className="flex justify-between items-center text-xs text-zinc-300">
             <span>🧩 Role Complementarity (Frontend + Backend + AI)</span>
-            <span className="font-bold text-cyan-400">{config.weights.skillComplementarity}%</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={config.weights.skillComplementarity}
+                onChange={(e) =>
+                  updateWeight(
+                    'skillComplementarity',
+                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                  )
+                }
+                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                title="Type exact weight to auto-set the bar"
+              />
+              <span className="text-zinc-500 text-xs font-bold">%</span>
+            </div>
           </div>
           <input
             type="range"
@@ -169,9 +231,25 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
         {/* 4. Data Completeness */}
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-zinc-300">
+          <div className="flex justify-between items-center text-xs text-zinc-300">
             <span>📋 Profile Completeness & Evidence</span>
-            <span className="font-bold text-cyan-400">{config.weights.dataCompleteness}%</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={config.weights.dataCompleteness}
+                onChange={(e) =>
+                  updateWeight(
+                    'dataCompleteness',
+                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                  )
+                }
+                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                title="Type exact weight to auto-set the bar"
+              />
+              <span className="text-zinc-500 text-xs font-bold">%</span>
+            </div>
           </div>
           <input
             type="range"

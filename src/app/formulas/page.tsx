@@ -252,9 +252,20 @@ export default function FormulasPage() {
             <div className="space-y-4 text-xs">
               {/* Points per Hackathon Win */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Points per Hackathon Win / Placement:</span>
-                  <span className="font-bold text-indigo-400">{coef.hackathonPointsPerWin} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={coef.hackathonPointsPerWin}
+                      onChange={(e) => updateCoef('hackathonPointsPerWin', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-indigo-400 text-indigo-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-indigo-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -269,9 +280,20 @@ export default function FormulasPage() {
 
               {/* Hackathon Points Cap */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Maximum Hackathon Points Cap:</span>
-                  <span className="font-bold text-indigo-400">{coef.hackathonMaxPoints} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="150"
+                      value={coef.hackathonMaxPoints}
+                      onChange={(e) => updateCoef('hackathonMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-indigo-400 text-indigo-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-indigo-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -286,9 +308,20 @@ export default function FormulasPage() {
 
               {/* Points per Technical Skill */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Points per Identified Technical Skill:</span>
-                  <span className="font-bold text-indigo-400">{coef.skillPointsPerMatch} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="25"
+                      value={coef.skillPointsPerMatch}
+                      onChange={(e) => updateCoef('skillPointsPerMatch', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-indigo-400 text-indigo-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-indigo-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -302,9 +335,20 @@ export default function FormulasPage() {
 
               {/* Skill Points Cap */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Maximum Technical Skills Cap:</span>
-                  <span className="font-bold text-indigo-400">{coef.skillMaxPoints} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={coef.skillMaxPoints}
+                      onChange={(e) => updateCoef('skillMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-indigo-400 text-indigo-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-indigo-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -319,9 +363,20 @@ export default function FormulasPage() {
 
               {/* Verifiable Link Bonus */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Verifiable Portfolio / Live Project Bonus:</span>
-                  <span className="font-bold text-indigo-400">+{coef.verifiableLinksBonusPoints} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={coef.verifiableLinksBonusPoints}
+                      onChange={(e) => updateCoef('verifiableLinksBonusPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-indigo-400 text-indigo-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-indigo-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -362,9 +417,20 @@ export default function FormulasPage() {
             <div className="space-y-4 text-xs">
               {/* Contrib Max Points */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Commit Contribution Max Points:</span>
-                  <span className="font-bold text-cyan-400">{coef.githubContribMaxPoints} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="150"
+                      value={coef.githubContribMaxPoints}
+                      onChange={(e) => updateCoef('githubContribMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-cyan-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -379,9 +445,21 @@ export default function FormulasPage() {
 
               {/* Contrib Target Divisor */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Annual Commit Target (Benchmark Divisor):</span>
-                  <span className="font-bold text-cyan-400">{coef.githubContribDivisor} commits</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="10"
+                      max="2000"
+                      step="10"
+                      value={coef.githubContribDivisor}
+                      onChange={(e) => updateCoef('githubContribDivisor', Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-16 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact commits benchmark to auto-set the slider"
+                    />
+                    <span className="font-bold text-cyan-400 text-[11px]">commits</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -396,9 +474,20 @@ export default function FormulasPage() {
 
               {/* Stars Max Points */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Repository Stars Max Points:</span>
-                  <span className="font-bold text-cyan-400">{coef.githubStarsMaxPoints} pts</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={coef.githubStarsMaxPoints}
+                      onChange={(e) => updateCoef('githubStarsMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-cyan-400 text-[11px]">pts</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -413,9 +502,20 @@ export default function FormulasPage() {
 
               {/* Stars Divisor */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Star Benchmark Target (Benchmark Divisor):</span>
-                  <span className="font-bold text-cyan-400">{coef.githubStarsDivisor} stars</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="200"
+                      value={coef.githubStarsDivisor}
+                      onChange={(e) => updateCoef('githubStarsDivisor', Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact stars benchmark to auto-set the slider"
+                    />
+                    <span className="font-bold text-cyan-400 text-[11px]">stars</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -424,6 +524,62 @@ export default function FormulasPage() {
                   step="5"
                   value={coef.githubStarsDivisor}
                   onChange={(e) => updateCoef('githubStarsDivisor', parseInt(e.target.value))}
+                  className="w-full accent-cyan-400 cursor-pointer"
+                />
+              </div>
+
+              {/* Language Breadth Max Points */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Language Diversity Max Points:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={coef.githubSkillBreadthMaxPoints}
+                      onChange={(e) => updateCoef('githubSkillBreadthMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-cyan-400 text-[11px]">pts</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="30"
+                  step="5"
+                  value={coef.githubSkillBreadthMaxPoints}
+                  onChange={(e) => updateCoef('githubSkillBreadthMaxPoints', parseInt(e.target.value))}
+                  className="w-full accent-cyan-400 cursor-pointer"
+                />
+              </div>
+
+              {/* Language Benchmark Divisor */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Language Count Benchmark (Divisor):</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={coef.githubSkillDivisor}
+                      onChange={(e) => updateCoef('githubSkillDivisor', Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact language benchmark to auto-set the slider"
+                    />
+                    <span className="font-bold text-cyan-400 text-[11px]">langs</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="3"
+                  max="20"
+                  step="1"
+                  value={coef.githubSkillDivisor}
+                  onChange={(e) => updateCoef('githubSkillDivisor', parseInt(e.target.value))}
                   className="w-full accent-cyan-400 cursor-pointer"
                 />
               </div>
@@ -454,11 +610,29 @@ export default function FormulasPage() {
 
             <div className="space-y-4 text-xs">
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
-                  <span>Retained Score Multiplier (Lower = Stricter Penalty):</span>
-                  <span className="font-bold text-amber-400">
-                    {Math.round(coef.suspiciousAccountDiscount * 100)}% (Deduction: -{Math.round((1 - coef.suspiciousAccountDiscount) * 100)}%)
-                  </span>
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Retained Score Multiplier:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={Math.round(coef.suspiciousAccountDiscount * 100)}
+                      onChange={(e) =>
+                        updateCoef(
+                          'suspiciousAccountDiscount',
+                          Math.min(1, Math.max(0.1, (parseInt(e.target.value) || 10) / 100))
+                        )
+                      }
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-amber-400 text-amber-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type retained score percentage to auto-set the slider"
+                    />
+                    <span className="font-bold text-amber-400 text-[11px]">%</span>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      (-{Math.round((1 - coef.suspiciousAccountDiscount) * 100)}% deduction)
+                    </span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -502,9 +676,26 @@ export default function FormulasPage() {
             <div className="space-y-4 text-xs">
               {/* Diminishing Returns Base */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Diminishing Returns Exponential Base:</span>
-                  <span className="font-bold text-emerald-400">{coef.diminishingReturnsBase.toFixed(1)}x</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1.0"
+                      max="4.0"
+                      step="0.1"
+                      value={coef.diminishingReturnsBase}
+                      onChange={(e) =>
+                        updateCoef(
+                          'diminishingReturnsBase',
+                          Math.max(1.0, parseFloat(e.target.value) || 1.0)
+                        )
+                      }
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-emerald-400 text-emerald-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type base factor to auto-set the slider"
+                    />
+                    <span className="font-bold text-emerald-400 text-[11px]">x</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -522,9 +713,26 @@ export default function FormulasPage() {
 
               {/* Balanced Mean Synergy Bonus */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
-                  <span>Balanced Mean Synergy Boost per Additional Member:</span>
-                  <span className="font-bold text-emerald-400">+{Math.round(coef.balancedMeanBonusPerMember * 100)}% / member</span>
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Balanced Mean Synergy Boost / Member:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      step="1"
+                      value={Math.round(coef.balancedMeanBonusPerMember * 100)}
+                      onChange={(e) =>
+                        updateCoef(
+                          'balancedMeanBonusPerMember',
+                          Math.max(0.01, (parseInt(e.target.value) || 1) / 100)
+                        )
+                      }
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-emerald-400 text-emerald-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type bonus % to auto-set the slider"
+                    />
+                    <span className="font-bold text-emerald-400 text-[11px]">%</span>
+                  </div>
                 </div>
                 <input
                   type="range"
@@ -539,9 +747,26 @@ export default function FormulasPage() {
 
               {/* Balanced Mean Max Cap */}
               <div className="space-y-1">
-                <div className="flex justify-between text-zinc-300">
+                <div className="flex justify-between items-center text-zinc-300">
                   <span>Maximum Total Synergy Multiplier Cap:</span>
-                  <span className="font-bold text-emerald-400">{coef.balancedMeanMaxCap.toFixed(2)}x (+{Math.round((coef.balancedMeanMaxCap - 1) * 100)}%)</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1.0"
+                      max="3.0"
+                      step="0.05"
+                      value={coef.balancedMeanMaxCap}
+                      onChange={(e) =>
+                        updateCoef(
+                          'balancedMeanMaxCap',
+                          Math.max(1.0, parseFloat(e.target.value) || 1.0)
+                        )
+                      }
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-emerald-400 text-emerald-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type multiplier cap to auto-set the slider"
+                    />
+                    <span className="font-bold text-emerald-400 text-[11px]">x</span>
+                  </div>
                 </div>
                 <input
                   type="range"

@@ -1,16 +1,18 @@
 # Incursion — Hackathon Team Recruitment Automation Tool
 > **Track 3:** Automated, Tunable, and Explainable Team Recruitment Platform
 
-A reusable, 100% zero-cost ($0) recruitment automation tool designed for hackathon organizers to shortlist the top $X$ teams from tabular registration exports (CSV / JSON from Google Forms, Typeform, Devpost, etc.).
+A reusable, 100% zero-cost ($0 API bills) recruitment automation platform designed for hackathon organizers to shortlist the top $X$ teams from tabular registration exports (CSV / JSON from Google Forms, Typeform, Devpost, Tally, etc.).
 
 ---
 
 ## 🚀 Key Highlights & Architecture Overview
 
 - **100% Zero-Cost ($0 API Bills):** Eliminates paid LLM tokens by using fast, deterministic client-side regex taxonomy parsing, public REST endpoints, and in-memory Web Workers.
-- **Zero Database Storage / Volatile In-Memory:** Candidate resumes and spreadsheets exist solely in volatile browser RAM and are immediately discarded. No database, zero data retention, and zero GDPR/privacy liability.
-- **Unopinionated & Fully Tunable:** Includes both a **Weight Slider Dashboard** and a dedicated **Formula & Algorithm Studio** (`/formulas`) where organizers can tune the exact mathematical multipliers and normalizers.
-- **Multi-Token GitHub API Manager:** Encrypted local storage supporting multiple organizer tokens, live quota tracking, and automatic fallback.
+- **Zero Database Storage / Volatile In-Memory:** Candidate resumes and spreadsheets exist solely in volatile browser RAM and are immediately discarded after scoring. Zero database, zero data retention, and zero GDPR/privacy liability.
+- **Above-The-Fold Cyber Terminal:** Direct file drop, **Select File**, and **Select Folder** directory pickers (`webkitdirectory`) with an Arc-Reactor telemetry HUD wheel featuring planetary gear counter-rotating icons that always stay upright.
+- **Two-Way Number Input & Sliders:** Both the Settings panel and the **Formula & Algorithm Studio** (`/formulas`) allow organizers to either drag slider bars or manually type exact numbers, with real-time auto-synchronization.
+- **Encrypted Multi-Token GitHub Manager:** Client-side encrypted token vault supporting multiple organizer tokens, live quota tracking, and automatic failover for high-volume cohorts.
+- **Unopinionated & Fully Tunable:** Dedicated **Formula & Algorithm Studio** (`/formulas`) where organizers can tune the exact mathematical multipliers and normalizers with factory reset and undo buttons.
 - **Mobile-Friendly UI:** Responsive table/card view toggle, mobile search, and touch-optimized controls.
 
 ---
@@ -38,13 +40,13 @@ $$\text{Tech Score} = \min\left(C_{\max},\; \frac{\text{Commits}}{D_{\text{contr
 
 - **Unauthenticated Quota:** 60 requests/hour per IP.
 - **Free Personal Access Token (PAT):** 5,000 requests/hour at $0 cost.
-- **Multi-Token Switcher:** Organizers can save multiple teammate tokens in encrypted local storage and switch between them when scanning thousands of applicants.
+- **Multi-Token Switcher & Compliance:** Hackathon organizing teams can pool multiple organizer tokens (e.g., 3 organizers $\times$ 5,000 req/hr = 15,000 req/hr) safely and legally within GitHub API Terms of Service. Tokens are stored only in encrypted local storage (`localStorage`) and never transmitted to any external server.
 
 ---
 
 ## 📄 2. Resume & Document Parsing Architecture
 
-Resumes are evaluated purely in-memory using deterministic Natural Language Processing (NLP) taxonomy matching.
+Resumes and portfolios are evaluated in real time in volatile browser memory using deterministic Natural Language Processing (NLP) taxonomy matching.
 
 ```mermaid
 flowchart TD
@@ -64,42 +66,56 @@ $$\text{Experience Score} = \min\Big(E_{\max},\; (\text{Wins} \times P_{\text{wi
 - **Hackathon Wins ($P_{\text{win}}$):** Default 25 pts each (capped at 50 pts).
 - **Skill Matches ($P_{\text{skill}}$):** Default 4 pts per verified technology (capped at 30 pts).
 - **Verifiable Proof-of-Work Bonus ($B_{\text{proof}}$):** +20 pts for working demo/portfolio links.
-- **Zero Database Retention:** The raw document is wiped from volatile memory as soon as numerical signals are extracted.
+- **Zero Database Retention:** The raw document buffer is wiped from memory as soon as numerical signals are extracted.
 
 ---
 
 ## ⚖️ 3. Team-Size Normalization Models
 
-To keep solo participants and large teams on equal footing:
-- **`MAX_SKILL`:** Highest skill in each discipline sets the team rating.
+To keep solo prodigies and multi-member teams on equal footing:
+- **`MAX_SKILL`:** Highest skill in each discipline sets the team rating. Solo hackers equalized.
 - **`DIMINISHING_RETURNS`:** 
   $$\text{Effective Contribution} = \sum_{i=1}^N \frac{\text{Contrib}_i}{\text{Base}^{i-1}} \quad (\text{Base} = 1.5)$$
+  Lead member counts 100%, 2nd member counts 67%, 3rd member counts 44%.
 - **`BALANCED_MEAN`:** Average member score multiplied by a capped group synergy bonus:
   $$\text{Synergy Multiplier} = \min\big(1.40,\; 1 + (N - 1) \times 0.08\big)$$
 
 ---
 
-## 🛠️ Multi-Page Architecture
+## 🎛️ 4. Two-Way Synchronized Manual Typing & Sliders
+
+Every adjustable metric on the platform provides dual input modes:
+- **Direct Manual Typing:** Type exact numbers or thresholds directly into the `<input type="number" />` field.
+- **Auto-Setting Slider Bar:** The visual slider bar automatically animates and sets its position as you type.
+- **Drag-to-Update:** Moving the slider bar immediately updates the numeric input box in real time.
+
+This applies across:
+- **Settings Panel:** Shortlist Cutoff (Top $X$), Technical Depth (%), Project Experience (%), Role Complementarity (%), and Data Completeness (%).
+- **Formula Studio (`/formulas`):** Hackathon win points, maximum caps, benchmark divisors, anti-cheat multipliers, and team-size curve coefficients.
+
+---
+
+## 🛠️ Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**
-   - Live ranked shortlist table with visual Top $X$ Cutoff line.
-   - Mobile card view toggle for responsive viewing on smartphones.
-   - Filter pills (Shortlist, Waitlist, Disqualified).
-   - Real-time weight sliders and philosophy presets.
-   - Modals: Team Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Column Mapper.
+   - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.
+   - **Live Candidate Leaderboard:** Ranked shortlist with visual Top $X$ Cutoff boundary.
+   - **Filter Pills:** Real-time filtering by Shortlist, Waitlist, and Disqualified.
+   - **Responsive Views:** Desktop tabular view and mobile-friendly card view for small screens.
+   - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Custom Column Mapper.
 2. **Formula & Algorithm Studio (`/formulas`):**
-   - Full control over every mathematical multiplier, divisor, and threshold.
-   - Live mathematical equation displays.
-   - **"Set to Default Formulas"** button to restore factory settings.
-   - **"Revert to Previous Config"** button for instant undo.
-   - Export & Import formula configurations as JSON.
+   - Direct control over every mathematical multiplier, divisor, and threshold.
+   - Live mathematical equations updating dynamically.
+   - **"Reset Defaults"** button to restore factory settings.
+   - **"Revert Config"** button for instant undo.
+   - **Export & Import** formula configurations as portable JSON files.
 
 ---
 
 ## 📦 Getting Started
 
 ### Prerequisites
-- Node.js 18+ (tested on Node v24)
+- Node.js 18+ (tested on Node v20 & v24)
 - npm, yarn, or pnpm
 
 ### Installation
@@ -116,12 +132,19 @@ npm install
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.  
 Visit [http://localhost:3000/formulas](http://localhost:3000/formulas) to access the Algorithmic Formula Studio.
+
+### Production Build
+```bash
+npm run build
+npm run start
+```
 
 ---
 
 ## 📁 Sample Test File
 
-A sample Google Forms export with 20+ realistic teams (solo prodigies, complete squads, partial submissions, fork-padded accounts, duplicate cross-submissions) is available for testing:
-- Download directly via the app by clicking **"Download Demo CSV"** or access [`public/demo_hackathon_registrations.csv`](public/demo_hackathon_registrations.csv).
+A sample Google Forms cohort export containing 20+ realistic teams (solo prodigies, complete squads, partial submissions, fork-padded accounts, duplicate cross-submissions) is available for testing:
+- Located directly at [`public/demo_hackathon_registrations.csv`](public/demo_hackathon_registrations.csv).
+- Simply drag and drop this file or select it in the browser to evaluate the scoring pipeline instantly.

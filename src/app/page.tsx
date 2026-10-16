@@ -8,7 +8,6 @@ import { runFullShortlistingEngine } from '@/engine/scoring';
 import { exportShortlistToCSV, exportShortlistWithConfigJSON } from '@/utils/exportUtils';
 
 import { Navbar } from '@/components/Navbar';
-import { CyberHero } from '@/components/CyberHero';
 import { UploadZone } from '@/components/UploadZone';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { TeamsTable } from '@/components/TeamsTable';
@@ -62,9 +61,6 @@ export default function Home() {
               setRawRows(res.rawRows);
               setColumnMapping(res.detectedMapping);
               setBaseTeams(res.teams);
-              setTimeout(() => {
-                dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
             }
           } catch (err) {
             alert('Failed to parse JSON file.');
@@ -76,33 +72,10 @@ export default function Home() {
           setRawRows(res.rawRows);
           setColumnMapping(res.detectedMapping);
           setBaseTeams(res.teams);
-          setTimeout(() => {
-            dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
         }
       }
     };
     reader.readAsText(file);
-  };
-
-  // Instant 1-Click Demo Cohort Loader
-  const handleLoadDemoCohort = async () => {
-    try {
-      const response = await fetch('/demo_hackathon_registrations.csv');
-      const csvText = await response.text();
-      if (csvText) {
-        const res = parseCSVString(csvText);
-        setRawHeaders(res.headers);
-        setRawRows(res.rawRows);
-        setColumnMapping(res.detectedMapping);
-        setBaseTeams(res.teams);
-        setTimeout(() => {
-          dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      }
-    } catch (err) {
-      alert('Could not load demo registrations file.');
-    }
   };
 
   const handleSaveMapping = (updatedMapping: ColumnMappingConfig) => {
@@ -172,7 +145,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#030712] flex flex-col font-sans text-zinc-100 bg-cyber-grid selection:bg-cyan-500 selection:text-black">
-      {/* Hidden file input for hero upload button */}
+      {/* Hidden file input for header upload button */}
       <input
         type="file"
         ref={uploadInputRef}
@@ -199,22 +172,11 @@ export default function Home() {
         hasData={baseTeams.length > 0}
       />
 
-      {/* Cinematic Cyber Hero Section (Image 1 reference) */}
-      <CyberHero
-        onLoadDemo={handleLoadDemoCohort}
-        onTriggerUpload={() => uploadInputRef.current?.click()}
-        onScrollToDashboard={() => dashboardRef.current?.scrollIntoView({ behavior: 'smooth' })}
-        hasData={baseTeams.length > 0}
-        totalTeamsCount={baseTeams.length}
-      />
-
-      {/* Main Workspace / Dashboard */}
+      {/* Main Workspace / Dashboard - Fits right on the first page! */}
       <main ref={dashboardRef} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {baseTeams.length === 0 ? (
-          <UploadZone
-            onFileUpload={handleFileUpload}
-            onLoadDemo={handleLoadDemoCohort}
-          />
+          /* All-in-one first page: Unified telemetry + select file & folder right above the fold! */
+          <UploadZone onFileUpload={handleFileUpload} />
         ) : (
           <div className="space-y-6">
             {/* Cyber Telemetry Stats Bar */}
