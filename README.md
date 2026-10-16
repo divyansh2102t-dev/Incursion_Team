@@ -95,6 +95,18 @@ This applies across:
 
 ---
 
+## 📜 5. Scoring Run History & Audit Vault
+
+Organizers can capture, name, manage, and restore scoring runs with complete audit fidelity:
+- **Custom Scoring Names:** Name any scoring run snapshot upon creation (e.g., *"Round 1 Cutoff"*, *"Pre-Sponsor Filter"*, *"Equalized Solo Bias"*).
+- **Inline Renaming:** Rename any saved scoring run at any time using the inline pencil edit tool.
+- **Individual Delete (`Trash2`):** Every saved scoring run has its own dedicated delete button to remove specific snapshots individually.
+- **Bulk Purge ("Clear All"):** A top-level clear button to wipe all saved history with a safety confirmation prompt.
+- **One-Click Restore:** Restores the exact mathematical configuration, scoring weights, formulas, and cohort rankings from any past run onto the active dashboard.
+- **Run Audit Export:** Export full JSON payloads of any historical run for organizer deliberations or sponsor reports.
+
+---
+
 ## 🛠️ Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**

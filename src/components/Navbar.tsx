@@ -17,8 +17,10 @@ import {
   Sliders,
   Terminal,
   Zap,
+  History,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
+import { useApp } from '@/context/AppContext';
 
 interface NavbarProps {
   config: SelectionConfig;
@@ -28,6 +30,7 @@ interface NavbarProps {
   onOpenSensitivity: () => void;
   onOpenCompare: () => void;
   onOpenGitHubSync: () => void;
+  onOpenHistory: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
   hasData: boolean;
@@ -41,10 +44,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSensitivity,
   onOpenCompare,
   onOpenGitHubSync,
+  onOpenHistory,
   onExportCSV,
   onExportJSON,
   hasData,
 }) => {
+  const { scoringHistory } = useApp();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +96,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="hidden"
           />
 
-
           {/* Upload Button */}
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -110,6 +114,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Sliders className="w-3.5 h-3.5 text-cyan-400" />
             <span>Formulas</span>
           </Link>
+
+          {/* Scoring History Button */}
+          <button
+            onClick={onOpenHistory}
+            className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer relative"
+            title="Open Scoring Run History & Audit Vault"
+          >
+            <History className="w-3.5 h-3.5 text-cyan-400" />
+            <span>History</span>
+            {scoringHistory.length > 0 && (
+              <span className="text-[9px] font-bold bg-cyan-500 text-black px-1.5 py-0.2 rounded-full font-mono ml-0.5">
+                {scoringHistory.length}
+              </span>
+            )}
+          </button>
 
           {hasData && (
             <>

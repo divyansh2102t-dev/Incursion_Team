@@ -186,3 +186,35 @@ export interface ShortlistRunExport {
     }>;
   }>;
 }
+
+export interface ScoringHistoryEntry {
+  id: string;
+  timestamp: string;
+  name: string;
+  notes?: string;
+  totalTeams: number;
+  shortlistTarget: number;
+  shortlistedCount: number;
+  averageScore: number;
+  highestScore: number;
+  disqualifiedCount: number;
+  pinnedCount: number;
+  excludedCount: number;
+  configSnapshot: SelectionConfig;
+  topTeamsSnapshot: Array<{
+    rank: number;
+    teamName: string;
+    teamSize: number;
+    finalScore: number;
+    isEligible: boolean;
+    status: 'shortlisted' | 'waitlist' | 'rejected' | 'pinned' | 'excluded';
+    scoreBreakdown: {
+      technicalDepth: number;
+      projectExperience: number;
+      skillComplementarity: number;
+      dataCompleteness: number;
+    };
+  }>;
+  baseTeamsSnapshot?: TeamRecord[];
+}
+

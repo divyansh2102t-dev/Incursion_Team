@@ -18,8 +18,10 @@ import {
   Upload,
   Check,
   Zap,
+  History,
 } from 'lucide-react';
 import { triggerDownload } from '@/utils/exportUtils';
+import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
 
 export default function FormulasPage() {
   const {
@@ -28,9 +30,12 @@ export default function FormulasPage() {
     previousConfig,
     revertToPreviousConfig,
     resetToDefaultFormulas,
+    scoringHistory,
+    baseTeams,
   } = useApp();
 
   const [notification, setNotification] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const coef = config.formulaCoefficients;
 
@@ -185,6 +190,21 @@ export default function FormulasPage() {
                 className="hidden"
               />
             </label>
+
+            {/* Scoring History Vault */}
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Open Scoring Run History & Audit Vault"
+            >
+              <History className="w-3.5 h-3.5 text-cyan-400" />
+              <span>History</span>
+              {scoringHistory.length > 0 && (
+                <span className="text-[9px] font-bold bg-cyan-500 text-black px-1.5 py-0.2 rounded-full font-mono ml-0.5">
+                  {scoringHistory.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -782,6 +802,14 @@ export default function FormulasPage() {
           </div>
         </div>
       </main>
+
+      {/* Scoring History & Audit Vault Modal */}
+      {isHistoryOpen && (
+        <ScoringHistoryModal
+          onClose={() => setIsHistoryOpen(false)}
+          hasActiveCohort={baseTeams.length > 0}
+        />
+      )}
     </div>
   );
 }

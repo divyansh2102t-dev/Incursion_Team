@@ -16,6 +16,8 @@ import { ColumnMapperModal } from '@/components/ColumnMapperModal';
 import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
 import { GitHubSyncModal } from '@/components/GitHubSyncModal';
+import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
+import { BookmarkPlus, History } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export default function Home() {
@@ -30,6 +32,8 @@ export default function Home() {
     setRawRows,
     columnMapping,
     setColumnMapping,
+    scoringHistory,
+    saveScoringSnapshot,
   } = useApp();
 
   // Modals state
@@ -38,6 +42,7 @@ export default function Home() {
   const [isSensitivityOpen, setIsSensitivityOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isGitHubSyncOpen, setIsGitHubSyncOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
   const [compareTeamBId, setCompareTeamBId] = useState<string | undefined>();
 
@@ -61,6 +66,7 @@ export default function Home() {
               setRawRows(res.rawRows);
               setColumnMapping(res.detectedMapping);
               setBaseTeams(res.teams);
+              saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, res.teams);
             }
           } catch (err) {
             alert('Failed to parse JSON file.');
@@ -72,6 +78,7 @@ export default function Home() {
           setRawRows(res.rawRows);
           setColumnMapping(res.detectedMapping);
           setBaseTeams(res.teams);
+          saveScoringSnapshot(`Intake: ${file.name.replace(/\.[^/.]+$/, '')}`, undefined, res.teams);
         }
       }
     };
@@ -167,6 +174,7 @@ export default function Home() {
         onOpenSensitivity={() => setIsSensitivityOpen(true)}
         onOpenCompare={() => handleLaunchCompare()}
         onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
+        onOpenHistory={() => setIsHistoryOpen(true)}
         onExportCSV={() => exportShortlistToCSV(rankedTeams, config, config.shortlistCount)}
         onExportJSON={() => exportShortlistWithConfigJSON(rankedTeams, config, config.shortlistCount)}
         hasData={baseTeams.length > 0}
@@ -202,6 +210,52 @@ export default function Home() {
                 <div className="text-xs font-bold text-purple-400 mt-1.5">
                   {config.anonymizeMode ? '🕶️ Blind (Anonymized)' : '👁️ Standard'}
                 </div>
+              </div>
+            </div>
+
+            {/* Scoring Run Snapshot & History Quick Actions Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-950/70 border border-cyan-950/80 p-3 rounded-xl backdrop-blur-md text-xs font-mono">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
+                  <History className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-zinc-200 font-bold block">Scoring History & Audit Vault</span>
+                  <span className="text-[10px] text-zinc-400 font-sans">
+                    {scoringHistory.length > 0
+                      ? `${scoringHistory.length} previous scoring run${scoringHistory.length > 1 ? 's' : ''} saved in audit history`
+                      : 'No saved runs yet. Snapshot and name your current scoring configuration anytime.'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const customName = prompt(
+                      'Enter a name for this scoring run snapshot:',
+                      `Run #${scoringHistory.length + 1} (${config.presetName} - Top ${config.shortlistCount})`
+                    );
+                    if (customName !== null) {
+                      saveScoringSnapshot(customName);
+                      setIsHistoryOpen(true);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                  title="Save and name the current scoring run"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  <span>📸 Save Scoring Run</span>
+                </button>
+
+                <button
+                  onClick={() => setIsHistoryOpen(true)}
+                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Open Scoring Run History Modal"
+                >
+                  <History className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>History Vault ({scoringHistory.length})</span>
+                </button>
               </div>
             </div>
 
@@ -277,6 +331,14 @@ export default function Home() {
           teams={baseTeams}
           onUpdateTeamsWithLiveStats={setBaseTeams}
           onClose={() => setIsGitHubSyncOpen(false)}
+        />
+      )}
+
+      {/* Scoring History & Audit Vault Modal */}
+      {isHistoryOpen && (
+        <ScoringHistoryModal
+          onClose={() => setIsHistoryOpen(false)}
+          hasActiveCohort={baseTeams.length > 0}
         />
       )}
     </div>
