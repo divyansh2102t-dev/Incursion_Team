@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { AggregationStrategy, MissingDataPolicy, SelectionConfig } from '@/types';
-import { PRESETS } from '@/presets/defaultPresets';
-import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap } from 'lucide-react';
+import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap, ArrowRight } from 'lucide-react';
 
 interface ConfigPanelProps {
   config: SelectionConfig;
@@ -16,12 +16,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onChange,
   totalTeamsCount,
 }) => {
-  const handlePresetSelect = (presetKey: string) => {
-    if (PRESETS[presetKey]) {
-      onChange({ ...PRESETS[presetKey] });
-    }
-  };
-
   const updateWeight = (key: keyof SelectionConfig['weights'], value: number) => {
     onChange({
       ...config,
@@ -47,39 +41,41 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
   return (
     <div className="bg-zinc-950/85 border border-cyan-950/80 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] p-5 space-y-6 font-mono text-zinc-300 backdrop-blur-xl">
-      {/* Header & Philosophy Presets */}
+      {/* Header & Direct Formula Studio Gateway */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2">
             <Sliders className="w-4 h-4 text-cyan-400" />
             <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
-              Selection Philosophy
+              Scoring Model
             </h2>
           </div>
           <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-bold">
-            LIVE RE-RANK
+            BALANCED DEFAULT
           </span>
         </div>
 
-        {/* Preset Selector */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 text-xs">
-          {Object.entries(PRESETS).map(([key, preset]) => {
-            const isSelected = config.presetName === preset.presetName;
-            return (
-              <button
-                key={key}
-                onClick={() => handlePresetSelect(key)}
-                className={`px-2.5 py-2 rounded-lg text-left transition-all border font-bold cursor-pointer ${
-                  isSelected
-                    ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)]'
-                    : 'bg-black/40 hover:bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                }`}
-              >
-                <div className="truncate text-[11px]">{preset.presetName}</div>
-              </button>
-            );
-          })}
-        </div>
+        <Link
+          href="/formulas"
+          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-950/70 to-blue-950/50 hover:from-cyan-900/90 hover:to-blue-900/70 border border-cyan-500/40 hover:border-cyan-400 transition-all flex items-center justify-between text-xs font-bold text-cyan-300 group shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+          title="Open Formula & Algorithm Studio"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+              <Sliders className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-zinc-100 block group-hover:text-cyan-200">Formula Studio & Custom Math</span>
+              <span className="text-[10px] text-zinc-400 font-sans block font-normal">
+                Tune multipliers or write custom equations
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-mono">
+            <span>/formulas</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
       </div>
 
       <hr className="border-cyan-950/60" />
@@ -130,7 +126,14 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
             Scoring Dimensions (Weights)
           </h3>
-          <span className="text-[10px] text-zinc-500">Type or drag bar</span>
+          <Link
+            href="/formulas"
+            className="text-[10px] text-zinc-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+            title="Configure underlying formulas & algorithms"
+          >
+            <span>Formula Studio</span>
+            <ArrowRight className="w-2.5 h-2.5 text-cyan-400" />
+          </Link>
         </div>
 
         {/* 1. Technical Depth */}

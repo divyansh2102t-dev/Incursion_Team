@@ -77,12 +77,27 @@ To keep solo prodigies and multi-member teams on equal footing:
 - **`DIMINISHING_RETURNS`:** 
   $$\text{Effective Contribution} = \sum_{i=1}^N \frac{\text{Contrib}_i}{\text{Base}^{i-1}} \quad (\text{Base} = 1.5)$$
   Lead member counts 100%, 2nd member counts 67%, 3rd member counts 44%.
-- **`BALANCED_MEAN`:** Average member score multiplied by a capped group synergy bonus:
+- **`BALANCED_MEAN` (Default Platform Model):** Average member score multiplied by a capped group synergy bonus:
   $$\text{Synergy Multiplier} = \min\big(1.40,\; 1 + (N - 1) \times 0.08\big)$$
+  *The platform permanently defaults to the Balanced Hackathon Configuration: 35% Technical Depth, 30% Project Experience, 25% Skill Complementarity, and 10% Data Completeness with a Top 25 cutoff.*
 
 ---
 
-## 🎛️ 4. Two-Way Synchronized Manual Typing & Sliders
+## 🛡️ 4. Qualification Filters & Mandatory GitHub Requirements
+
+The hard-qualification pipeline enforces eligibility before candidates enter the scoring matrix:
+- **Mandatory GitHub Requirement Modes:**
+  - **`At Least 1 Member` (`AT_LEAST_ONE`, Default):** Requires at least one registered team member to have a valid GitHub account.
+  - **`All Members Mandatory` (`ALL_MEMBERS`):** Strictly disqualifies any team where even a single member lacks a GitHub profile. Designed for hardcore systems, low-level, or web3 tracks.
+  - **`None / Optional` (`NONE`):** Disables GitHub verification for beginner tracks or design-first hackathons.
+- **Team Size Bounds:** Configurable minimum and maximum team sizes (e.g., 1 to 4 members).
+- **Minimum GitHub Velocity:** Minimum combined commits threshold (e.g., $\ge 20$ commits).
+- **Minimum Skills Breadth:** Rejects submissions with fewer than $N$ unique verified technologies.
+- **Portfolio & Resume Requirements:** Enforces at least one verified resume or portfolio link.
+
+---
+
+## 🎛️ 5. Two-Way Synchronized Manual Typing & Sliders
 
 Every adjustable metric on the platform provides dual input modes:
 - **Direct Manual Typing:** Type exact numbers or thresholds directly into the `<input type="number" />` field.
@@ -95,7 +110,7 @@ This applies across:
 
 ---
 
-## 📜 5. Scoring Run History & Audit Vault
+## 📜 6. Scoring Run History & Audit Vault
 
 Organizers can capture, name, manage, and restore scoring runs with complete audit fidelity:
 - **Custom Scoring Names:** Name any scoring run snapshot upon creation (e.g., *"Round 1 Cutoff"*, *"Pre-Sponsor Filter"*, *"Equalized Solo Bias"*).
@@ -107,7 +122,7 @@ Organizers can capture, name, manage, and restore scoring runs with complete aud
 
 ---
 
-## 🧮 6. Custom Mathematical Formula Expression Studio (`/formulas`)
+## 🧮 7. Custom Mathematical Formula Expression Studio (`/formulas`)
 
 Organizers are not limited to fixed linear weights. A built-in, injection-safe mathematical expression engine allows organizers to author arbitrary scoring equations using live cohort signals:
 
@@ -119,12 +134,15 @@ flowchart LR
     D --> E["Instant Leaderboard Re-ranking"]
 ```
 
-### Supported Math Syntax & Variables:
-- **Candidate Variables:** `tech` (0-100), `exp` (0-100), `synergy` (0-100), `completeness` (0-100), `commits`, `stars`, `wins`, `team_size`, `skills`.
-- **Operators:** `+`, `-`, `*`, `/`, `%`, `^` (power), `==`, `!=`, `>`, `<`, `>=`, `<=`, and ternary `condition ? trueVal : falseVal`.
-- **Math Functions:** `min(...)`, `max(...)`, `log10(...)`, `sqrt(...)`, `abs(...)`, `round(...)`, `clamp(val, min, max)`.
+### Key Capabilities:
+- **Compact Collapsed Mode:** When OFF, the Custom Formula Studio rests at the very bottom of the `/formulas` page as a sleek, single-row compact bar taking minimal vertical space. Clicking **Turn ON** or **Open Studio** instantly reveals the full interactive expression editor.
+- **Supported Math Syntax & Variables:**
+  - **Candidate Variables:** `tech` (0-100), `exp` (0-100), `synergy` (0-100), `completeness` (0-100), `commits`, `stars`, `wins`, `team_size`, `skills`.
+  - **Operators:** `+`, `-`, `*`, `/`, `%`, `^` (power), `==`, `!=`, `>`, `<`, `>=`, `<=`, and ternary `condition ? trueVal : falseVal`.
+  - **Math Functions:** `min(...)`, `max(...)`, `log10(...)`, `sqrt(...)`, `abs(...)`, `round(...)`, `clamp(val, min, max)`.
 - **Live Syntax & Error Validator:** Instant feedback verifying math validity and displaying benchmark test output in green or pinpointing syntax errors in red.
 - **Live Sandbox Simulation:** Real-time side-by-side comparison table showing how top teams' scores and ranks shift before applying.
+- **Ubiquitous Navigation:** Direct one-click shortcuts to `/formulas` are embedded across the platform (Sidebar Header, Weights Section, Active Cohort Banner, Dashboard Action Bar, Telemetry Strip, and Upload Hero).
 
 ---
 
@@ -132,12 +150,13 @@ flowchart LR
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.
+   - **Clean Streamlined Navigation:** Clicking the **INCURSION** brand pill or **Upload** button opens the Home upload terminal; clicking **Leaderboard** switches directly to the shortlist rankings.
    - **Live Candidate Leaderboard:** Ranked shortlist with visual Top $X$ Cutoff boundary and Sticky Action buttons.
    - **Filter Pills:** Real-time filtering by Shortlist, Waitlist, and Disqualified.
    - **Responsive Views:** Desktop tabular view and mobile-friendly card view for small screens.
    - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Custom Column Mapper.
 2. **Formula & Algorithm Studio (`/formulas`):**
-   - **Custom Formula Expression Studio:** Write and test custom equations with live validator and sandbox simulation.
+   - **Custom Formula Expression Studio:** Write and test custom equations with live validator and sandbox simulation (compact when OFF).
    - **Tunable Math Multipliers:** Direct control over every coefficient, divisor, and threshold.
    - **"Reset Defaults"** button to restore factory settings.
    - **"Revert Config"** button for instant undo.

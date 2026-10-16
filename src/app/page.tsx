@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { ColumnMappingConfig, SelectionConfig, TeamRecord } from '@/types';
 import { DEFAULT_CONFIG } from '@/presets/defaultPresets';
 import { parseCSVString, parseRawDataToTeams } from '@/engine/parser';
@@ -220,6 +221,14 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Link
+                    href="/formulas"
+                    className="px-3.5 py-2 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800 hover:border-cyan-400 font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer text-xs shadow-xs"
+                    title="Open Formula & Algorithm Studio"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Formulae Page</span>
+                  </Link>
                   <button
                     onClick={() => setCurrentView('dashboard')}
                     className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-black font-black rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] flex items-center gap-1.5 cursor-pointer"
@@ -265,11 +274,21 @@ export default function Home() {
                   {shortlistedCount} <span className="text-xs text-zinc-500 font-normal">/ {config.shortlistCount} target</span>
                 </div>
               </div>
-              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
-                <span className="text-zinc-500 block uppercase">ACTIVE PHILOSOPHY:</span>
-                <div className="text-xs font-bold text-blue-400 truncate mt-1.5">
-                  {config.presetName}
+              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md flex flex-col justify-between">
+                <div>
+                  <span className="text-zinc-500 block uppercase">SCORING ALGO:</span>
+                  <div className="text-xs font-bold text-cyan-300 truncate mt-1">
+                    {config.customFormulaEnabled ? config.customFormulaName || 'Custom Formula' : 'Balanced Mean'}
+                  </div>
                 </div>
+                <Link
+                  href="/formulas"
+                  className="mt-1 text-[10px] text-cyan-400 hover:text-cyan-300 underline flex items-center gap-1 font-bold"
+                  title="Configure multipliers & custom mathematical formulas"
+                >
+                  <span>Formulae Page</span>
+                  <ArrowRight className="w-2.5 h-2.5" />
+                </Link>
               </div>
               <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
                 <span className="text-zinc-500 block uppercase">REVIEW MODE:</span>
@@ -296,6 +315,16 @@ export default function Home() {
               </div>
 
               <div className="flex items-center flex-wrap gap-2">
+                {/* Formulae Studio Button */}
+                <Link
+                  href="/formulas"
+                  className="px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 font-bold rounded-lg border border-cyan-800 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Open Formula & Algorithm Studio"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Formulae Studio</span>
+                </Link>
+
                 {/* Toggle Filter Sidebar Button */}
                 <button
                   onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}

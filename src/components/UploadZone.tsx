@@ -204,10 +204,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload }) => {
             <div className="pt-1">
               <Link
                 href="/formulas"
-                className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 underline font-mono tracking-tight"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-800/80 hover:border-cyan-400 text-cyan-300 text-xs font-bold transition-all shadow-xs"
+                title="Configure Scoring Formulae & Custom Math Engine"
               >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Configure Multipliers & Formula Studio (/formulas)</span>
+                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Configure Multipliers & Formulae Studio (/formulas)</span>
+                <span className="text-[10px] text-cyan-400 font-mono">→</span>
               </Link>
             </div>
           </div>
