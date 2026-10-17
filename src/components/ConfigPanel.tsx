@@ -9,8 +9,12 @@ import {
   ScoringWeightsToggles,
   WorkExperienceConfig,
   CustomKeywordWeight,
+  AcmEventConfig,
+  AcmDataPriority,
+  AcmScoringMode,
 } from '@/types';
-import { DEFAULT_WORK_EXPERIENCE_CONFIG } from '@/presets/defaultPresets';
+import { DEFAULT_WORK_EXPERIENCE_CONFIG, DEFAULT_ACM_EVENT_CONFIG } from '@/presets/defaultPresets';
+import { useApp } from '@/context/AppContext';
 import {
   Sliders,
   Shield,
@@ -32,6 +36,12 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Globe,
+  RefreshCw,
+  Sparkles,
+  Database,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 
 interface ConfigPanelProps {
@@ -49,10 +59,35 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onHideFilters,
   onSaveRun,
 }) => {
+  const { acmDatabase, isAcmLoading, acmLastSync, fetchAcmData } = useApp();
+  const [showAcmDetails, setShowAcmDetails] = useState(true);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState('');
   const [newWeight, setNewWeight] = useState(10);
   const [showWorkDetails, setShowWorkDetails] = useState(true);
   const [showKeywordDetails, setShowKeywordDetails] = useState(true);
+
+  const updateAcmConfig = (updates: Partial<AcmEventConfig>) => {
+    const current = config.acmEventConfig || DEFAULT_ACM_EVENT_CONFIG;
+    onChange({
+      ...config,
+      acmEventConfig: {
+        ...current,
+        ...updates,
+      },
+    });
+  };
+
+  const handleSyncAcm = async (forceRefresh = true) => {
+    setSyncFeedback('Syncing with acmnitsurat.in...');
+    const res = await fetchAcmData(forceRefresh);
+    if (res.success) {
+      setSyncFeedback(`✓ Synced ${res.count} profiles from acmnitsurat.in`);
+    } else {
+      setSyncFeedback(`⚠️ Sync failed: ${res.error || 'Network error'}`);
+    }
+    setTimeout(() => setSyncFeedback(null), 5000);
+  };
 
   const updateWeight = (key: keyof SelectionConfig['weights'], value: number) => {
     onChange({
@@ -905,6 +940,380 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 )}
                 <div className="text-[10px] text-zinc-500">
                   Scanned across Resume PDFs, GitHub bio/repos, LinkedIn headline/skills, and candidate form inputs.
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* --- 💎 ACM NIT Surat Event Mode (acmnitsurat.in Integration) --- */}
+      {(() => {
+        const acmCfg = config.acmEventConfig || DEFAULT_ACM_EVENT_CONFIG;
+        const isAcmEnabled = acmCfg.enabled;
+
+        return (
+          <div
+            className={`border rounded-xl p-3.5 space-y-3 font-mono transition-all ${
+              isAcmEnabled
+                ? 'bg-gradient-to-b from-cyan-950/40 via-black/60 to-black/80 border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)]'
+                : 'bg-black/50 border-zinc-800/80 hover:border-zinc-700'
+            }`}
+          >
+            {/* Header with Master Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                    isAcmEnabled
+                      ? 'bg-cyan-500 text-black border-cyan-300 shadow-[0_0_12px_#06b6d4]'
+                      : 'bg-zinc-900 text-zinc-400 border-zinc-700'
+                  }`}
+                >
+                  💎
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+                      ACM Only Event Mode
+                    </h3>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border ${
+                        isAcmEnabled
+                          ? 'bg-cyan-950 text-cyan-300 border-cyan-700/80'
+                          : 'bg-zinc-900 text-zinc-500 border-zinc-800'
+                      }`}
+                    >
+                      acmnitsurat.in
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 font-sans">
+                    Sync official chapter leaderboard & CP profiles (LeetCode, Codeforces, CodeChef)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Master Switch Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextState = !isAcmEnabled;
+                    updateAcmConfig({ enabled: nextState });
+                    if (nextState && acmDatabase.length === 0) {
+                      handleSyncAcm(false);
+                    }
+                  }}
+                  className={`w-9 h-5 rounded-full transition-all relative cursor-pointer flex-shrink-0 ${
+                    isAcmEnabled
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 shadow-[0_0_10px_#22d3ee]'
+                      : 'bg-zinc-800'
+                  }`}
+                  title={isAcmEnabled ? 'Disable ACM NIT Surat Event Mode' : 'Enable ACM NIT Surat Event Mode'}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform ${
+                      isAcmEnabled ? 'translate-x-4 bg-black font-bold' : 'translate-x-0 bg-zinc-400'
+                    }`}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAcmDetails(!showAcmDetails)}
+                  className="text-zinc-500 hover:text-zinc-300 p-0.5"
+                  title="Expand or collapse ACM settings"
+                >
+                  {showAcmDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Sync Feedback Alert */}
+            {syncFeedback && (
+              <div className="p-2 rounded bg-cyan-950/60 border border-cyan-800 text-cyan-200 text-[11px] flex items-center justify-between">
+                <span>{syncFeedback}</span>
+                <button
+                  type="button"
+                  onClick={() => setSyncFeedback(null)}
+                  className="text-cyan-400 hover:text-cyan-200 text-xs ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Detailed Controls when active and expanded */}
+            {isAcmEnabled && showAcmDetails && (
+              <div className="space-y-3.5 pt-2 border-t border-cyan-950/80 text-xs">
+                {/* Live Data Attribution & Refresh Bar */}
+                <div className="bg-black/80 border border-cyan-900/60 rounded-lg p-2.5 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                      <span className="text-[11px] text-zinc-200 font-bold">
+                        Verified Data Source:
+                      </span>
+                      <a
+                        href="https://acmnitsurat.in"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-cyan-400 hover:underline flex items-center gap-0.5 font-bold"
+                      >
+                        acmnitsurat.in
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        {acmDatabase.length > 0 ? (
+                          <span className="text-emerald-400 font-bold">
+                            ● {acmDatabase.length} Students Cached
+                          </span>
+                        ) : (
+                          <span className="text-amber-400">Database Empty</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSyncAcm(true)}
+                        disabled={isAcmLoading}
+                        className="px-2 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-[10px] flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50 transition-colors"
+                        title="Force sync latest leaderboard records from acmnitsurat.in"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isAcmLoading ? 'animate-spin' : ''}`} />
+                        <span>{isAcmLoading ? 'Syncing...' : 'Sync Live'}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
+                    📡 All candidate ratings, problem counts, and competitive handles are retrieved directly from the official ACM NIT Surat Student Chapter platform. Roll numbers are matched automatically via student registration or institutional email (<code className="text-cyan-300">u23cs...</code>).
+                  </p>
+                  {acmLastSync && (
+                    <div className="text-[9px] text-zinc-500 font-mono">
+                      Last synchronized with acmnitsurat.in: {new Date(acmLastSync).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Conflict Resolution: Override vs Preserve */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider block">
+                    Data Conflict Resolution (When info exists in both form & ACM):
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Option 1: ACM Website Data Overrides Input */}
+                    <button
+                      type="button"
+                      onClick={() => updateAcmConfig({ dataPriority: 'ACM_OVERWRITE' })}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        acmCfg.dataPriority === 'ACM_OVERWRITE'
+                          ? 'bg-cyan-950/60 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                          : 'bg-black/50 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs text-cyan-300 flex items-center gap-1">
+                          🛡️ ACM Website Overrides Input
+                        </span>
+                        {acmCfg.dataPriority === 'ACM_OVERWRITE' && (
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
+                        <strong className="text-zinc-200">Anti-Cheat / Verified:</strong> Official verified contest ratings & handles from acmnitsurat.in supersede self-reported form entries to prevent resume inflation.
+                      </p>
+                    </button>
+
+                    {/* Option 2: Preserve Registration Input */}
+                    <button
+                      type="button"
+                      onClick={() => updateAcmConfig({ dataPriority: 'PRESERVE_INPUT' })}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        acmCfg.dataPriority === 'PRESERVE_INPUT'
+                          ? 'bg-cyan-950/60 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                          : 'bg-black/50 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs text-amber-300 flex items-center gap-1">
+                          📝 Preserve Registration Input
+                        </span>
+                        {acmCfg.dataPriority === 'PRESERVE_INPUT' && (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
+                        <strong className="text-zinc-200">Applicant-First:</strong> Candidate&apos;s registration links & handles are kept intact. ACM website data only backfills missing profiles or blank entries.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scoring Strategy: Default Platform Score vs Formula Studio */}
+                <div className="space-y-2 pt-1 border-t border-zinc-900">
+                  <label className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider block">
+                    ACM Scoring Strategy:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateAcmConfig({ scoringMode: 'DEFAULT_ACM_SCORE' })}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        acmCfg.scoringMode === 'DEFAULT_ACM_SCORE'
+                          ? 'bg-cyan-950/60 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                          : 'bg-black/50 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs text-zinc-100 flex items-center gap-1">
+                          🏆 Default ACM Score (Weighted)
+                        </span>
+                        {acmCfg.scoringMode === 'DEFAULT_ACM_SCORE' && (
+                          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 font-sans">
+                        Uses official chapter score (<code className="text-cyan-300">acm.score</code>) blended directly with other dimension weights.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => updateAcmConfig({ scoringMode: 'CUSTOM_FORMULA' })}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        acmCfg.scoringMode === 'CUSTOM_FORMULA'
+                          ? 'bg-cyan-950/60 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                          : 'bg-black/50 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs text-zinc-100 flex items-center gap-1">
+                          🧮 Custom Formula Studio
+                        </span>
+                        {acmCfg.scoringMode === 'CUSTOM_FORMULA' && (
+                          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-400 font-sans">
+                        Author custom equations via MathScope using live ACM & CP metrics (<code className="text-cyan-300">cf_rating</code>, <code className="text-cyan-300">leetcode_rating</code>, etc.).
+                      </p>
+                    </button>
+                  </div>
+
+                  {/* Weight Slider if in DEFAULT_ACM_SCORE mode */}
+                  {acmCfg.scoringMode === 'DEFAULT_ACM_SCORE' && (
+                    <div className="bg-black/40 p-2.5 rounded-lg border border-zinc-800 space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-300 font-medium">
+                          ACM Platform Score Influence:
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={acmCfg.acmWeight}
+                            onChange={(e) =>
+                              updateAcmConfig({
+                                acmWeight: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)),
+                              })
+                            }
+                            className="w-12 bg-black border border-zinc-700 focus:border-cyan-400 text-cyan-300 font-bold px-1 py-0.5 rounded text-center outline-none"
+                          />
+                          <span className="text-[10px] text-zinc-500 font-mono">%</span>
+                        </div>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={acmCfg.acmWeight}
+                        onChange={(e) =>
+                          updateAcmConfig({ acmWeight: parseInt(e.target.value) || 0 })
+                        }
+                        className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-zinc-800 rounded-lg"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-500">
+                        <span>0% (Dimension Only)</span>
+                        <span>35% (Recommended)</span>
+                        <span>100% (Pure ACM Rank)</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {acmCfg.scoringMode === 'CUSTOM_FORMULA' && (
+                    <div className="bg-cyan-950/30 p-2.5 rounded-lg border border-cyan-800/60 flex items-center justify-between">
+                      <div className="text-[10px] text-zinc-300">
+                        Live ACM variables available: <code className="text-cyan-300 font-mono">acm_score, acm_rank, cf_rating, leetcode_rating, cc_stars</code>
+                      </div>
+                      <Link
+                        href="/formulas"
+                        className="px-2.5 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-[10px] rounded flex items-center gap-1 transition-colors whitespace-nowrap"
+                      >
+                        <span>Formula Studio</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* Hard Gate Qualification Filters */}
+                <div className="space-y-2 pt-1 border-t border-zinc-900">
+                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                    ACM Chapter Eligibility Rules (Hard Filters):
+                  </span>
+                  <div className="space-y-2 bg-black/40 p-2.5 rounded-lg border border-zinc-800">
+                    {/* Compulsory Chapter Verification */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateAcmConfig({
+                              requireAllMembersAcm: !acmCfg.requireAllMembersAcm,
+                            })
+                          }
+                          className={`w-7 h-4 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                            acmCfg.requireAllMembersAcm ? 'bg-cyan-500' : 'bg-zinc-800'
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${
+                              acmCfg.requireAllMembersAcm ? 'translate-x-3 bg-black' : 'translate-x-0 bg-zinc-500'
+                            }`}
+                          />
+                        </button>
+                        <span className="text-zinc-300 text-[11px]">
+                          Require all team members to be verified ACM members
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">
+                        {acmCfg.requireAllMembersAcm ? 'Disqualify Unverified' : 'Optional'}
+                      </span>
+                    </div>
+
+                    {/* Minimum ACM Platform Score */}
+                    <div className="flex items-center justify-between pt-1 border-t border-zinc-900">
+                      <span className="text-zinc-300 text-[11px]">
+                        Minimum ACM Score to qualify:
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0 (None)"
+                          value={acmCfg.minAcmScoreRequired || ''}
+                          onChange={(e) =>
+                            updateAcmConfig({
+                              minAcmScoreRequired: e.target.value === '' ? undefined : parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="w-16 bg-black border border-zinc-700 focus:border-cyan-400 text-cyan-300 font-bold px-1.5 py-0.5 rounded text-center outline-none text-[11px]"
+                        />
+                        <span className="text-[10px] text-zinc-500">pts</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

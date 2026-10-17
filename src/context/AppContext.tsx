@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ColumnMappingConfig, ScoringHistoryEntry, SelectionConfig, TeamRecord } from '@/types';
-import { DEFAULT_CONFIG, DEFAULT_FORMULA_COEFFICIENTS } from '@/presets/defaultPresets';
+import { AcmStudentProfile, ColumnMappingConfig, ScoringHistoryEntry, SelectionConfig, TeamRecord } from '@/types';
+import { DEFAULT_CONFIG, DEFAULT_FORMULA_COEFFICIENTS, DEFAULT_ACM_EVENT_CONFIG } from '@/presets/defaultPresets';
 import { runFullShortlistingEngine } from '@/engine/scoring';
 
 interface AppContextType {
@@ -31,6 +31,12 @@ interface AppContextType {
   clearAllHistory: () => void;
   restoreHistoryEntry: (id: string) => boolean;
   clearCohort: () => void;
+
+  // ACM NIT Surat integration
+  acmDatabase: AcmStudentProfile[];
+  isAcmLoading: boolean;
+  acmLastSync: string | null;
+  fetchAcmData: (forceRefresh?: boolean) => Promise<{ success: boolean; count: number; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,6 +44,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const CONFIG_STORAGE_KEY = 'incursion_selection_config_v2';
 const TEAMS_STORAGE_KEY = 'incursion_base_teams_v2';
 const SCORING_HISTORY_KEY = 'incursion_scoring_history_v2';
+const ACM_DB_STORAGE_KEY = 'incursion_acm_leaderboard_cache_v2';
+const ACM_SYNC_STORAGE_KEY = 'incursion_acm_last_sync_v2';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [config, setConfigState] = useState<SelectionConfig>(DEFAULT_CONFIG);
@@ -47,6 +55,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMappingConfig | null>(null);
   const [scoringHistory, setScoringHistory] = useState<ScoringHistoryEntry[]>([]);
+
+  // ACM NIT Surat integration state
+  const [acmDatabase, setAcmDatabase] = useState<AcmStudentProfile[]>([]);
+  const [isAcmLoading, setIsAcmLoading] = useState<boolean>(false);
+  const [acmLastSync, setAcmLastSync] = useState<string | null>(null);
 
   // Load config, teams, and scoring history from localStorage on initial mount
   useEffect(() => {
@@ -78,10 +91,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (storedHistory) {
         setScoringHistory(JSON.parse(storedHistory));
       }
+      const storedAcmDb = localStorage.getItem(ACM_DB_STORAGE_KEY);
+      if (storedAcmDb) {
+        setAcmDatabase(JSON.parse(storedAcmDb));
+      }
+      const storedAcmSync = localStorage.getItem(ACM_SYNC_STORAGE_KEY);
+      if (storedAcmSync) {
+        setAcmLastSync(storedAcmSync);
+      }
     } catch {
       // ignore
     }
   }, []);
+
+  const fetchAcmData = async (forceRefresh = false) => {
+    setIsAcmLoading(true);
+    try {
+      const res = await fetch(`/api/fetch-acm-leaderboard${forceRefresh ? '?force=true' : ''}`, {
+        method: 'GET',
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAcmDatabase(data.data);
+        const syncTimestamp = data.fetchedAt || new Date().toISOString();
+        setAcmLastSync(syncTimestamp);
+        try {
+          localStorage.setItem(ACM_DB_STORAGE_KEY, JSON.stringify(data.data));
+          localStorage.setItem(ACM_SYNC_STORAGE_KEY, syncTimestamp);
+        } catch {
+          // ignore storage error
+        }
+        return { success: true, count: data.data.length };
+      }
+      return { success: false, count: 0, error: data.error || 'Failed to fetch ACM leaderboard' };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      return { success: false, count: 0, error: msg };
+    } finally {
+      setIsAcmLoading(false);
+    }
+  };
+
+  // Auto-fetch ACM leaderboard when ACM mode is enabled and database is empty
+  useEffect(() => {
+    if (config.acmEventConfig?.enabled && acmDatabase.length === 0 && !isAcmLoading) {
+      fetchAcmData(false);
+    }
+  }, [config.acmEventConfig?.enabled, acmDatabase.length, isAcmLoading]);
 
   const updateConfig = (newConfig: SelectionConfig) => {
     setPreviousConfig(config); // Save for undo/revert
@@ -312,6 +368,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         clearAllHistory,
         restoreHistoryEntry,
         clearCohort,
+        acmDatabase,
+        isAcmLoading,
+        acmLastSync,
+        fetchAcmData,
       }}
     >
       {children}

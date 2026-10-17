@@ -8,6 +8,7 @@ import { parseCSVString, parseRawDataToTeams, parseExcelArrayBuffer } from '@/en
 import { runFullShortlistingEngine } from '@/engine/scoring';
 import { exportShortlistToCSV, exportShortlistWithConfigJSON } from '@/utils/exportUtils';
 import { parseLocalPdfFile, matchResumeToCandidate } from '@/engine/resumeParser';
+import { enrichTeamsWithAcmDatabase } from '@/engine/acmIntegration';
 
 import { Navbar } from '@/components/Navbar';
 import { UploadZone } from '@/components/UploadZone';
@@ -48,6 +49,10 @@ export default function Home() {
     scoringHistory,
     saveScoringSnapshot,
     clearCohort,
+    acmDatabase,
+    isAcmLoading,
+    acmLastSync,
+    fetchAcmData,
   } = useApp();
 
   // Modals & UI state
@@ -252,11 +257,20 @@ export default function Home() {
     );
   };
 
+  // Enrich teams with live ACM NIT Surat data when ACM event mode is active
+  const teamsToScore = useMemo(() => {
+    if (baseTeams.length === 0) return [];
+    if (!config.acmEventConfig?.enabled || acmDatabase.length === 0) {
+      return baseTeams;
+    }
+    return enrichTeamsWithAcmDatabase(baseTeams, acmDatabase, config.acmEventConfig);
+  }, [baseTeams, config.acmEventConfig, acmDatabase]);
+
   // Instant reactive scoring & re-ranking!
   const rankedTeams = useMemo(() => {
-    if (baseTeams.length === 0) return [];
-    return runFullShortlistingEngine(baseTeams, config);
-  }, [baseTeams, config]);
+    if (teamsToScore.length === 0) return [];
+    return runFullShortlistingEngine(teamsToScore, config);
+  }, [teamsToScore, config]);
 
   const shortlistedCount = useMemo(() => {
     return rankedTeams.filter(

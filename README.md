@@ -489,6 +489,7 @@ flowchart LR
 | View Tab | Primary Ranking Criterion | Dedicated Columns Displayed | Adaptive Card Highlights |
 | :--- | :--- | :--- | :--- |
 | **🌐 OVERALL** | Composite Final Score (`finalScore` desc) | `#` (Gold/Silver/Bronze), `TEAM`, `SIZE`, `TECH`, `EXP`, `ROLES`, `SCORE`, `STATUS`, `ACTIONS` | Tech, Exp, Roles, Data Completeness, Final Score |
+| **💎 ACM NIT SURAT** | Chapter Platform Score (`acmScore` desc $\to$ CF Rating $\to$ LeetCode) | `#` (ACM Rank), `TEAM / ROLL NO`, `SIZE`, `ACM SCORE` (cyan pill), `DATA SOURCE` (Override vs Input), `LEETCODE`, `CODEFORCES`, `CODECHEF`, `COMMITS`, `FINAL SCORE` | Official ACM Score, LeetCode Peak, Codeforces Rating, Verified Roll Numbers |
 | **🐙 GITHUB CODE** | Technical Depth (`techScore` desc $\to$ Commits $\to$ Stars) | `#` (GitHub Rank), `TEAM / HANDLES`, `SIZE`, `COMMITS`, `STARS`, `TOP LANGUAGES`, `FORK INTEGRITY`, `TECH SCORE` (cyan glow) | Total Commits, Repository Stars, Top Languages, Fork Audit |
 | **💼 LINKEDIN** | LinkedIn Pedigree (`linkedinScore` desc $\to$ 500+ $\to$ Seniority) | `#` (LinkedIn Rank), `TEAM`, `SIZE`, `SENIORITY`, `500+ NETWORK`, `COMPANIES & AFFILIATIONS`, `PROFILES`, `LINKEDIN SCORE` | Seniority Level, 500+ Network Members, Company Names, LinkedIn Score |
 | **🧩 SKILL SYNERGY** | Role Complementarity (`synergyScore` desc $\to$ Unique Skills) | `#` (Synergy Rank), `TEAM`, `SIZE`, `COVERED ROLES`, `MISSING ROLES`, `TOTAL TECH`, `DATA COMPLETION`, `SYNERGY SCORE` | Covered Roles (4/4), Missing Role Alerts, Unique Tech Count, Synergy Score |
@@ -497,12 +498,59 @@ flowchart LR
 | **🚫 DISQUALIFIED** | Overall Rank (`rank` asc) | `#`, `TEAM`, `SIZE`, `FAILED HARD GATES & REASONS`, `TECH`, `EXP`, `RAW SCORE`, `ACTIONS` | Prominent red banner listing exact failed qualification filters |
 
 ### Additional Leaderboard Controls:
-- **Interactive Column Header Sorting:** Click any column header (`COMMITS`, `STARS`, `TECH SCORE`, `EXP`, `SIZE`, `SCORE`) to sort in ascending or descending order with live `▲`/`▼` indicators and an instant **Reset Sort** button.
+- **Interactive Column Header Sorting:** Click any column header (`COMMITS`, `STARS`, `TECH SCORE`, `EXP`, `SIZE`, `SCORE`, `ACM SCORE`, `LEETCODE`, `CODEFORCES`) to sort in ascending or descending order with live `▲`/`▼` indicators and an instant **Reset Sort** button.
 - **Adaptive Card View Mode:** Switching between table and card view dynamically swaps the card's telemetry metrics to match the active tab.
-- **Live Tab Counter Badges:** Every tab pill displays the exact real-time squad count (e.g., `OVERALL (20)`, `GITHUB CODE (20)`, `LINKEDIN (18)`, `SHORTLIST (5)`, `DISQUALIFIED (3)`).
+- **Live Tab Counter Badges:** Every tab pill displays the exact real-time squad count (e.g., `OVERALL (20)`, `ACM NIT SURAT (14)`, `GITHUB CODE (20)`, `LINKEDIN (18)`, `SHORTLIST (5)`, `DISQUALIFIED (3)`).
 - **Laser Cutoff Gate Line:** Displays an illuminated cyan cutoff divider after the top $N$ shortlisted squads on the Overall tab.
 
 ---
+
+## 💎 20. ACM NIT Surat Event Mode (Official Live Integration)
+
+Incursion provides first-class, turnkey integration with the official **ACM NIT Surat Student Chapter** platform ([acmnitsurat.in](https://acmnitsurat.in)). When hosting chapter-only hackathons, competitive programming leagues, or recruitment drives, organizers can activate **ACM Only Event Mode** with a single toggle.
+
+```mermaid
+flowchart TD
+    A["Applicant Cohort Intake\n(Spreadsheet / Google Forms / CSV)"] --> B{"ACM Event Mode Active?"}
+    B -- "Toggle OFF" --> C["Standard Multi-Criteria Incursion Engine"]
+    B -- "Toggle ON" --> D["Live Server-Side Proxy\n(GET /api/fetch-acm-leaderboard)"]
+    D --> E["Official Upstream Endpoint:\nacmnitsurat.in/api/leaderboard?limit=200"]
+    E --> F["Deterministic Candidate Matching:\n1. Institutional Roll Number (u25cs079, u23ai053)\n2. College Email Prefix (u25cs079@coed.svnit.ac.in)\n3. GitHub Handle match\n4. Normalized Name resolution"]
+    
+    F --> G{"Data Conflict Priority"}
+    G -- "ACM_OVERWRITE (Anti-Cheat)" --> H["Official verified ratings & handles from acmnitsurat.in\nsupersede self-reported registration input"]
+    G -- "PRESERVE_INPUT (Applicant-First)" --> I["Candidate form inputs take precedence;\nACM website data backfills missing blanks"]
+    
+    H & I --> J{"Scoring Strategy"}
+    J -- "DEFAULT_ACM_SCORE" --> K["Blend official acm.score into final score\nvia configurable weight slider (0-100%)"]
+    J -- "CUSTOM_FORMULA" --> L["MathScope Formula Studio\n(acm_score, cf_rating, leetcode_rating, cc_stars)"]
+    
+    K & L --> M["Hard Gate Filters:\n- Require all members ACM verified\n- Minimum ACM score threshold"]
+    M --> N["Dedicated ACM NIT SURAT Leaderboard Tab &\nLive Attribution Status Banner"]
+```
+
+### Key Capabilities & Data Transparency:
+1. **Live Data Attribution & Zero API Bills:**
+   - Explicitly displays in the UI, candidate modals, and leaderboard banner that data is retrieved and verified live from `acmnitsurat.in`.
+   - Fetches official competitive programming telemetry: **LeetCode** (ratings, total problems solved, easy/medium/hard breakdown), **Codeforces** (ratings, rank titles, contest problems), **CodeChef** (ratings, star badges $1\star-7\star$), and **GitHub** (annual contributions and repositories).
+   - High-performance server-side caching (`5 minutes`) prevents rate limiting or redundant network hops, with offline cache fallback.
+
+2. **Data Conflict Resolution Options:**
+   - **`🛡️ ACM Website Data Overrides Input` (`ACM_OVERWRITE`):** Recommended for competitive integrity. If an applicant self-reports an inflated rating or alternate handle, official chapter-verified metrics from `acmnitsurat.in` take precedence.
+   - **`📝 Preserve Registration Input` (`PRESERVE_INPUT`):** Recommended for open hackathons. Retains user-submitted handles and only uses the ACM chapter database to backfill unprovided or missing platform profiles.
+
+3. **Tunable Scoring Strategies:**
+   - **Official Chapter Score Mode (`DEFAULT_ACM_SCORE`):** Directly incorporates the student's official ACM chapter platform score (`acm.score`) into the composite ranking using a dedicated weight slider (0–100%, default 35%).
+   - **Custom Algorithmic Formula Studio (`CUSTOM_FORMULA`):** Authors can write custom mathematical equations in the Formula Studio (`/formulas`) using live ACM variables:
+     - `acm_score`, `acm_rank`, `cf_rating`, `cf_problems`, `leetcode_rating`, `leetcode_solved`, `cc_stars`, `acm_matched`.
+
+4. **Hard Chapter Gate Filters:**
+   - **Compulsory Chapter Verification (`requireAllMembersAcm`):** Automatically disqualifies teams where one or more members are not registered in the ACM NIT Surat chapter database.
+   - **Minimum ACM Score Threshold (`minAcmScoreRequired`):** Disqualifies or flags teams falling below an organizer-specified threshold.
+
+5. **Dedicated `ACM NIT SURAT` Leaderboard Tab:**
+   - Shows candidate institutional roll numbers (`u25cs079`, `u23ai053`), branch & graduation year, official ACM score with cyan neon glow, conflict status badge (`ACM OVERRIDE` vs `REGISTRATION`), and individual ratings for LeetCode, Codeforces, and CodeChef.
+
 
 ## 📦 Getting Started
 

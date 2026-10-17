@@ -778,6 +778,26 @@ export function parseRawDataToTeams(
 
       const initialExp = extractWorkAndClubExperiences(roleOrBio || '');
 
+      // Auto-detect institutional roll number (e.g. u25cs079, u23ai053)
+      let detectedRollNumber: string | undefined = undefined;
+      if (email) {
+        const prefix = email.split('@')[0]?.toLowerCase().trim();
+        if (/^[iup]\d{2}[a-z]{2,5}\d{2,4}$/i.test(prefix)) {
+          detectedRollNumber = prefix;
+        }
+      }
+      if (!detectedRollNumber) {
+        for (const [k, v] of Object.entries(row)) {
+          if (/roll|admission|reg\s*no|student\s*id/i.test(k)) {
+            const clean = String(v ?? '').trim().toLowerCase();
+            if (/^[iup]\d{2}[a-z]{2,5}\d{2,4}$/i.test(clean)) {
+              detectedRollNumber = clean;
+              break;
+            }
+          }
+        }
+      }
+
       members.push({
         id: `mem-${rowIdx + 1}-${idx + 1}`,
         name: name || `Member ${idx + 1}`,
@@ -785,6 +805,7 @@ export function parseRawDataToTeams(
         phone: phone || undefined,
         college: college || undefined,
         gradYear: gradYear || undefined,
+        rollNumber: detectedRollNumber,
         gender: genderRes.gender,
         isFemale: genderRes.isFemale,
         githubUrl,
