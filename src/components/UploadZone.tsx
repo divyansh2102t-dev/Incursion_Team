@@ -39,12 +39,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload, onGoogleSh
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   const apertures = [
-    { id: 1, label: 'Full Stack', angle: 0, icon: Code2, desc: 'TypeScript, React, Node, REST' },
-    { id: 2, label: 'AI & Data', angle: 60, icon: Cpu, desc: 'PyTorch, LangChain, RAG, BigQuery' },
-    { id: 3, label: 'Accolades', angle: 120, icon: Award, desc: 'SIH, ETHIndia, MLH Winners' },
-    { id: 4, label: 'GitHub Velocity', angle: 180, icon: Terminal, desc: '5,000 req/hr Live Code Inspection' },
-    { id: 5, label: 'Zero-DB Privacy', angle: 240, icon: ShieldCheck, desc: 'Volatile In-Memory Garbage Collection' },
-    { id: 6, label: 'Synergy HUD', angle: 300, icon: Layers, desc: 'Diminishing Returns Normalization' },
+    { id: 1, label: 'Full Stack', x: 100, y: 0, icon: Code2, desc: 'TypeScript, React, Node, REST' },
+    { id: 2, label: 'AI & Data', x: 50, y: 87, icon: Cpu, desc: 'PyTorch, LangChain, RAG, BigQuery' },
+    { id: 3, label: 'Accolades', x: -50, y: 87, icon: Award, desc: 'SIH, ETHIndia, MLH Winners' },
+    { id: 4, label: 'GitHub Velocity', x: -100, y: 0, icon: Terminal, desc: '5,000 req/hr Live Code Inspection' },
+    { id: 5, label: 'Zero-DB Privacy', x: -50, y: -87, icon: ShieldCheck, desc: 'Volatile In-Memory Garbage Collection' },
+    { id: 6, label: 'Synergy HUD', x: 50, y: -87, icon: Layers, desc: 'Diminishing Returns Normalization' },
   ];
 
   const handleDrop = (e: React.DragEvent) => {
@@ -333,17 +333,13 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload, onGoogleSh
                 {/* Rotating Aperture Ring (Clockwise) */}
                 <div className="absolute inset-0 rounded-full animate-spin-slow pointer-events-none">
                   {apertures.map((ap) => {
-                    const rad = (ap.angle * Math.PI) / 180;
-                    const r = 100; // radius px
-                    const x = Math.cos(rad) * r;
-                    const y = Math.sin(rad) * r;
                     const Icon = ap.icon;
 
                     return (
                       <div
                         key={ap.id}
                         style={{
-                          transform: `translate(${x}px, ${y}px)`,
+                          transform: `translate(${ap.x}px, ${ap.y}px)`,
                         }}
                         onMouseEnter={() => setActiveAperture(ap.id)}
                         onMouseLeave={() => setActiveAperture(null)}

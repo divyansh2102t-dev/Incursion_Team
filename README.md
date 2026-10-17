@@ -139,7 +139,44 @@ To keep solo prodigies and multi-member teams on equal footing:
 
 ---
 
-## 🛡️ 6. Qualification Filters & Mandatory GitHub Requirements
+## 🧮 6. Master Overall Incursion Scoring Pipeline & Mathematical Architecture
+
+Every applicant signal—GitHub commit velocity, repository stars, language distributions, cloud resume text, hackathon wins, Tier-1 research internships (IIT/NIT/IIIT), FAANG/Unicorn experience, college club leadership, organizer custom keyword point weights, cross-discipline role synergy, and registration data completeness—feeds directly into the **Overall Incursion Leaderboard Rank**:
+
+```mermaid
+flowchart TD
+    subgraph S1["Stage 1: Raw Dimension Scoring (0 – 100 each)"]
+        G["🐙 Technical Depth Score (0-100)\nCommits + Stars + Languages - Fork Penalty"]
+        E["📄 Project Experience Score (0-100)\nHackathon Wins + Skills + Proof-of-Work +\nTier-1 Research + FAANG/Unicorns + Clubs +\nOrganizer Custom Keywords"]
+        R["🧩 Skill Synergy Score (0-100)\nSquad Coverage: Frontend, Backend, AI/ML, Design"]
+        D["📋 Data Completeness Score (0-100)\n% of valid links, contacts & profiles provided"]
+    end
+
+    subgraph S2["Stage 2: Weighted Aggregation & Multipliers"]
+        W["Organizer Weighting Formula\nSliders, Toggles, or Custom Math Expression"]
+        P["Missing Data Policy Multiplier\nNeutral: 1.0x | Penalty 10: 0.9x | Penalty 25: 0.75x"]
+    end
+
+    S1 --> S2
+    S2 --> FINAL["🏆 Final Composite Incursion Score (Overall Rank)"]
+```
+
+### Overall Composite Score Formula:
+$$\text{Final Score} = \left(\frac{W_{\text{tech}} \times S_{\text{tech}} + W_{\text{exp}} \times S_{\text{exp}} + W_{\text{roles}} \times S_{\text{roles}} + W_{\text{comp}} \times S_{\text{comp}}}{\sum W_{\text{active}}}\right) \times \text{Policy Multiplier}$$
+
+- **$S_{\text{tech}}$ (Technical Depth, 0–100):** Combines verified annual commit velocity, repository stars, and active programming languages. Flagged accounts with 100% forks and 0 commits receive an anti-cheat discount.
+- **$S_{\text{exp}}$ (Project Experience & Accolades, 0–100):** Combines verified hackathon podiums ($+25\text{ pts}$ each), matched skill count, verifiable proof-of-work ($+20\text{ pts}$), Tier-1 research at IIT/NIT/IIIT/MIT ($+25\text{ pts}$), FAANG/Unicorn industry roles ($+20\text{ pts}$), club leadership ($+15\text{ pts}$), and organizer custom keywords.
+- **$S_{\text{roles}}$ (Skill Synergy & Role Complementarity, 0–100):** Evaluates cross-functional squad balance across the 4 core disciplines (**Frontend**, **Backend**, **AI/ML**, and **Design**), awarding $25\text{ pts}$ per covered role ($100\text{ pts}$ for a complete squad).
+- **$S_{\text{comp}}$ (Data Completeness, 0–100):** Measures the ratio of submitted profiles, portfolio links, phone contacts, and resumes.
+
+### 100% Changeable & Tunable from the User End:
+1. **Interactive Sliders & Dynamic Toggles:** Open the **"Scoring Model & Filters"** drawer to adjust weights via slider or numeric input, or toggle any dimension OFF with one click (the formula automatically re-normalizes the remaining active weights to 100%).
+2. **Formula & Algorithm Studio (`/formulas`):** Organizers can author custom algebraic equations (e.g. `tech * 0.4 + exp * 0.35 + roles * 0.25 + min(keywords, 25)`) with real-time AST syntax validation and sandbox simulation.
+3. **Manual Overrides on any Individual Team:** Open any team's scorecard to override specific scores or hard gate decisions without re-evaluating the rest of the cohort.
+
+---
+
+## 🛡️ 7. Qualification Filters & Mandatory GitHub Requirements
 
 The hard-qualification pipeline enforces eligibility before candidates enter the scoring matrix:
 - **Mandatory GitHub Requirement Modes:**
@@ -157,7 +194,7 @@ The hard-qualification pipeline enforces eligibility before candidates enter the
 
 ---
 
-## 🎛️ 7. Two-Way Synchronized Manual Typing & Sliders
+## 🎛️ 8. Two-Way Synchronized Manual Typing & Sliders
 
 Every adjustable metric on the platform provides dual input modes:
 - **Direct Manual Typing:** Type exact numbers or thresholds directly into the `<input type="number" />` field.
@@ -170,7 +207,7 @@ This applies across:
 
 ---
 
-## 📜 8. Scoring Run History & Audit Vault
+## 📜 9. Scoring Run History & Audit Vault
 
 Organizers can capture, name, manage, and restore scoring runs with complete audit fidelity:
 - **Custom Scoring Names:** Name any scoring run snapshot upon creation (e.g., *"Round 1 Cutoff"*, *"Pre-Sponsor Filter"*, *"Equalized Solo Bias"*).
@@ -182,7 +219,7 @@ Organizers can capture, name, manage, and restore scoring runs with complete aud
 
 ---
 
-## 🧮 9. Custom Mathematical Formula Expression Studio (`/formulas`)
+## 🧮 10. Custom Mathematical Formula Expression Studio (`/formulas`)
 
 Organizers are not limited to fixed linear weights. A built-in, injection-safe mathematical expression engine allows organizers to author arbitrary scoring equations using live cohort signals:
 
@@ -206,7 +243,7 @@ flowchart LR
 
 ---
 
-## 🌐 10. SEO Optimization, Brand Identity & Progressive Web App (PWA)
+## 🌐 11. SEO Optimization, Brand Identity & Progressive Web App (PWA)
 
 Incursion is built as a production-grade, installable Progressive Web App (PWA) with comprehensive search engine discovery and custom cyber-industrial branding:
 
@@ -225,7 +262,7 @@ Incursion is built as a production-grade, installable Progressive Web App (PWA) 
 
 ---
 
-## 💼 11. 100% Legal & Ethical LinkedIn Profile & Pedigree Architecture
+## 💼 12. 100% Legal & Ethical LinkedIn Profile & Pedigree Architecture
 
 Incursion includes a legal, zero-cost professional background evaluation pipeline that extracts verifiable career signals without violating LinkedIn Terms of Service, triggering account bans, or requiring expensive enterprise scrapers.
 
@@ -275,7 +312,7 @@ $$\text{LinkedIn Score} = \min\Big(100,\; \text{Seniority} + \text{Pedigree} + \
 
 ---
 
-## 🛠️ 12. Multi-Page Application Layout
+## 🛠️ 13. Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.
@@ -296,7 +333,7 @@ $$\text{LinkedIn Score} = \min\Big(100,\; \text{Seniority} + \text{Pedigree} + \
 
 ---
 
-## ⚡ 13. Manual Overrides & Targeted Individual Sync Engine
+## ⚡ 14. Manual Overrides & Targeted Individual Sync Engine
 
 Organizers possess complete authority to manually override any algorithmic decision and edit candidate signals in real time without triggering global re-syncs or re-uploading data.
 
@@ -332,7 +369,7 @@ flowchart TD
 
 ---
 
-## 🛡️ 14. Zero Data Loss & Universal Intake Ingestion Engine
+## 🛡️ 15. Zero Data Loss & Universal Intake Ingestion Engine
 
 When ingesting registration exports from Google Forms, Devpost, Unstop, Typeform, or custom spreadsheets, column titles and table structures vary dramatically. Incursion guarantees **Zero Data Loss**, **Zero Redundancy**, and **100% Deterministic Integrity** through a 5-layer ingestion pipeline:
 
@@ -384,7 +421,7 @@ flowchart TD
 
 ---
 
-## 🎚️ 13. Interactive On/Off Toggles for Scoring Weights
+## 🎚️ 16. Interactive On/Off Toggles for Scoring Weights
 
 Organizers have full control to toggle individual scoring criteria on and off with a single click:
 - **Instant Dimension Toggles:** Turn off or on any of the four primary dimensions:
@@ -397,7 +434,7 @@ Organizers have full control to toggle individual scoring criteria on and off wi
 
 ---
 
-## 💼 14. Resume Work Experience, Research (IIT/NIT/IIIT) & Clubs Engine
+## 💼 17. Resume Work Experience, Research (IIT/NIT/IIIT) & Clubs Engine
 
 Incursion extracts and evaluates candidate employment, research, and extracurricular leadership directly from resume PDFs and registration bios without paid LLMs:
 - **🏛️ Tier-1 Research Internships:**
@@ -418,7 +455,7 @@ Incursion extracts and evaluates candidate employment, research, and extracurric
 
 ---
 
-## 🏷️ 15. Organizer Custom Keyword Point Weights (Case-Insensitive)
+## 🏷️ 18. Organizer Custom Keyword Point Weights (Case-Insensitive)
 
 Organizers can specify explicit custom keywords to reward or penalize specific domains or track requirements:
 - **Cross-Channel Case-Insensitive Matching:** Keywords are scanned across:
@@ -430,6 +467,40 @@ Organizers can specify explicit custom keywords to reward or penalize specific d
 - **Tunable Point Weights:** Organizers specify exact bonus or penalty points (e.g. `+15 pts` for *Kubernetes*, `+20 pts` for *Solana*, `+25 pts` for *PyTorch*).
 - **Formula Studio Integration:** Custom keywords and experience metrics are available as mathematical variables in the Custom Formula Studio:
   - `keywords`, `matched_keywords_count`, `work_exp`, `research_intern`, `tier1_company`, `clubs`.
+
+---
+
+## 🏆 19. Domain-Specific Leaderboard Views, Dedicated Columns & Dynamic Sorting
+
+Incursion provides specialized, domain-tailored leaderboard views so organizers can inspect each evaluation dimension in isolation with dedicated metrics and independent ranking orders:
+
+```mermaid
+flowchart LR
+    A["Leaderboard Navigation Tabs"] --> B["OVERALL: Master Rank • Tech | Exp | Roles | Final Score"]
+    A --> C["GITHUB CODE: Tech Depth Rank • Commits | Stars | Languages | Fork Audit | Tech Score"]
+    A --> D["LINKEDIN: Pedigree Rank • Seniority | 500+ Net | Companies | Profiles | LinkedIn Score"]
+    A --> E["SKILL SYNERGY: Complementarity Rank • Covered Roles | Missing Roles | Tech Stack | Synergy Score"]
+    A --> F["HACKATHON WINS: Accolades Rank • Hackathon Wins | Research & Clubs | Proof of Work | Exp Score"]
+    A --> G["DISQUALIFIED: Gate Audit • Failed Hard Gate Reasons | Tech | Exp | Status"]
+```
+
+### Dedicated Tab Columns & Independent Rankings:
+
+| View Tab | Primary Ranking Criterion | Dedicated Columns Displayed | Adaptive Card Highlights |
+| :--- | :--- | :--- | :--- |
+| **🌐 OVERALL** | Composite Final Score (`finalScore` desc) | `#` (Gold/Silver/Bronze), `TEAM`, `SIZE`, `TECH`, `EXP`, `ROLES`, `SCORE`, `STATUS`, `ACTIONS` | Tech, Exp, Roles, Data Completeness, Final Score |
+| **🐙 GITHUB CODE** | Technical Depth (`techScore` desc $\to$ Commits $\to$ Stars) | `#` (GitHub Rank), `TEAM / HANDLES`, `SIZE`, `COMMITS`, `STARS`, `TOP LANGUAGES`, `FORK INTEGRITY`, `TECH SCORE` (cyan glow) | Total Commits, Repository Stars, Top Languages, Fork Audit |
+| **💼 LINKEDIN** | LinkedIn Pedigree (`linkedinScore` desc $\to$ 500+ $\to$ Seniority) | `#` (LinkedIn Rank), `TEAM`, `SIZE`, `SENIORITY`, `500+ NETWORK`, `COMPANIES & AFFILIATIONS`, `PROFILES`, `LINKEDIN SCORE` | Seniority Level, 500+ Network Members, Company Names, LinkedIn Score |
+| **🧩 SKILL SYNERGY** | Role Complementarity (`synergyScore` desc $\to$ Unique Skills) | `#` (Synergy Rank), `TEAM`, `SIZE`, `COVERED ROLES`, `MISSING ROLES`, `TOTAL TECH`, `DATA COMPLETION`, `SYNERGY SCORE` | Covered Roles (4/4), Missing Role Alerts, Unique Tech Count, Synergy Score |
+| **🏆 HACKATHON WINS** | Project Experience (`expScore` desc $\to$ Hackathon Wins) | `#` (Experience Rank), `TEAM`, `SIZE`, `HACKATHON WINS`, `RESEARCH & CLUBS`, `PROOF OF WORK`, `KEYWORDS`, `EXP SCORE` | Hackathon Podiums (🏆), Tier-1 Research / FAANG / Clubs, Portfolio Proof |
+| **⭐ SHORTLIST** | Overall Rank (`rank` asc) | Filtered strictly to top $N$ shortlisted squads + manually pinned teams | Same as Overall with Shortlist badge |
+| **🚫 DISQUALIFIED** | Overall Rank (`rank` asc) | `#`, `TEAM`, `SIZE`, `FAILED HARD GATES & REASONS`, `TECH`, `EXP`, `RAW SCORE`, `ACTIONS` | Prominent red banner listing exact failed qualification filters |
+
+### Additional Leaderboard Controls:
+- **Interactive Column Header Sorting:** Click any column header (`COMMITS`, `STARS`, `TECH SCORE`, `EXP`, `SIZE`, `SCORE`) to sort in ascending or descending order with live `▲`/`▼` indicators and an instant **Reset Sort** button.
+- **Adaptive Card View Mode:** Switching between table and card view dynamically swaps the card's telemetry metrics to match the active tab.
+- **Live Tab Counter Badges:** Every tab pill displays the exact real-time squad count (e.g., `OVERALL (20)`, `GITHUB CODE (20)`, `LINKEDIN (18)`, `SHORTLIST (5)`, `DISQUALIFIED (3)`).
+- **Laser Cutoff Gate Line:** Displays an illuminated cyan cutoff divider after the top $N$ shortlisted squads on the Overall tab.
 
 ---
 
