@@ -3,18 +3,22 @@
 import React from 'react';
 import Link from 'next/link';
 import { AggregationStrategy, MissingDataPolicy, SelectionConfig } from '@/types';
-import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap, ArrowRight } from 'lucide-react';
+import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap, ArrowRight, PanelLeftClose, BookmarkPlus } from 'lucide-react';
 
 interface ConfigPanelProps {
   config: SelectionConfig;
   onChange: (updated: SelectionConfig) => void;
   totalTeamsCount: number;
+  onHideFilters?: () => void;
+  onSaveRun?: () => void;
 }
 
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   config,
   onChange,
   totalTeamsCount,
+  onHideFilters,
+  onSaveRun,
 }) => {
   const updateWeight = (key: keyof SelectionConfig['weights'], value: number) => {
     onChange({
@@ -50,9 +54,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               Scoring Model
             </h2>
           </div>
-          <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-bold">
-            BALANCED DEFAULT
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-bold">
+              BALANCED DEFAULT
+            </span>
+            {onHideFilters && (
+              <button
+                onClick={onHideFilters}
+                className="px-2 py-0.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 border border-zinc-800 hover:border-cyan-500/50 rounded text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                title="Hide Filters Sidebar to Expand Leaderboard"
+              >
+                <PanelLeftClose className="w-3 h-3 text-cyan-400" />
+                <span>Hide</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <Link
@@ -496,6 +512,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </option>
         </select>
       </div>
+
+      {/* Save Scoring Run Snapshot Button */}
+      {onSaveRun && (
+        <button
+          onClick={onSaveRun}
+          className="w-full py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+          title="Save and snapshot current scoring configuration into audit vault"
+        >
+          <BookmarkPlus className="w-4 h-4" />
+          <span>Save Scoring Run Snapshot</span>
+        </button>
+      )}
     </div>
   );
 };

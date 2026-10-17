@@ -275,11 +275,13 @@ $$\text{LinkedIn Score} = \min\Big(100,\; \text{Seniority} + \text{Pedigree} + \
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.
-   - **Clean Streamlined Navigation:** Clicking the **INCURSION** brand pill or **Upload** button opens the Home upload terminal; clicking **Leaderboard** switches directly to the shortlist rankings.
-   - **Live Candidate Leaderboard:** Ranked shortlist with visual Top $X$ Cutoff boundary and Sticky Action buttons.
-   - **Filter Pills:** Real-time filtering by Shortlist, Waitlist, and Disqualified.
-   - **Responsive Views:** Desktop tabular view and mobile-friendly card view for small screens.
-   - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Custom Column Mapper.
+   - **Clean Streamlined Navigation:** Brand pill or Upload button opens the intake terminal; clicking Leaderboard switches directly to rankings. Centralized header actions for **Compare**, **Sensitivity**, **GitHub Sync**, **Resume Sync**, **Parallel Scan**, **History**, and direct **Save Run** snapshots.
+   - **Full-Width Incursion Cyber Leaderboard:** 100% viewport width allocation giving maximum horizontal room for candidate metrics, tech stacks, and signals.
+   - **Slide-Over Scoring Model & Filters Drawer:** A spacious on-demand flyout drawer (`max-w-2xl`) with independent scroll powers that opens without displacing or squishing the leaderboard table.
+   - **Streamlined Row Actions:** Each candidate row features a dedicated **Scorecard** button for instant inspection, while head-to-head comparison is elegantly centralized at the top.
+   - **Filter Tabs & Size Selectors:** Real-time filtering by Overall, GitHub, LinkedIn, Skill Synergy, Hackathon Wins, Shortlist, and Disqualified, with instant team size selection.
+   - **Responsive Views:** Desktop tabular view with sticky actions and mobile-friendly card view for smaller devices.
+   - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Scoring Run History Vault.
 2. **Formula & Algorithm Studio (`/formulas`):**
    - **Custom Formula Expression Studio:** Write and test custom equations with live validator and sandbox simulation (compact when OFF).
    - **Tunable Math Multipliers:** Direct control over every coefficient, divisor, and threshold.
