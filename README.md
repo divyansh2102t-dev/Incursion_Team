@@ -284,14 +284,51 @@ $$\text{LinkedIn Score} = \min\Big(100,\; \text{Seniority} + \text{Pedigree} + \
    - **Slide-Over Scoring Model & Filters Drawer:** A spacious on-demand flyout drawer (`max-w-2xl`) with independent scroll powers that opens without displacing or squishing the leaderboard table.
    - **Streamlined Row Actions:** Each candidate row features a dedicated **Scorecard** button for instant inspection, while head-to-head comparison is elegantly centralized at the top.
    - **Filter Tabs & Size Selectors:** Real-time filtering by Overall, GitHub, LinkedIn, Skill Synergy, Hackathon Wins, Shortlist, and Disqualified, with instant team size selection.
-   - **Responsive Views:** Desktop tabular view with sticky actions and mobile-friendly card view for smaller devices.
    - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Scoring Run History Vault.
+   - **Organizer Manual Overrides & Individual Signal Editing:** Full in-place editing of team names, member profiles (Name, Email, Gender, Bio, URLs, Skills), hard gate decisions, dimension scores, and anti-cheat flags.
+   - **Targeted Single-Member Live Sync:** `⚡ Sync Member` and `⚡ Sync Team` buttons to refresh GitHub & LinkedIn signals for a single candidate without re-running the entire cohort.
 2. **Formula & Algorithm Studio (`/formulas`):**
    - **Custom Formula Expression Studio:** Write and test custom equations with live validator and sandbox simulation (compact when OFF).
    - **Tunable Math Multipliers:** Direct control over every coefficient, divisor, and threshold.
    - **"Reset Defaults"** button to restore factory settings.
    - **"Revert Config"** button for instant undo.
    - **Export & Import** formula configurations as portable JSON files.
+
+---
+
+## ⚡ 13. Manual Overrides & Targeted Individual Sync Engine
+
+Organizers possess complete authority to manually override any algorithmic decision and edit candidate signals in real time without triggering global re-syncs or re-uploading data.
+
+```mermaid
+flowchart TD
+    A["Organizer Inspects Team\n(Scorecard Drilldown Modal)"] --> B["Toggle 'Edit & Override' Mode"]
+    B --> C["Manual Decision Overrides"]
+    B --> D["Direct Candidate Signal Editing"]
+    B --> E["Targeted Single-Entity Sync"]
+
+    C --> C1["Master Eligibility:\nAuto / Force Eligible / Force Disqualified"]
+    C --> C2["Hard Gate Matrix:\nToggle Pass/Fail on Individual Filters"]
+    C --> C3["Dimension & Final Scores:\nSlider or numeric overrides (0-100)"]
+    C --> C4["Anti-Cheat:\nDismiss suspicious flags with audit notes"]
+
+    D --> D1["Member Demographics:\nName, Email, Gender (♀ Female / ♂ Male / Other)"]
+    D --> D2["Verified Links & Stats:\nGitHub commits/stars/repos, LinkedIn seniority, Portfolio"]
+    D --> D3["Skill Tag Manager:\nAdd custom verified technologies or remove false positives"]
+
+    E --> E1["⚡ Sync Member:\nQueries GitHub API & LinkedIn parser for that 1 member only"]
+    E --> E2["⚡ Sync Team:\nRefreshes all members of that team in isolation"]
+
+    C1 & C2 & C3 & C4 & D1 & D2 & D3 & E1 & E2 --> F["Instant Reactive Re-Score in Volatile RAM\n(Leaderboard re-ranks instantly; zero cohort re-processing)"]
+    F --> G["Leaderboard displays ⚡ Overridden badge"]
+```
+
+### Key Capabilities:
+- **No Global Re-Sync Required:** Edits apply directly to the in-memory cohort record and trigger immediate reactive re-scoring. The rest of the cohort remains unaffected.
+- **Granular Hard Gate Overrides:** Force-pass a specific gate (e.g. bypass the minimum commit gate for a team with proprietary code or allow an exemption for compulsory female participation) while keeping all other gates automated.
+- **Targeted Live Sync:** When a participant corrects an invalid GitHub handle or updates their LinkedIn URL, organizers click `⚡ Sync Member` next to that person to fetch their live stats in under 500ms using 1 API credit instead of scanning the whole cohort.
+- **Compulsory Female Participation Gate:** Configurable hard gate (`filters.requireFemaleMember`) with visual indicator badges (`♀ 1F`, `♀ 2F` when satisfied, `♀ MISSING` when gate fails).
+- **Audit Transparency:** Teams with active organizer overrides are prominently badged with `⚡ Overridden` on both the table and card views.
 
 ---
 

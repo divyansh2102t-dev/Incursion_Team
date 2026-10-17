@@ -86,6 +86,20 @@ export interface TeamComputedMetrics {
   // Manual status override
   manualStatus?: 'pinned' | 'excluded' | 'waitlisted' | 'normal';
   manualNote?: string;
+  hasManualOverrides?: boolean;
+}
+
+export interface TeamManualOverrides {
+  isEligibleOverride?: boolean; // Force eligible (true) or force disqualified (false)
+  eligibilityOverrideReason?: string;
+  gateOverrides?: Record<string, boolean>; // Overrides per individual hard gate
+  technicalDepthScore?: number;
+  projectExperienceScore?: number;
+  skillComplementarityScore?: number;
+  dataCompletenessScore?: number;
+  finalScore?: number;
+  antiCheatDismissed?: boolean;
+  notes?: string;
 }
 
 export interface TeamRecord {
@@ -95,6 +109,7 @@ export interface TeamRecord {
   members: MemberProfile[];
   rawRowData: Record<string, string>;
   computed: TeamComputedMetrics;
+  manualOverrides?: TeamManualOverrides;
 }
 
 export type AggregationStrategy = 'MAX_SKILL' | 'DIMINISHING_RETURNS' | 'BALANCED_MEAN';

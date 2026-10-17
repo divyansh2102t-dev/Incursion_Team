@@ -521,10 +521,16 @@ export default function Home() {
       {/* Team Drilldown Modal */}
       {selectedTeam && (
         <TeamModal
-          team={selectedTeam}
+          team={rankedTeams.find((t) => t.id === selectedTeam.id) || selectedTeam}
           config={config}
           onClose={() => setSelectedTeam(null)}
           onUpdateManualStatus={handleUpdateManualStatus}
+          onUpdateTeam={(updatedTeam) => {
+            setBaseTeams((prev) =>
+              prev.map((t) => (t.id === updatedTeam.id ? updatedTeam : t))
+            );
+            setSelectedTeam(updatedTeam);
+          }}
         />
       )}
 
