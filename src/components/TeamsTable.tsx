@@ -267,6 +267,12 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h4 className="font-bold text-zinc-100 text-sm">{teamDisplayName}</h4>
+                        {team.computed.hasManualOverrides && (
+                          <span title="Manual overrides active on this team" className="text-[9px] bg-amber-950/90 text-amber-300 border border-amber-600/80 px-1 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                            <Zap className="w-2.5 h-2.5 fill-amber-300" />
+                            Overridden
+                          </span>
+                        )}
                         {team.members.some((m) => m.rawSignals.linkedinMetrics?.has500PlusConnections) && (
                           <span title="Verified 500+ industry connections" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold">
                             500+
@@ -424,6 +430,12 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       <td className="py-2.5 px-3">
                         <div className="font-bold text-zinc-100 flex items-center gap-1.5 flex-wrap">
                           <span className="truncate max-w-[200px] font-semibold">{teamDisplayName}</span>
+                          {team.computed.hasManualOverrides && (
+                            <span title="Manual overrides active on this team" className="text-[9px] bg-amber-950/90 text-amber-300 border border-amber-600/80 px-1 py-0.2 rounded font-mono font-bold shrink-0 flex items-center gap-0.5">
+                              <Zap className="w-2.5 h-2.5 fill-amber-300" />
+                              Overridden
+                            </span>
+                          )}
                           {team.computed.antiCheatFlags.length > 0 && (
                             <span title="Flagged for suspicious commits or forks" className="inline-flex items-center">
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />

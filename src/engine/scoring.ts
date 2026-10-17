@@ -167,29 +167,110 @@ export function runFullShortlistingEngine(
         scope,
         standardScore
       );
-
-      finalScore = Number((customEvaluated * policyMultiplier).toFixed(2));
+      finalScore = customEvaluated;
       customScoreApplied = true;
     }
 
+    // --- Check for Organizer Manual Overrides ---
+    const overrides = team.manualOverrides;
+    const hasOverrides = Boolean(
+      overrides &&
+        (overrides.isEligibleOverride !== undefined ||
+          overrides.technicalDepthScore !== undefined ||
+          overrides.projectExperienceScore !== undefined ||
+          overrides.skillComplementarityScore !== undefined ||
+          overrides.dataCompletenessScore !== undefined ||
+          overrides.finalScore !== undefined ||
+          overrides.antiCheatDismissed ||
+          (overrides.gateOverrides && Object.keys(overrides.gateOverrides).length > 0))
+    );
+
+    // Hard Gate Overrides
+    const effectivePassedFilters = [...filterAudit.passedFilters];
+    const effectiveFailedFilters = [...filterAudit.failedFilters];
+
+    if (overrides?.gateOverrides) {
+      Object.entries(overrides.gateOverrides).forEach(([gateName, shouldPass]) => {
+        if (shouldPass) {
+          const failedIdx = effectiveFailedFilters.findIndex((f) => f.filterName === gateName);
+          if (failedIdx !== -1) {
+            const removed = effectiveFailedFilters.splice(failedIdx, 1)[0];
+            effectivePassedFilters.push({
+              filterName: gateName,
+              passed: true,
+              reason: `Manually overridden to PASS by organizer (Originally failed: ${removed.reason})`,
+            });
+          }
+        } else {
+          const passedIdx = effectivePassedFilters.findIndex((f) => f.filterName === gateName);
+          if (passedIdx !== -1) {
+            effectivePassedFilters.splice(passedIdx, 1);
+            effectiveFailedFilters.push({
+              filterName: gateName,
+              passed: false,
+              reason: 'Manually overridden to FAIL by organizer.',
+            });
+          }
+        }
+      });
+    }
+
+    // Anti-cheat dismissal
+    let effectiveAntiCheatFlags = [...antiCheatFlags];
+    if (overrides?.antiCheatDismissed) {
+      effectiveAntiCheatFlags = [];
+    }
+
+    // Dimension score overrides
+    const effectiveTechnicalScore = overrides?.technicalDepthScore ?? rawTechnicalScore;
+    const effectiveExperienceScore = overrides?.projectExperienceScore ?? rawExperienceScore;
+    const effectiveComplementarityScore = overrides?.skillComplementarityScore ?? rawComplementarityScore;
+    const effectiveCompletenessScore = overrides?.dataCompletenessScore ?? rawCompletenessScore;
+
+    // Final score calculation with override support
+    let effectiveFinalScore = finalScore;
+    if (overrides?.finalScore !== undefined) {
+      effectiveFinalScore = overrides.finalScore;
+    } else if (
+      overrides?.technicalDepthScore !== undefined ||
+      overrides?.projectExperienceScore !== undefined ||
+      overrides?.skillComplementarityScore !== undefined ||
+      overrides?.dataCompletenessScore !== undefined
+    ) {
+      const reweighted =
+        (effectiveTechnicalScore * config.weights.technicalDepth +
+          effectiveExperienceScore * config.weights.projectExperience +
+          effectiveComplementarityScore * config.weights.skillComplementarity +
+          effectiveCompletenessScore * config.weights.dataCompleteness) /
+        safeTotalWeights;
+      effectiveFinalScore = Number((reweighted * policyMultiplier).toFixed(2));
+    }
+
+    // Eligibility calculation with override support
+    let effectiveIsEligible = effectiveFailedFilters.length === 0;
+    if (overrides?.isEligibleOverride !== undefined) {
+      effectiveIsEligible = overrides.isEligibleOverride;
+    }
+
     const computedMetrics: TeamComputedMetrics = {
-      isEligible: filterAudit.isEligible,
-      passedFilters: filterAudit.passedFilters,
-      failedFilters: filterAudit.failedFilters,
-      technicalDepthScore: rawTechnicalScore,
-      projectExperienceScore: rawExperienceScore,
-      skillComplementarityScore: rawComplementarityScore,
-      dataCompletenessScore: rawCompletenessScore,
+      isEligible: effectiveIsEligible,
+      passedFilters: effectivePassedFilters,
+      failedFilters: effectiveFailedFilters,
+      technicalDepthScore: effectiveTechnicalScore,
+      projectExperienceScore: effectiveExperienceScore,
+      skillComplementarityScore: effectiveComplementarityScore,
+      dataCompletenessScore: effectiveCompletenessScore,
       linkedinScore: rawLinkedinScore,
-      finalScore,
+      finalScore: effectiveFinalScore,
       customScoreApplied,
+      hasManualOverrides: hasOverrides,
       rank: 0, // Assigned in step 3
       coveredRoles: coveredRolesList,
       missingRoles: missingRolesList,
       missingDataWarnings,
-      antiCheatFlags,
+      antiCheatFlags: effectiveAntiCheatFlags,
       manualStatus: team.computed?.manualStatus || 'normal',
-      manualNote: team.computed?.manualNote,
+      manualNote: overrides?.notes || team.computed?.manualNote,
     };
 
     return {

@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { SelectionConfig, TeamRecord } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { SelectionConfig, TeamRecord, MemberProfile, TeamManualOverrides } from '@/types';
 import { RadarChart } from './RadarChart';
 import {
   X,
@@ -19,8 +19,17 @@ import {
   FileText,
   Link2,
   Globe,
+  Edit3,
+  Save,
+  RefreshCw,
+  Zap,
+  Plus,
+  Trash2,
+  Sliders,
+  Check,
 } from 'lucide-react';
 import { LinkedinIcon } from './LinkedinIcon';
+import { syncSingleMemberSignals, syncEntireTeamSignals } from '@/engine/individualSync';
 
 interface TeamModalProps {
   team: TeamRecord | null;
@@ -31,6 +40,7 @@ interface TeamModalProps {
     status: 'pinned' | 'excluded' | 'waitlisted' | 'normal',
     note?: string
   ) => void;
+  onUpdateTeam?: (updatedTeam: TeamRecord) => void;
 }
 
 export const TeamModal: React.FC<TeamModalProps> = ({
@@ -38,103 +48,661 @@ export const TeamModal: React.FC<TeamModalProps> = ({
   config,
   onClose,
   onUpdateManualStatus,
+  onUpdateTeam,
 }) => {
-  if (!team) return null;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTeam, setEditedTeam] = useState<TeamRecord | null>(team);
+  const [syncingMemberId, setSyncingMemberId] = useState<string | null>(null);
+  const [isSyncingTeam, setIsSyncingTeam] = useState(false);
+  const [syncNotification, setSyncNotification] = useState<string | null>(null);
+  const [newSkillInput, setNewSkillInput] = useState<{ [memberId: string]: string }>({});
+
+  useEffect(() => {
+    setEditedTeam(team);
+    setIsEditing(false);
+    setSyncNotification(null);
+  }, [team?.id]);
+
+  if (!team || !editedTeam) return null;
+
+  const currentTeam = isEditing ? editedTeam : team;
 
   const isShortlisted =
-    team.computed.manualStatus === 'pinned' ||
-    (team.computed.rank <= config.shortlistCount &&
-      team.computed.isEligible &&
-      team.computed.manualStatus !== 'excluded');
+    currentTeam.computed.manualStatus === 'pinned' ||
+    (currentTeam.computed.rank <= config.shortlistCount &&
+      currentTeam.computed.isEligible &&
+      currentTeam.computed.manualStatus !== 'excluded');
 
-  const displayName = config.anonymizeMode ? `Team [ID: ${team.id.slice(0, 8)}]` : team.teamName;
+  const displayName = config.anonymizeMode
+    ? `Team [ID: ${currentTeam.id.slice(0, 8)}]`
+    : currentTeam.teamName;
+
+  const showNotification = (msg: string) => {
+    setSyncNotification(msg);
+    setTimeout(() => {
+      setSyncNotification(null);
+    }, 4500);
+  };
+
+  // 1. Single Member Live Sync
+  const handleSyncMember = async (memberIndex: number) => {
+    const targetMember = editedTeam.members[memberIndex];
+    if (!targetMember) return;
+
+    setSyncingMemberId(targetMember.id);
+    try {
+      const res = await syncSingleMemberSignals(targetMember, targetMember.name);
+      const updatedMembers = [...editedTeam.members];
+      updatedMembers[memberIndex] = res.updatedMember;
+
+      const updatedTeamRecord: TeamRecord = {
+        ...editedTeam,
+        members: updatedMembers,
+      };
+
+      setEditedTeam(updatedTeamRecord);
+      if (onUpdateTeam) {
+        onUpdateTeam(updatedTeamRecord);
+      }
+      showNotification(`✓ Synced live signals for ${targetMember.name}: ${res.details.join(' • ')}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sync failed';
+      showNotification(`⚠️ Sync error: ${msg}`);
+    } finally {
+      setSyncingMemberId(null);
+    }
+  };
+
+  // 2. Entire Team Live Sync
+  const handleSyncTeam = async () => {
+    setIsSyncingTeam(true);
+    try {
+      const res = await syncEntireTeamSignals(editedTeam);
+      setEditedTeam(res.updatedTeam);
+      if (onUpdateTeam) {
+        onUpdateTeam(res.updatedTeam);
+      }
+      showNotification(`✓ ${res.summary}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sync failed';
+      showNotification(`⚠️ Team sync error: ${msg}`);
+    } finally {
+      setIsSyncingTeam(false);
+    }
+  };
+
+  // 3. Save All Overrides & Signals
+  const handleSaveAll = () => {
+    if (!onUpdateTeam) return;
+    onUpdateTeam(editedTeam);
+    setIsEditing(false);
+    showNotification('✓ Applied manual overrides and re-scored team!');
+  };
+
+  // 4. Reset Overrides
+  const handleResetOverrides = () => {
+    const cleaned: TeamRecord = {
+      ...editedTeam,
+      manualOverrides: undefined,
+    };
+    setEditedTeam(cleaned);
+    if (onUpdateTeam) {
+      onUpdateTeam(cleaned);
+    }
+    showNotification('✓ Reverted to automated system decisions.');
+  };
+
+  // Helper to update specific manualOverride field
+  const updateOverrideField = <K extends keyof TeamManualOverrides>(
+    key: K,
+    val: TeamManualOverrides[K]
+  ) => {
+    setEditedTeam((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        manualOverrides: {
+          ...(prev.manualOverrides || {}),
+          [key]: val,
+        },
+      };
+    });
+  };
+
+  // Helper to update gate override
+  const updateGateOverride = (gateName: string, state: 'auto' | 'pass' | 'fail') => {
+    setEditedTeam((prev) => {
+      if (!prev) return prev;
+      const currentGateOverrides = { ...(prev.manualOverrides?.gateOverrides || {}) };
+
+      if (state === 'auto') {
+        delete currentGateOverrides[gateName];
+      } else {
+        currentGateOverrides[gateName] = state === 'pass';
+      }
+
+      return {
+        ...prev,
+        manualOverrides: {
+          ...(prev.manualOverrides || {}),
+          gateOverrides: currentGateOverrides,
+        },
+      };
+    });
+  };
+
+  // Helper to update member field
+  const updateMember = (memberIdx: number, updates: Partial<MemberProfile>) => {
+    setEditedTeam((prev) => {
+      if (!prev) return prev;
+      const updatedMembers = [...prev.members];
+      updatedMembers[memberIdx] = {
+        ...updatedMembers[memberIdx],
+        ...updates,
+      };
+      return {
+        ...prev,
+        members: updatedMembers,
+      };
+    });
+  };
+
+  // Helper to add skill to member
+  const handleAddSkill = (memberIdx: number, skillName: string) => {
+    const cleanSkill = skillName.trim();
+    if (!cleanSkill) return;
+    const member = editedTeam.members[memberIdx];
+    if (!member) return;
+
+    const existingSkills = member.rawSignals.skills || [];
+    if (!existingSkills.includes(cleanSkill)) {
+      updateMember(memberIdx, {
+        rawSignals: {
+          ...member.rawSignals,
+          skills: [...existingSkills, cleanSkill],
+        },
+      });
+    }
+
+    setNewSkillInput((prev) => ({ ...prev, [member.id]: '' }));
+  };
+
+  // Helper to remove skill from member
+  const handleRemoveSkill = (memberIdx: number, skillName: string) => {
+    const member = editedTeam.members[memberIdx];
+    if (!member) return;
+    updateMember(memberIdx, {
+      rawSignals: {
+        ...member.rawSignals,
+        skills: (member.rawSignals.skills || []).filter((s) => s !== skillName),
+      },
+    });
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="bg-zinc-950 rounded-2xl max-w-4xl w-full shadow-[0_0_50px_rgba(0,0,0,0.9)] border border-cyan-950/80 overflow-hidden max-h-[92vh] flex flex-col my-auto font-mono text-xs text-zinc-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="bg-zinc-950 rounded-2xl max-w-4xl w-full shadow-[0_0_60px_rgba(0,0,0,0.9)] border border-cyan-500/40 overflow-hidden max-h-[94vh] flex flex-col my-auto font-mono text-xs text-zinc-300 animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-black/60 border-b border-cyan-950/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-5 py-3.5 bg-black/70 border-b border-cyan-950/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold ${
-                team.computed.manualStatus === 'pinned'
+                currentTeam.computed.manualStatus === 'pinned'
                   ? 'bg-purple-950 text-purple-300 border border-purple-800'
-                  : team.computed.manualStatus === 'excluded'
+                  : currentTeam.computed.manualStatus === 'excluded'
                   ? 'bg-rose-950 text-rose-300 border border-rose-800'
                   : isShortlisted
                   ? 'bg-cyan-950 text-cyan-300 border border-cyan-800 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                  : !team.computed.isEligible
+                  : !currentTeam.computed.isEligible
                   ? 'bg-rose-950 text-rose-300 border border-rose-800'
                   : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
               }`}
             >
-              {team.computed.manualStatus === 'pinned'
+              {currentTeam.computed.manualStatus === 'pinned'
                 ? '📌 PINNED'
-                : team.computed.manualStatus === 'excluded'
+                : currentTeam.computed.manualStatus === 'excluded'
                 ? '✕ EXCLUDED'
                 : isShortlisted
-                ? `✓ SHORTLIST (#${team.computed.rank})`
-                : !team.computed.isEligible
+                ? `✓ SHORTLIST (#${currentTeam.computed.rank})`
+                : !currentTeam.computed.isEligible
                 ? '✕ DISQUALIFIED'
-                : `WAITLIST (#${team.computed.rank})`}
+                : `WAITLIST (#${currentTeam.computed.rank})`}
             </span>
-            <h2 className="text-lg font-bold text-zinc-100">{displayName}</h2>
-            <span className="text-xs text-zinc-500">({team.members.length} members)</span>
+
+            {currentTeam.computed.hasManualOverrides && (
+              <span
+                title="This team has custom manual overrides applied by the organizer"
+                className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-800 animate-pulse flex items-center gap-1"
+              >
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>OVERRIDDEN</span>
+              </span>
+            )}
+
+            <h2 className="text-base sm:text-lg font-bold text-zinc-100 flex items-center gap-1.5">
+              <span>{displayName}</span>
+              <span className="text-xs text-zinc-500 font-normal">
+                ({currentTeam.members.length} members)
+              </span>
+            </h2>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Sync Entire Team */}
+            <button
+              onClick={handleSyncTeam}
+              disabled={isSyncingTeam}
+              className="px-2.5 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800 hover:border-cyan-400 transition-colors flex items-center gap-1.5 font-bold cursor-pointer disabled:opacity-50 text-[11px]"
+              title="Sync live GitHub, LinkedIn and Resume signals for all members in this team"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isSyncingTeam ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">
+                {isSyncingTeam ? 'Syncing Team...' : 'Sync Team'}
+              </span>
+            </button>
+
+            {/* Toggle Edit & Manual Override Mode */}
+            {onUpdateTeam && (
+              <button
+                onClick={() => setIsEditing((prev) => !prev)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isEditing
+                    ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                    : 'bg-zinc-900 text-zinc-300 hover:text-cyan-300 border border-zinc-700 hover:border-cyan-400'
+                }`}
+                title="Toggle manual override mode to edit decisions, scores, and candidate signals"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>{isEditing ? 'Editing Mode' : 'Edit & Override'}</span>
+              </button>
+            )}
+
+            {isEditing && (
+              <button
+                onClick={handleSaveAll}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-black text-[11px] flex items-center gap-1 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer"
+                title="Save manual overrides & re-score team immediately"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors cursor-pointer"
+              title="Close Scorecard"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 text-zinc-300">
-          {/* Top Score & Explainability Summary */}
+        {/* Live Sync Notification Banner */}
+        {syncNotification && (
+          <div className="px-5 py-2 bg-cyan-950/80 border-b border-cyan-800/80 text-cyan-300 text-xs font-mono flex items-center justify-between animate-in fade-in duration-150">
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span>{syncNotification}</span>
+            </div>
+            <button
+              onClick={() => setSyncNotification(null)}
+              className="text-cyan-400 hover:text-cyan-200"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Modal Scrollable Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto cyber-scrollbar space-y-6 text-zinc-300">
+          {/* ========================================================================= */}
+          {/* EDIT & OVERRIDE CONTROLS (Rendered when isEditing is true) */}
+          {/* ========================================================================= */}
+          {isEditing && (
+            <div className="bg-zinc-900/80 border border-amber-500/40 rounded-xl p-4 sm:p-5 space-y-5 shadow-[0_0_30px_rgba(245,158,11,0.15)] animate-in fade-in duration-150">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                    Master Decisions & Score Overrides
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleResetOverrides}
+                    className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Remove custom score & gate overrides for this team"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Clear Overrides</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. Master Team Name & Eligibility Decision */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-zinc-400 font-bold block">Team Name:</label>
+                  <input
+                    type="text"
+                    value={editedTeam.teamName}
+                    onChange={(e) =>
+                      setEditedTeam((prev) => (prev ? { ...prev, teamName: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-1.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 rounded text-zinc-100 font-bold text-xs outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-zinc-400 font-bold block">
+                    Master Eligibility Override:
+                  </label>
+                  <div className="flex items-center bg-black/80 border border-zinc-700 rounded-lg p-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => updateOverrideField('isEligibleOverride', undefined)}
+                      className={`flex-1 py-1 rounded transition-colors cursor-pointer ${
+                        editedTeam.manualOverrides?.isEligibleOverride === undefined
+                          ? 'bg-zinc-800 text-cyan-300 font-bold'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      Auto (Gates)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateOverrideField('isEligibleOverride', true)}
+                      className={`flex-1 py-1 rounded transition-colors cursor-pointer ${
+                        editedTeam.manualOverrides?.isEligibleOverride === true
+                          ? 'bg-emerald-600 text-white font-bold'
+                          : 'text-zinc-500 hover:text-emerald-300'
+                      }`}
+                    >
+                      Force Eligible
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateOverrideField('isEligibleOverride', false)}
+                      className={`flex-1 py-1 rounded transition-colors cursor-pointer ${
+                        editedTeam.manualOverrides?.isEligibleOverride === false
+                          ? 'bg-rose-600 text-white font-bold'
+                          : 'text-zinc-500 hover:text-rose-300'
+                      }`}
+                    >
+                      Force Disqualified
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Hard Eligibility Gates Individual Overrides */}
+              <div className="space-y-2 pt-1 border-t border-zinc-800/80">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                  Individual Hard Gate Decisions (Pass/Fail Overrides):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {[
+                    'Team Size Restriction',
+                    'Mandatory GitHub Profile (≥1 Member)',
+                    'Mandatory GitHub Profile (All Members)',
+                    'Minimum GitHub Contributions',
+                    'Resume or Portfolio Requirement',
+                    'Skill Breadth Minimum',
+                    'Compulsory Female Participation',
+                  ].map((gate) => {
+                    const gateOverrides = editedTeam.manualOverrides?.gateOverrides || {};
+                    const overrideVal = gateOverrides[gate];
+                    const autoFailed = currentTeam.computed.failedFilters.some(
+                      (f) => f.filterName === gate
+                    );
+
+                    return (
+                      <div
+                        key={gate}
+                        className="bg-black/60 p-2.5 rounded-lg border border-zinc-800 space-y-1.5 text-[11px]"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-zinc-200 truncate max-w-[170px]" title={gate}>
+                            {gate}
+                          </span>
+                          <span
+                            className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                              autoFailed ? 'bg-rose-950 text-rose-300' : 'bg-emerald-950 text-emerald-300'
+                            }`}
+                          >
+                            Auto: {autoFailed ? 'FAIL' : 'PASS'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded p-0.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => updateGateOverride(gate, 'auto')}
+                            className={`flex-1 py-0.5 rounded transition-colors cursor-pointer ${
+                              overrideVal === undefined
+                                ? 'bg-zinc-700 text-white font-bold'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            Auto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateGateOverride(gate, 'pass')}
+                            className={`flex-1 py-0.5 rounded transition-colors cursor-pointer ${
+                              overrideVal === true
+                                ? 'bg-emerald-500 text-black font-bold'
+                                : 'text-zinc-500 hover:text-emerald-300'
+                            }`}
+                          >
+                            Pass
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateGateOverride(gate, 'fail')}
+                            className={`flex-1 py-0.5 rounded transition-colors cursor-pointer ${
+                              overrideVal === false
+                                ? 'bg-rose-600 text-white font-bold'
+                                : 'text-zinc-500 hover:text-rose-300'
+                            }`}
+                          >
+                            Fail
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Dimension Score Overrides */}
+              <div className="space-y-2 pt-1 border-t border-zinc-800/80">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                  Scoring Dimension Overrides (0 - 100):
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+                  <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
+                    <span className="text-[10px] text-zinc-500 block truncate">Tech Depth:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder={String(currentTeam.computed.technicalDepthScore)}
+                      value={editedTeam.manualOverrides?.technicalDepthScore ?? ''}
+                      onChange={(e) =>
+                        updateOverrideField(
+                          'technicalDepthScore',
+                          e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                        )
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 text-cyan-300 font-bold px-2 py-1 rounded text-center outline-none mt-1"
+                    />
+                  </div>
+
+                  <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
+                    <span className="text-[10px] text-zinc-500 block truncate">Project Exp:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder={String(currentTeam.computed.projectExperienceScore)}
+                      value={editedTeam.manualOverrides?.projectExperienceScore ?? ''}
+                      onChange={(e) =>
+                        updateOverrideField(
+                          'projectExperienceScore',
+                          e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                        )
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 text-cyan-300 font-bold px-2 py-1 rounded text-center outline-none mt-1"
+                    />
+                  </div>
+
+                  <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
+                    <span className="text-[10px] text-zinc-500 block truncate">Synergy / Roles:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder={String(currentTeam.computed.skillComplementarityScore)}
+                      value={editedTeam.manualOverrides?.skillComplementarityScore ?? ''}
+                      onChange={(e) =>
+                        updateOverrideField(
+                          'skillComplementarityScore',
+                          e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                        )
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 text-cyan-300 font-bold px-2 py-1 rounded text-center outline-none mt-1"
+                    />
+                  </div>
+
+                  <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
+                    <span className="text-[10px] text-zinc-500 block truncate">Completeness:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder={String(currentTeam.computed.dataCompletenessScore)}
+                      value={editedTeam.manualOverrides?.dataCompletenessScore ?? ''}
+                      onChange={(e) =>
+                        updateOverrideField(
+                          'dataCompletenessScore',
+                          e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                        )
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 text-cyan-300 font-bold px-2 py-1 rounded text-center outline-none mt-1"
+                    />
+                  </div>
+
+                  <div className="bg-black/60 p-2 rounded-lg border border-cyan-800/80">
+                    <span className="text-[10px] text-cyan-400 block font-bold truncate">Direct Final Score:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      placeholder={String(currentTeam.computed.finalScore)}
+                      value={editedTeam.manualOverrides?.finalScore ?? ''}
+                      onChange={(e) =>
+                        updateOverrideField(
+                          'finalScore',
+                          e.target.value === '' ? undefined : parseFloat(e.target.value) || 0
+                        )
+                      }
+                      className="w-full bg-cyan-950/80 border border-cyan-500 text-cyan-300 font-black px-2 py-1 rounded text-center outline-none mt-1 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Anti-Cheat Forgive / Dismiss */}
+              {currentTeam.computed.antiCheatFlags.length > 0 && (
+                <div className="pt-1 flex items-center justify-between bg-amber-950/30 border border-amber-900/60 p-2.5 rounded-lg text-xs">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>This team is flagged by the anti-cheat engine. Dismiss penalty?</span>
+                  </div>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-amber-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editedTeam.manualOverrides?.antiCheatDismissed)}
+                      onChange={(e) => updateOverrideField('antiCheatDismissed', e.target.checked)}
+                      className="rounded accent-amber-500"
+                    />
+                    <span>Forgive & Dismiss Flags</span>
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* STANDARD SCORECARD & EXPLAINABILITY (Always accessible) */}
+          {/* ========================================================================= */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center bg-black/50 p-4 rounded-xl border border-cyan-900/40">
             <div className="md:col-span-2 space-y-2">
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-cyan-400 neon-glow-cyan font-mono">
-                  {team.computed.finalScore}
+                  {currentTeam.computed.finalScore}
                 </span>
                 <span className="text-xs text-zinc-500 font-medium">/ 100 Final Incursion Score</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-zinc-900/80 p-2.5 rounded-lg border border-zinc-800">
-                  <span className="text-zinc-500 block">Technical Depth ({config.weights.technicalDepth}%):</span>
-                  <div className="font-bold text-cyan-300 mt-0.5">{team.computed.technicalDepthScore} / 100</div>
+                  <span className="text-zinc-500 block">
+                    Technical Depth ({config.weights.technicalDepth}%):
+                  </span>
+                  <div className="font-bold text-cyan-300 mt-0.5">
+                    {currentTeam.computed.technicalDepthScore} / 100
+                  </div>
                 </div>
                 <div className="bg-zinc-900/80 p-2.5 rounded-lg border border-zinc-800">
-                  <span className="text-zinc-500 block">Project Exp ({config.weights.projectExperience}%):</span>
-                  <div className="font-bold text-cyan-300 mt-0.5">{team.computed.projectExperienceScore} / 100</div>
+                  <span className="text-zinc-500 block">
+                    Project Exp ({config.weights.projectExperience}%):
+                  </span>
+                  <div className="font-bold text-cyan-300 mt-0.5">
+                    {currentTeam.computed.projectExperienceScore} / 100
+                  </div>
                 </div>
                 <div className="bg-zinc-900/80 p-2.5 rounded-lg border border-zinc-800">
-                  <span className="text-zinc-500 block">Complementarity ({config.weights.skillComplementarity}%):</span>
-                  <div className="font-bold text-cyan-300 mt-0.5">{team.computed.skillComplementarityScore} / 100</div>
+                  <span className="text-zinc-500 block">
+                    Complementarity ({config.weights.skillComplementarity}%):
+                  </span>
+                  <div className="font-bold text-cyan-300 mt-0.5">
+                    {currentTeam.computed.skillComplementarityScore} / 100
+                  </div>
                 </div>
                 <div className="bg-zinc-900/80 p-2.5 rounded-lg border border-zinc-800">
-                  <span className="text-zinc-500 block">Data Completeness ({config.weights.dataCompleteness}%):</span>
-                  <div className="font-bold text-cyan-300 mt-0.5">{team.computed.dataCompletenessScore} / 100</div>
+                  <span className="text-zinc-500 block">
+                    Data Completeness ({config.weights.dataCompleteness}%):
+                  </span>
+                  <div className="font-bold text-cyan-300 mt-0.5">
+                    {currentTeam.computed.dataCompletenessScore} / 100
+                  </div>
                 </div>
-                {team.computed.linkedinScore !== undefined && (
+                {currentTeam.computed.linkedinScore !== undefined && (
                   <div className="bg-blue-950/20 p-2.5 rounded-lg border border-blue-900/60 col-span-2">
                     <span className="text-blue-400 block flex items-center gap-1 font-mono text-[11px]">
                       <LinkedinIcon className="w-3 h-3 text-blue-400" />
                       LinkedIn Professional Signal:
                     </span>
-                    <div className="font-bold text-blue-300 mt-0.5">{team.computed.linkedinScore} / 100</div>
+                    <div className="font-bold text-blue-300 mt-0.5">
+                      {currentTeam.computed.linkedinScore} / 100
+                    </div>
                   </div>
                 )}
               </div>
 
               <div className="text-[11px] text-zinc-400 pt-1 font-sans">
                 <strong className="text-zinc-300 font-mono">Why this rank:</strong>{' '}
-                {team.computed.isEligible
-                  ? `Ranked #${team.computed.rank} using ${config.aggregationStrategy} model. Covers disciplines: [${team.computed.coveredRoles.join(', ') || 'General'}].`
-                  : `Disqualified by hard eligibility filter: ${team.computed.failedFilters.map((f) => f.reason).join(' ')}`}
+                {currentTeam.computed.isEligible
+                  ? `Ranked #${currentTeam.computed.rank} using ${config.aggregationStrategy} model. Covers disciplines: [${
+                      currentTeam.computed.coveredRoles.join(', ') || 'General'
+                    }].`
+                  : `Disqualified by hard eligibility filter: ${currentTeam.computed.failedFilters
+                      .map((f) => f.reason)
+                      .join(' ')}`}
               </div>
             </div>
 
@@ -145,12 +713,24 @@ export const TeamModal: React.FC<TeamModalProps> = ({
               </div>
               <RadarChart
                 coverage={{
-                  frontend: Math.max(...team.members.map((m) => m.rawSignals.roleDistribution.frontend)),
-                  backend: Math.max(...team.members.map((m) => m.rawSignals.roleDistribution.backend)),
-                  ai_ml: Math.max(...team.members.map((m) => m.rawSignals.roleDistribution.ai_ml)),
-                  mobile: Math.max(...team.members.map((m) => m.rawSignals.roleDistribution.mobile)),
-                  design: Math.max(...team.members.map((m) => m.rawSignals.roleDistribution.design)),
-                  devops: Math.max(...team.members.map((m) => m.rawSignals.roleDistribution.devops)),
+                  frontend: Math.max(
+                    ...currentTeam.members.map((m) => m.rawSignals.roleDistribution.frontend)
+                  ),
+                  backend: Math.max(
+                    ...currentTeam.members.map((m) => m.rawSignals.roleDistribution.backend)
+                  ),
+                  ai_ml: Math.max(
+                    ...currentTeam.members.map((m) => m.rawSignals.roleDistribution.ai_ml)
+                  ),
+                  mobile: Math.max(
+                    ...currentTeam.members.map((m) => m.rawSignals.roleDistribution.mobile)
+                  ),
+                  design: Math.max(
+                    ...currentTeam.members.map((m) => m.rawSignals.roleDistribution.design)
+                  ),
+                  devops: Math.max(
+                    ...currentTeam.members.map((m) => m.rawSignals.roleDistribution.devops)
+                  ),
                   general: 0,
                 }}
                 size={180}
@@ -165,16 +745,22 @@ export const TeamModal: React.FC<TeamModalProps> = ({
               Hard Eligibility Gates Audit
             </h3>
             <div className="space-y-1.5">
-              {team.computed.failedFilters.map((f, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs text-rose-300 bg-rose-950/30 p-2 rounded border border-rose-900/60">
+              {currentTeam.computed.failedFilters.map((f, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 text-xs text-rose-300 bg-rose-950/30 p-2 rounded border border-rose-900/60"
+                >
                   <XCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">{f.filterName}:</span> {f.reason}
                   </div>
                 </div>
               ))}
-              {team.computed.passedFilters.map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-emerald-300 bg-emerald-950/20 p-2 rounded border border-emerald-900/50">
+              {currentTeam.computed.passedFilters.map((f, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 text-xs text-emerald-300 bg-emerald-950/20 p-2 rounded border border-emerald-900/50"
+                >
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <div>
                     <span className="font-bold">{f.filterName}:</span> {f.reason}
@@ -184,38 +770,394 @@ export const TeamModal: React.FC<TeamModalProps> = ({
             </div>
           </div>
 
-          {/* Anti-Cheat & Missing Data Notices */}
-          {(team.computed.antiCheatFlags.length > 0 || team.computed.missingDataWarnings.length > 0) && (
-            <div className="space-y-2">
-              {team.computed.antiCheatFlags.map((flag, idx) => (
-                <div key={idx} className="flex items-start gap-2 bg-amber-950/30 border border-amber-900/60 p-2.5 rounded-lg text-xs text-amber-300">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Anti-Cheat Notice:</strong> {flag}
-                  </div>
-                </div>
-              ))}
-              {team.computed.missingDataWarnings.map((warning, idx) => (
-                <div key={idx} className="flex items-start gap-2 bg-black/50 border border-zinc-800 p-2 rounded-lg text-xs text-zinc-400">
-                  <FileText className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                  <span>{warning} (Not dropped, but noted for transparent review).</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Member Profiles Breakdown */}
+          {/* Member Profiles Breakdown & Signal Editors */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-              Team Member Profiles & Verified Proof of Work ({team.members.length})
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {team.members.map((member, i) => {
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                Team Member Profiles & Live Signals ({currentTeam.members.length})
+              </h3>
+              {isEditing && (
+                <span className="text-[10px] text-amber-400 font-normal">
+                  (Editing member details & live fetched metrics)
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {currentTeam.members.map((member, i) => {
+                const isSyncingThis = syncingMemberId === member.id;
+
+                if (isEditing) {
+                  // --- MEMBER EDIT CARD ---
+                  return (
+                    <div
+                      key={member.id}
+                      className="p-3.5 bg-black/70 border border-zinc-700/80 rounded-xl space-y-3 text-xs"
+                    >
+                      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                        <span className="font-bold text-zinc-100 flex items-center gap-1.5">
+                          <span>Member #{i + 1}</span>
+                          {member.isFemale && (
+                            <span className="text-[9px] bg-pink-950 text-pink-300 border border-pink-800 px-1 py-0.2 rounded font-bold">
+                              ♀ Female
+                            </span>
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleSyncMember(i)}
+                          disabled={isSyncingThis}
+                          className="px-2 py-0.5 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-[10px] flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50"
+                          title="Sync live GitHub, LinkedIn and Resume signals for this member only"
+                        >
+                          <RefreshCw
+                            className={`w-3 h-3 text-cyan-400 ${isSyncingThis ? 'animate-spin' : ''}`}
+                          />
+                          <span>{isSyncingThis ? 'Syncing...' : 'Sync Member'}</span>
+                        </button>
+                      </div>
+
+                      {/* Name & Email */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-zinc-400 block font-medium">Name:</label>
+                          <input
+                            type="text"
+                            value={member.name}
+                            onChange={(e) => updateMember(i, { name: e.target.value })}
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-200 outline-none text-[11px]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-zinc-400 block font-medium">Email:</label>
+                          <input
+                            type="email"
+                            value={member.email || ''}
+                            onChange={(e) => updateMember(i, { email: e.target.value })}
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-200 outline-none text-[11px]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Gender Selector */}
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-zinc-400 font-medium">Gender Representation:</span>
+                        <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded p-0.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => updateMember(i, { isFemale: true, gender: 'female' })}
+                            className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                              member.isFemale
+                                ? 'bg-pink-600 text-white font-bold'
+                                : 'text-zinc-400 hover:text-pink-300'
+                            }`}
+                          >
+                            ♀ Female
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateMember(i, { isFemale: false, gender: 'male' })}
+                            className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                              member.gender === 'male' && !member.isFemale
+                                ? 'bg-blue-600 text-white font-bold'
+                                : 'text-zinc-400 hover:text-blue-300'
+                            }`}
+                          >
+                            ♂ Male
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateMember(i, { isFemale: false, gender: 'unspecified' })}
+                            className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                              !member.isFemale && member.gender !== 'male'
+                                ? 'bg-zinc-700 text-white font-bold'
+                                : 'text-zinc-400'
+                            }`}
+                          >
+                            Other
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* GitHub URL & Fetched Metrics */}
+                      <div className="space-y-1.5 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                        <label className="text-[10px] text-cyan-400 font-bold block flex items-center gap-1">
+                          <Code2 className="w-3 h-3 text-cyan-400" />
+                          <span>GitHub URL / Handle:</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={member.githubUrl || member.rawSignals.githubUsername || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateMember(i, {
+                              githubUrl: val,
+                              rawSignals: { ...member.rawSignals, githubUsername: val },
+                            });
+                          }}
+                          placeholder="https://github.com/username"
+                          className="w-full bg-zinc-950 border border-zinc-700 px-2 py-1 rounded text-cyan-300 outline-none text-[11px]"
+                        />
+
+                        {/* Editable Fetched GitHub Stats */}
+                        <div className="grid grid-cols-3 gap-1.5 pt-1 text-[10px]">
+                          <div>
+                            <span className="text-zinc-500 block">Commits:</span>
+                            <input
+                              type="number"
+                              value={member.rawSignals.githubMetrics?.estimatedContributions || 0}
+                              onChange={(e) => {
+                                const count = parseInt(e.target.value) || 0;
+                                updateMember(i, {
+                                  rawSignals: {
+                                    ...member.rawSignals,
+                                    githubMetrics: {
+                                      ...(member.rawSignals.githubMetrics || {
+                                        username: member.rawSignals.githubUsername || '',
+                                        publicRepos: 0,
+                                        originalRepos: 0,
+                                        forkedRepos: 0,
+                                        totalStars: 0,
+                                        estimatedContributions: count,
+                                        topLanguages: [],
+                                        isSuspicious: false,
+                                      }),
+                                      estimatedContributions: count,
+                                    },
+                                  },
+                                });
+                              }}
+                              className="w-full bg-black border border-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded text-center"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block">Stars:</span>
+                            <input
+                              type="number"
+                              value={member.rawSignals.githubMetrics?.totalStars || 0}
+                              onChange={(e) => {
+                                const count = parseInt(e.target.value) || 0;
+                                updateMember(i, {
+                                  rawSignals: {
+                                    ...member.rawSignals,
+                                    githubMetrics: {
+                                      ...(member.rawSignals.githubMetrics || {
+                                        username: member.rawSignals.githubUsername || '',
+                                        publicRepos: 0,
+                                        originalRepos: 0,
+                                        forkedRepos: 0,
+                                        totalStars: count,
+                                        estimatedContributions: 0,
+                                        topLanguages: [],
+                                        isSuspicious: false,
+                                      }),
+                                      totalStars: count,
+                                    },
+                                  },
+                                });
+                              }}
+                              className="w-full bg-black border border-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded text-center"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block">Repos:</span>
+                            <input
+                              type="number"
+                              value={member.rawSignals.githubMetrics?.originalRepos || 0}
+                              onChange={(e) => {
+                                const count = parseInt(e.target.value) || 0;
+                                updateMember(i, {
+                                  rawSignals: {
+                                    ...member.rawSignals,
+                                    githubMetrics: {
+                                      ...(member.rawSignals.githubMetrics || {
+                                        username: member.rawSignals.githubUsername || '',
+                                        publicRepos: count,
+                                        originalRepos: count,
+                                        forkedRepos: 0,
+                                        totalStars: 0,
+                                        estimatedContributions: 0,
+                                        topLanguages: [],
+                                        isSuspicious: false,
+                                      }),
+                                      originalRepos: count,
+                                    },
+                                  },
+                                });
+                              }}
+                              className="w-full bg-black border border-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded text-center"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* LinkedIn URL & Signals */}
+                      <div className="space-y-1.5 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                        <label className="text-[10px] text-blue-400 font-bold block flex items-center gap-1">
+                          <LinkedinIcon className="w-3 h-3 text-blue-400" />
+                          <span>LinkedIn Profile URL:</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={member.linkedinUrl || ''}
+                          onChange={(e) => updateMember(i, { linkedinUrl: e.target.value })}
+                          placeholder="https://linkedin.com/in/username"
+                          className="w-full bg-zinc-950 border border-zinc-700 px-2 py-1 rounded text-blue-300 outline-none text-[11px]"
+                        />
+
+                        <div className="grid grid-cols-2 gap-2 pt-1 text-[10px]">
+                          <div>
+                            <span className="text-zinc-500 block">Seniority:</span>
+                            <select
+                              value={member.rawSignals.linkedinMetrics?.seniorityLevel || 'unknown'}
+                              onChange={(e) => {
+                                const level = e.target.value as any;
+                                updateMember(i, {
+                                  rawSignals: {
+                                    ...member.rawSignals,
+                                    linkedinMetrics: {
+                                      ...(member.rawSignals.linkedinMetrics || {
+                                        seniorityLevel: level,
+                                        has500PlusConnections: false,
+                                        isCustomVanitySlug: false,
+                                        crossMatchesGithub: false,
+                                        extractedSkills: [],
+                                        verifiedScore: 25,
+                                      }),
+                                      seniorityLevel: level,
+                                    },
+                                  },
+                                });
+                              }}
+                              className="w-full bg-black border border-zinc-700 text-zinc-300 px-1 py-0.5 rounded"
+                            >
+                              <option value="student">Student</option>
+                              <option value="junior">Junior</option>
+                              <option value="mid">Mid-Level</option>
+                              <option value="senior">Senior</option>
+                              <option value="founder">Founder / Lead</option>
+                              <option value="unknown">Unknown</option>
+                            </select>
+                          </div>
+                          <div className="flex items-center pt-3">
+                            <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300 text-[10px]">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(member.rawSignals.linkedinMetrics?.has500PlusConnections)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  updateMember(i, {
+                                    rawSignals: {
+                                      ...member.rawSignals,
+                                      linkedinMetrics: {
+                                        ...(member.rawSignals.linkedinMetrics || {
+                                          seniorityLevel: 'unknown',
+                                          has500PlusConnections: checked,
+                                          isCustomVanitySlug: false,
+                                          crossMatchesGithub: false,
+                                          extractedSkills: [],
+                                          verifiedScore: 25,
+                                        }),
+                                        has500PlusConnections: checked,
+                                      },
+                                    },
+                                  });
+                                }}
+                                className="rounded accent-emerald-500"
+                              />
+                              <span>500+ Connections</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Resume & Portfolio URLs */}
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div>
+                          <label className="text-zinc-400 block font-medium">Resume Cloud Link:</label>
+                          <input
+                            type="text"
+                            value={member.resumeUrl || ''}
+                            onChange={(e) => updateMember(i, { resumeUrl: e.target.value })}
+                            placeholder="https://drive.google.com/..."
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-purple-300 outline-none text-[10px]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-zinc-400 block font-medium">Portfolio / Site:</label>
+                          <input
+                            type="text"
+                            value={member.portfolioUrl || ''}
+                            onChange={(e) => updateMember(i, { portfolioUrl: e.target.value })}
+                            placeholder="https://mysite.dev"
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-emerald-300 outline-none text-[10px]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Skills Tags Editor */}
+                      <div className="space-y-1.5 pt-1">
+                        <label className="text-[10px] text-zinc-400 font-bold block">
+                          Verified Skills ({member.rawSignals.skills.length}):
+                        </label>
+                        <div className="flex flex-wrap gap-1">
+                          {member.rawSignals.skills.map((s) => (
+                            <span
+                              key={s}
+                              className="bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] px-1.5 py-0.2 rounded font-medium flex items-center gap-1"
+                            >
+                              <span>{s}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSkill(i, s)}
+                                className="text-cyan-500 hover:text-rose-400 cursor-pointer font-bold"
+                                title={`Remove ${s}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Add Skill Input */}
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <input
+                            type="text"
+                            value={newSkillInput[member.id] || ''}
+                            onChange={(e) =>
+                              setNewSkillInput((prev) => ({ ...prev, [member.id]: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddSkill(i, newSkillInput[member.id] || '');
+                              }
+                            }}
+                            placeholder="Add skill (e.g. Next.js, PyTorch)..."
+                            className="flex-1 bg-black border border-zinc-700 px-2 py-0.5 rounded text-zinc-200 text-[10px] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddSkill(i, newSkillInput[member.id] || '')}
+                            className="px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            + Add
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // --- MEMBER VIEW CARD (Standard) ---
                 const memberName = config.anonymizeMode ? `Member ${i + 1}` : member.name;
                 const memberEmail = config.anonymizeMode ? `[Hidden]` : member.email;
 
                 return (
-                  <div key={member.id} className="p-3 bg-black/40 border border-zinc-800/80 rounded-lg space-y-2 text-xs">
+                  <div
+                    key={member.id}
+                    className="p-3.5 bg-black/40 border border-zinc-800/80 rounded-xl space-y-2.5 text-xs"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-zinc-100">{memberName}</span>
@@ -225,9 +1167,22 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] bg-zinc-900 border border-zinc-700 text-cyan-300 px-1.5 py-0.5 rounded font-bold">
-                        {Math.round(member.rawSignals.completenessRatio * 100)}% Complete
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleSyncMember(i)}
+                          disabled={isSyncingThis}
+                          className="px-2 py-0.5 rounded bg-cyan-950/70 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80 text-[10px] flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50"
+                          title="Sync live GitHub, LinkedIn and Resume signals for this member only"
+                        >
+                          <RefreshCw
+                            className={`w-3 h-3 text-cyan-400 ${isSyncingThis ? 'animate-spin' : ''}`}
+                          />
+                          <span>{isSyncingThis ? 'Syncing...' : 'Sync'}</span>
+                        </button>
+                        <span className="text-[10px] bg-zinc-900 border border-zinc-700 text-cyan-300 px-1.5 py-0.5 rounded font-bold">
+                          {Math.round(member.rawSignals.completenessRatio * 100)}% Complete
+                        </span>
+                      </div>
                     </div>
 
                     {memberEmail && (
@@ -289,12 +1244,15 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                         <div className="flex justify-between">
                           <span>Original Repos:</span>
                           <strong className="text-zinc-200">
-                            {member.rawSignals.githubMetrics.originalRepos} ({member.rawSignals.githubMetrics.forkedRepos} forks)
+                            {member.rawSignals.githubMetrics.originalRepos} (
+                            {member.rawSignals.githubMetrics.forkedRepos} forks)
                           </strong>
                         </div>
                         <div className="flex justify-between">
                           <span>Total Stars:</span>
-                          <strong className="text-cyan-400">{member.rawSignals.githubMetrics.totalStars} ★</strong>
+                          <strong className="text-cyan-400">
+                            {member.rawSignals.githubMetrics.totalStars} ★
+                          </strong>
                         </div>
                         <div className="flex justify-between">
                           <span>Est. Annual Commits:</span>
@@ -340,11 +1298,6 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                               Vanity Slug Claimed
                             </span>
                           )}
-                          {member.rawSignals.linkedinMetrics.crossMatchesGithub && (
-                            <span className="bg-blue-950/80 border border-blue-800 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-mono">
-                              ✓ Matches GitHub
-                            </span>
-                          )}
                         </div>
                       </div>
                     )}
@@ -369,17 +1322,22 @@ export const TeamModal: React.FC<TeamModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer (Manual Overrides) */}
-        <div className="px-6 py-3.5 bg-black/60 border-t border-cyan-950/60 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-xs text-zinc-500 uppercase">
-            Manual Override Controls:
+        {/* Modal Footer (Manual Overrides & Quick Actions) */}
+        <div className="px-5 py-3.5 bg-black/70 border-t border-cyan-950/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-zinc-500 uppercase flex items-center gap-2">
+            <span>Manual Status:</span>
+            {currentTeam.computed.hasManualOverrides && (
+              <span className="text-amber-400 font-bold lowercase">
+                (overrides active)
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => onUpdateManualStatus(team.id, 'pinned')}
+              onClick={() => onUpdateManualStatus(currentTeam.id, 'pinned')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                team.computed.manualStatus === 'pinned'
+                currentTeam.computed.manualStatus === 'pinned'
                   ? 'bg-purple-600 text-white border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
                   : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-purple-400 hover:text-purple-300'
               }`}
@@ -389,9 +1347,9 @@ export const TeamModal: React.FC<TeamModalProps> = ({
             </button>
 
             <button
-              onClick={() => onUpdateManualStatus(team.id, 'excluded')}
+              onClick={() => onUpdateManualStatus(currentTeam.id, 'excluded')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                team.computed.manualStatus === 'excluded'
+                currentTeam.computed.manualStatus === 'excluded'
                   ? 'bg-rose-600 text-white border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]'
                   : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-rose-400 hover:text-rose-300'
               }`}
@@ -401,9 +1359,9 @@ export const TeamModal: React.FC<TeamModalProps> = ({
             </button>
 
             <button
-              onClick={() => onUpdateManualStatus(team.id, 'waitlisted')}
+              onClick={() => onUpdateManualStatus(currentTeam.id, 'waitlisted')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                team.computed.manualStatus === 'waitlisted'
+                currentTeam.computed.manualStatus === 'waitlisted'
                   ? 'bg-amber-600 text-white border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
                   : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-amber-400 hover:text-amber-300'
               }`}
@@ -412,14 +1370,24 @@ export const TeamModal: React.FC<TeamModalProps> = ({
               <span>Force Waitlist</span>
             </button>
 
-            {team.computed.manualStatus && team.computed.manualStatus !== 'normal' && (
+            {currentTeam.computed.manualStatus && currentTeam.computed.manualStatus !== 'normal' && (
               <button
-                onClick={() => onUpdateManualStatus(team.id, 'normal')}
+                onClick={() => onUpdateManualStatus(currentTeam.id, 'normal')}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors cursor-pointer"
                 title="Reset to automated ranking"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                <span>Reset Status</span>
+              </button>
+            )}
+
+            {isEditing && (
+              <button
+                onClick={handleSaveAll}
+                className="px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-black rounded-lg text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)] cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Overrides</span>
               </button>
             )}
           </div>
