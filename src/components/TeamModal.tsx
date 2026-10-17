@@ -1351,25 +1351,51 @@ export const TeamModal: React.FC<TeamModalProps> = ({
 
                     {/* GitHub verified stats if available */}
                     {member.rawSignals.githubMetrics && (
-                      <div className="bg-zinc-900/60 p-2 rounded border border-zinc-800 text-[11px] space-y-0.5 text-zinc-400">
-                        <div className="flex justify-between">
-                          <span>Original Repos:</span>
-                          <strong className="text-zinc-200">
-                            {member.rawSignals.githubMetrics.originalRepos} (
-                            {member.rawSignals.githubMetrics.forkedRepos} forks)
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total Stars:</span>
-                          <strong className="text-cyan-400">
-                            {member.rawSignals.githubMetrics.totalStars} ★
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Est. Annual Commits:</span>
-                          <strong className="text-blue-400">
-                            ~{member.rawSignals.githubMetrics.estimatedContributions}
-                          </strong>
+                      <div className="bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800 text-[11px] space-y-1.5 text-zinc-400">
+                        {member.rawSignals.githubMetrics.syncStatus !== 'live_verified' ? (
+                          <div className="bg-amber-950/40 border border-amber-700/60 p-2 rounded text-[10px] space-y-1">
+                            <div className="flex items-center justify-between font-bold text-amber-300">
+                              <span className="flex items-center gap-1">
+                                <span>⚠️ Temporary Hash Estimate</span>
+                                {member.rawSignals.githubMetrics.fallbackHash && (
+                                  <span className="bg-amber-900/60 px-1.5 py-0.2 rounded text-amber-200 font-mono">
+                                    #{member.rawSignals.githubMetrics.fallbackHash}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[9px] uppercase tracking-wider text-amber-400/80">API Limit Fallback</span>
+                            </div>
+                            <p className="text-zinc-400 text-[10px] leading-relaxed">
+                              Real GitHub API was rate limited or unsynced. Values below are temporary mathematical estimates from username string hash. Click <strong>Sync Member</strong> or activate a PAT to fetch real data.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold bg-emerald-950/30 border border-emerald-800/40 px-2 py-1 rounded">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>✓ Live GitHub Verified Profile</span>
+                          </div>
+                        )}
+
+                        <div className="space-y-0.5 pt-0.5">
+                          <div className="flex justify-between">
+                            <span>Original Repos:</span>
+                            <strong className="text-zinc-200">
+                              {member.rawSignals.githubMetrics.originalRepos} (
+                              {member.rawSignals.githubMetrics.forkedRepos} forks)
+                            </strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Total Stars:</span>
+                            <strong className="text-cyan-400">
+                              {member.rawSignals.githubMetrics.totalStars} ★
+                            </strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Est. Annual Commits:</span>
+                            <strong className="text-blue-400">
+                              ~{member.rawSignals.githubMetrics.estimatedContributions}
+                            </strong>
+                          </div>
                         </div>
                       </div>
                     )}
