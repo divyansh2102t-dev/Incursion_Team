@@ -3,18 +3,22 @@
 import React from 'react';
 import Link from 'next/link';
 import { AggregationStrategy, MissingDataPolicy, SelectionConfig } from '@/types';
-import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap, ArrowRight } from 'lucide-react';
+import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap, ArrowRight, PanelLeftClose, BookmarkPlus } from 'lucide-react';
 
 interface ConfigPanelProps {
   config: SelectionConfig;
   onChange: (updated: SelectionConfig) => void;
   totalTeamsCount: number;
+  onHideFilters?: () => void;
+  onSaveRun?: () => void;
 }
 
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   config,
   onChange,
   totalTeamsCount,
+  onHideFilters,
+  onSaveRun,
 }) => {
   const updateWeight = (key: keyof SelectionConfig['weights'], value: number) => {
     onChange({
@@ -50,9 +54,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               Scoring Model
             </h2>
           </div>
-          <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-bold">
-            BALANCED DEFAULT
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded font-bold">
+              BALANCED DEFAULT
+            </span>
+            {onHideFilters && (
+              <button
+                onClick={onHideFilters}
+                className="px-2 py-0.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 border border-zinc-800 hover:border-cyan-500/50 rounded text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                title="Hide Filters Sidebar to Expand Leaderboard"
+              >
+                <PanelLeftClose className="w-3 h-3 text-cyan-400" />
+                <span>Hide</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <Link
@@ -467,6 +483,48 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             />
             <span>Mandatory Resume or Portfolio link</span>
           </label>
+
+          {/* Compulsory Female Participation Gate (SIH / Diversity Rule) */}
+          <div className="bg-black/40 p-2.5 rounded-lg border border-zinc-800/80 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={Boolean(config.filters.requireFemaleMember)}
+                  onChange={(e) => updateFilter('requireFemaleMember', e.target.checked)}
+                  className="rounded accent-pink-500"
+                />
+                <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <span>Compulsory Female Participation</span>
+                  <span className="text-[9px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1.5 py-0.2 rounded font-mono font-bold">
+                    ♀ SIH / Diversity
+                  </span>
+                </span>
+              </label>
+
+              {config.filters.requireFemaleMember && (
+                <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-700/80 rounded-md px-2 py-0.5 text-[10px] font-mono">
+                  <span className="text-zinc-400">Min:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={config.filters.minFemaleCount || 1}
+                    onChange={(e) => updateFilter('minFemaleCount', Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-10 px-1 py-0.2 bg-black border border-zinc-700 text-pink-300 font-bold rounded text-center outline-none"
+                    title="Minimum required female members per team"
+                  />
+                  <span className="text-zinc-400">Female</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] text-zinc-400 pl-5">
+              {config.filters.requireFemaleMember
+                ? `Strict Gate: Teams without at least ${config.filters.minFemaleCount || 1} verified female participant(s) are disqualified from shortlisting.`
+                : 'Optional: No female participation restriction applied.'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -496,6 +554,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </option>
         </select>
       </div>
+
+      {/* Save Scoring Run Snapshot Button */}
+      {onSaveRun && (
+        <button
+          onClick={onSaveRun}
+          className="w-full py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+          title="Save and snapshot current scoring configuration into audit vault"
+        >
+          <BookmarkPlus className="w-4 h-4" />
+          <span>Save Scoring Run Snapshot</span>
+        </button>
+      )}
     </div>
   );
 };

@@ -5,7 +5,6 @@ import { SelectionConfig, TeamRecord } from '@/types';
 import {
   Search,
   Eye,
-  ArrowRightLeft,
   Pin,
   AlertTriangle,
   FileQuestion,
@@ -19,14 +18,18 @@ import {
   Terminal,
   Code2,
   Sliders,
+  BookmarkPlus,
 } from 'lucide-react';
+import { LinkedinIcon } from './LinkedinIcon';
 
 interface TeamsTableProps {
   teams: TeamRecord[];
   config: SelectionConfig;
   onSelectTeam: (team: TeamRecord) => void;
-  onCompareTeams: (teamAId: string, teamBId?: string) => void;
+  onCompareTeams?: (teamAId?: string, teamBId?: string) => void;
   onOpenGitHubSync?: () => void;
+  onOpenFilters?: () => void;
+  onSaveRun?: () => void;
 }
 
 export const TeamsTable: React.FC<TeamsTableProps> = ({
@@ -35,9 +38,11 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
   onSelectTeam,
   onCompareTeams,
   onOpenGitHubSync,
+  onOpenFilters,
+  onSaveRun,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'OVERALL' | 'GITHUB' | 'ROLES' | 'ACCOLADES' | 'SHORTLIST' | 'DISQUALIFIED'>('OVERALL');
+  const [activeTab, setActiveTab] = useState<'OVERALL' | 'GITHUB' | 'LINKEDIN' | 'ROLES' | 'ACCOLADES' | 'SHORTLIST' | 'DISQUALIFIED'>('OVERALL');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -70,6 +75,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
     if (activeTab === 'SHORTLIST') return isShortlisted;
     if (activeTab === 'DISQUALIFIED') return !t.computed.isEligible || t.computed.manualStatus === 'excluded';
     if (activeTab === 'GITHUB') return t.members.some((m) => m.githubUrl || m.rawSignals.githubMetrics);
+    if (activeTab === 'LINKEDIN') return t.members.some((m) => m.linkedinUrl || m.rawSignals.linkedinMetrics);
     if (activeTab === 'ACCOLADES') return t.computed.projectExperienceScore > 30;
     if (activeTab === 'ROLES') return t.computed.coveredRoles.length >= 2;
 
@@ -100,9 +106,36 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
             </p>
           </div>
 
-          <div className="text-right font-mono text-[11px]">
-            <span className="text-zinc-500">LAST SYNCED: </span>
-            <span className="text-cyan-400 font-bold">{formattedSyncTime}</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {onOpenFilters && (
+              <button
+                onClick={onOpenFilters}
+                className="px-3 py-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold text-xs font-mono flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                title="Open Scoring Model, Weights & Filters Drawer"
+              >
+                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Scoring Model & Filters</span>
+                <span className="text-[9px] bg-cyan-900/80 text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/60 font-mono">
+                  {config.customFormulaEnabled ? 'CUSTOM' : 'BALANCED'}
+                </span>
+              </button>
+            )}
+
+            {onSaveRun && (
+              <button
+                onClick={onSaveRun}
+                className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-black font-bold rounded-lg text-xs font-mono flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all cursor-pointer"
+                title="Save current scoring run snapshot to audit vault"
+              >
+                <BookmarkPlus className="w-3.5 h-3.5" />
+                <span>Save Run</span>
+              </button>
+            )}
+
+            <div className="text-right font-mono text-[11px] hidden sm:block">
+              <span className="text-zinc-500">LAST SYNCED: </span>
+              <span className="text-cyan-400 font-bold">{formattedSyncTime}</span>
+            </div>
           </div>
         </div>
 
@@ -111,6 +144,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
           {[
             { id: 'OVERALL', label: 'OVERALL' },
             { id: 'GITHUB', label: 'GITHUB CODE' },
+            { id: 'LINKEDIN', label: 'LINKEDIN' },
             { id: 'ROLES', label: 'SKILL SYNERGY' },
             { id: 'ACCOLADES', label: 'HACKATHON WINS' },
             { id: 'SHORTLIST', label: `SHORTLIST (${config.shortlistCount})` },
@@ -231,7 +265,37 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       {team.computed.rank}
                     </div>
                     <div>
-                      <h4 className="font-bold text-zinc-100 text-sm">{teamDisplayName}</h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-bold text-zinc-100 text-sm">{teamDisplayName}</h4>
+                        {team.members.some((m) => m.rawSignals.linkedinMetrics?.has500PlusConnections) && (
+                          <span title="Verified 500+ industry connections" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold">
+                            500+
+                          </span>
+                        )}
+                        {team.members.some((m) => m.rawSignals.linkedinMetrics?.seniorityLevel === 'founder' || m.rawSignals.linkedinMetrics?.seniorityLevel === 'senior') && (
+                          <span title="Senior engineering leadership / founder" className="text-[9px] bg-blue-950/80 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-mono">
+                            in:Sr
+                          </span>
+                        )}
+                        {(() => {
+                          const femaleCount = team.members.filter((m) => m.isFemale).length;
+                          if (femaleCount > 0) {
+                            return (
+                              <span title={`${femaleCount} verified female participant(s)`} className="text-[9px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1 py-0.2 rounded font-mono font-bold">
+                                ♀ {femaleCount}F
+                              </span>
+                            );
+                          }
+                          if (config.filters.requireFemaleMember && femaleCount === 0) {
+                            return (
+                              <span title="Compulsory female participant requirement missing (Gate Failed)" className="text-[9px] bg-rose-950/80 text-rose-300 border border-rose-800 px-1 py-0.2 rounded font-mono font-bold">
+                                ♀ MISSING
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                       <p className="text-[11px] text-zinc-500 font-mono">
                         {team.members.length} members • {team.computed.coveredRoles.join(', ') || 'General'}
                       </p>
@@ -271,22 +335,13 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                   <span className="text-[10px] text-zinc-500">
                     {team.computed.isEligible ? 'ELIGIBLE' : 'GATE FAILED'}
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => onSelectTeam(team)}
-                      className="px-3 py-1 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 rounded border border-cyan-800/80 text-[11px] font-bold transition-colors flex items-center gap-1"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Inspect</span>
-                    </button>
-                    <button
-                      onClick={() => onCompareTeams(team.id)}
-                      className="p-1 hover:bg-zinc-800 rounded text-zinc-400"
-                      title="Compare"
-                    >
-                      <ArrowRightLeft className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => onSelectTeam(team)}
+                    className="px-3 py-1 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 rounded border border-cyan-800/80 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Inspect</span>
+                  </button>
                 </div>
               </div>
             );
@@ -306,7 +361,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                 <th className="py-3 px-2.5 text-right">ROLES</th>
                 <th className="py-3 px-3 text-right text-cyan-300">SCORE</th>
                 <th className="py-3 px-2.5 text-center">STATUS</th>
-                <th className="py-3 px-3 text-center sticky right-0 z-20 bg-black/95 border-l border-cyan-950/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)] w-48">
+                <th className="py-3 px-3 text-center sticky right-0 z-20 bg-black/95 border-l border-cyan-950/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)] w-28">
                   ACTIONS
                 </th>
               </tr>
@@ -365,15 +420,43 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         )}
                       </td>
 
-                      {/* Team Name & Roles (Logo box removed as requested) */}
+                      {/* Team Name & Roles */}
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-zinc-100 flex items-center gap-1.5">
-                          <span className="truncate max-w-[220px] font-semibold">{teamDisplayName}</span>
+                        <div className="font-bold text-zinc-100 flex items-center gap-1.5 flex-wrap">
+                          <span className="truncate max-w-[200px] font-semibold">{teamDisplayName}</span>
                           {team.computed.antiCheatFlags.length > 0 && (
                             <span title="Flagged for suspicious commits or forks" className="inline-flex items-center">
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                             </span>
                           )}
+                          {team.members.some((m) => m.rawSignals.linkedinMetrics?.has500PlusConnections) && (
+                            <span title="Verified 500+ industry network connection" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold shrink-0">
+                              500+
+                            </span>
+                          )}
+                          {team.members.some((m) => m.rawSignals.linkedinMetrics?.seniorityLevel === 'founder' || m.rawSignals.linkedinMetrics?.seniorityLevel === 'senior') && (
+                            <span title="Senior engineering leadership / founder" className="text-[9px] bg-blue-950/80 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-mono shrink-0">
+                              in:Sr
+                            </span>
+                          )}
+                          {(() => {
+                            const femaleCount = team.members.filter((m) => m.isFemale).length;
+                            if (femaleCount > 0) {
+                              return (
+                                <span title={`${femaleCount} verified female participant(s)`} className="text-[9px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1 py-0.2 rounded font-mono font-bold shrink-0">
+                                  ♀ {femaleCount}F
+                                </span>
+                              );
+                            }
+                            if (config.filters.requireFemaleMember && femaleCount === 0) {
+                              return (
+                                <span title="Compulsory female participant requirement missing (Gate Failed)" className="text-[9px] bg-rose-950/80 text-rose-300 border border-rose-800 px-1 py-0.2 rounded font-mono font-bold shrink-0">
+                                  ♀ MISSING
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <div className="text-[11px] text-zinc-500 truncate max-w-[240px]">
                           {team.computed.coveredRoles.join(', ') || 'General / Unspecified'}
@@ -435,9 +518,9 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         )}
                       </td>
 
-                      {/* Action buttons (Sticky right-0 so Scorecard and Compare are always visible) */}
+                      {/* Action button (Sticky right-0 for Scorecard inspection) */}
                       <td className="py-2.5 px-3 text-center sticky right-0 z-10 bg-zinc-950/95 group-hover:bg-[#071c2a] border-l border-cyan-950/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)]">
-                        <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                        <div className="flex items-center justify-center whitespace-nowrap">
                           <button
                             onClick={() => onSelectTeam(team)}
                             className="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-500 hover:text-black rounded text-[11px] font-bold text-zinc-200 hover:text-black border border-zinc-800 hover:border-cyan-400 transition-all flex items-center gap-1 cursor-pointer shadow-xs"
@@ -445,14 +528,6 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                           >
                             <Eye className="w-3.5 h-3.5 text-cyan-400 group-hover:text-black" />
                             <span>Scorecard</span>
-                          </button>
-                          <button
-                            onClick={() => onCompareTeams(team.id)}
-                            className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 rounded text-[11px] font-medium border border-zinc-800 hover:border-cyan-500/50 transition-all flex items-center gap-1 cursor-pointer"
-                            title="Compare Head-to-Head against another team"
-                          >
-                            <ArrowRightLeft className="w-3.5 h-3.5 text-blue-400" />
-                            <span>Compare</span>
                           </button>
                         </div>
                       </td>

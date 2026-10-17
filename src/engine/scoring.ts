@@ -4,6 +4,7 @@ import { evaluateHardFilters } from './filters';
 import { aggregateTeamSignals } from './normalization';
 import { DEFAULT_FORMULA_COEFFICIENTS } from '@/presets/defaultPresets';
 import { evaluateCustomFormula, MathScope } from '@/utils/mathEvaluator';
+import { computeMemberLinkedinScore } from './linkedin';
 
 export function runFullShortlistingEngine(
   teams: TeamRecord[],
@@ -71,6 +72,17 @@ export function runFullShortlistingEngine(
     // --- Dimension 4: Data Completeness (0 - 100) ---
     const rawCompletenessScore = Math.round(aggregated.completenessAverage * 100);
 
+    // --- LinkedIn Profile Score (0 - 100) ---
+    const memberLinkedinScores = team.members.map((m) =>
+      computeMemberLinkedinScore(m.rawSignals, coef)
+    );
+    const rawLinkedinScore =
+      team.members.length > 0
+        ? Math.round(
+            memberLinkedinScores.reduce((a, b) => a + b, 0) / team.members.length
+          )
+        : 0;
+
     // Missing Data Warnings
     const missingDataWarnings: string[] = [];
     team.members.forEach((m, idx) => {
@@ -123,6 +135,23 @@ export function runFullShortlistingEngine(
         synergy: rawComplementarityScore,
         roles: rawComplementarityScore,
         completeness: rawCompletenessScore,
+        linkedin: rawLinkedinScore,
+        linkedin_score: rawLinkedinScore,
+        linkedin_seniority: team.members.some(
+          (m) =>
+            m.rawSignals.linkedinMetrics?.seniorityLevel === 'founder' ||
+            m.rawSignals.linkedinMetrics?.seniorityLevel === 'senior'
+        )
+          ? coef.linkedinSeniorityMaxPoints
+          : 0,
+        linkedin_connections: team.members.some(
+          (m) => m.rawSignals.linkedinMetrics?.has500PlusConnections
+        )
+          ? 1
+          : 0,
+        linkedin_verified:
+          team.members.filter((m) => m.rawSignals.hasLinkedin).length /
+          Math.max(1, team.members.length),
         commits: aggregated.maxGithubContributions || aggregated.avgGithubContributions || 0,
         stars: aggregated.totalGithubStars || 0,
         wins: aggregated.totalHackathonCount || 0,
@@ -151,6 +180,7 @@ export function runFullShortlistingEngine(
       projectExperienceScore: rawExperienceScore,
       skillComplementarityScore: rawComplementarityScore,
       dataCompletenessScore: rawCompletenessScore,
+      linkedinScore: rawLinkedinScore,
       finalScore,
       customScoreApplied,
       rank: 0, // Assigned in step 3

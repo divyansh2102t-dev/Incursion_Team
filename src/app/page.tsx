@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { ColumnMappingConfig, SelectionConfig, TeamRecord } from '@/types';
 import { DEFAULT_CONFIG } from '@/presets/defaultPresets';
@@ -14,7 +14,6 @@ import { UploadZone } from '@/components/UploadZone';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { TeamsTable } from '@/components/TeamsTable';
 import { TeamModal } from '@/components/TeamModal';
-import { ColumnMapperModal } from '@/components/ColumnMapperModal';
 import { PairwiseCompareModal } from '@/components/PairwiseCompareModal';
 import { SensitivityModal } from '@/components/SensitivityModal';
 import { GitHubSyncModal } from '@/components/GitHubSyncModal';
@@ -25,13 +24,12 @@ import {
   BookmarkPlus,
   History,
   Sliders,
-  PanelLeftClose,
-  PanelLeftOpen,
   ArrowRight,
   Trash2,
   LayoutDashboard,
   Zap,
   FileText,
+  X,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
@@ -55,16 +53,26 @@ export default function Home() {
   // Modals & UI state
   const [selectedTeam, setSelectedTeam] = useState<TeamRecord | null>(null);
   const [currentView, setCurrentView] = useState<'home' | 'dashboard'>('dashboard');
-  const [isMapperOpen, setIsMapperOpen] = useState(false);
   const [isSensitivityOpen, setIsSensitivityOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isGitHubSyncOpen, setIsGitHubSyncOpen] = useState(false);
   const [isResumeSyncOpen, setIsResumeSyncOpen] = useState(false);
   const [isParallelSyncOpen, setIsParallelSyncOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
+  const [isConfigDrawerOpen, setIsConfigDrawerOpen] = useState(false);
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
   const [compareTeamBId, setCompareTeamBId] = useState<string | undefined>();
+
+  // Close drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isConfigDrawerOpen) {
+        setIsConfigDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isConfigDrawerOpen]);
 
   const dashboardRef = useRef<HTMLDivElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -210,15 +218,6 @@ export default function Home() {
     }
   };
 
-  const handleSaveMapping = (updatedMapping: ColumnMappingConfig) => {
-    setColumnMapping(updatedMapping);
-    if (rawRows.length > 0) {
-      const remappedTeams = parseRawDataToTeams(rawRows, updatedMapping);
-      setBaseTeams(remappedTeams);
-    }
-    setIsMapperOpen(false);
-  };
-
   const handleUpdateManualStatus = (
     teamId: string,
     status: 'pinned' | 'excluded' | 'waitlisted' | 'normal',
@@ -275,6 +274,17 @@ export default function Home() {
     setIsCompareOpen(true);
   };
 
+  const handleSaveRun = () => {
+    const customName = prompt(
+      'Enter a name for this scoring run snapshot:',
+      `Run #${scoringHistory.length + 1} (${config.presetName} - Top ${config.shortlistCount})`
+    );
+    if (customName !== null) {
+      saveScoringSnapshot(customName);
+      setIsHistoryOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#030712] flex flex-col font-sans text-zinc-100 bg-cyber-grid selection:bg-cyan-500 selection:text-black">
       {/* Hidden file input for header upload button */}
@@ -295,13 +305,14 @@ export default function Home() {
         config={config}
         onUpdateConfig={setConfig}
         onFileUpload={handleFileUpload}
-        onOpenMapper={() => setIsMapperOpen(true)}
         onOpenSensitivity={() => setIsSensitivityOpen(true)}
         onOpenCompare={() => handleLaunchCompare()}
         onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
         onOpenResumeSync={() => setIsResumeSyncOpen(true)}
         onOpenParallelSync={() => setIsParallelSyncOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onSaveRun={handleSaveRun}
+        onOpenFilters={() => setIsConfigDrawerOpen(true)}
         onExportCSV={() => exportShortlistToCSV(rankedTeams, config, config.shortlistCount)}
         onExportJSON={() => exportShortlistWithConfigJSON(rankedTeams, config, config.shortlistCount)}
         hasData={baseTeams.length > 0}
@@ -375,7 +386,7 @@ export default function Home() {
         ) : (
           <div className="space-y-6">
             {/* Cyber Telemetry Stats Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
               <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
                 <span className="text-zinc-500 block uppercase">TOTAL REGISTERED:</span>
                 <div className="text-xl font-black text-zinc-100 mt-0.5">{baseTeams.length} Teams</div>
@@ -402,136 +413,110 @@ export default function Home() {
                   <ArrowRight className="w-2.5 h-2.5" />
                 </Link>
               </div>
-              <div className="bg-zinc-950/70 p-3.5 rounded-xl border border-cyan-950/80 shadow-md backdrop-blur-md">
-                <span className="text-zinc-500 block uppercase">REVIEW MODE:</span>
-                <div className="text-xs font-bold text-purple-400 mt-1.5">
-                  {config.anonymizeMode ? '🕶️ Blind (Anonymized)' : '👁️ Standard'}
-                </div>
-              </div>
             </div>
 
-            {/* Scoring Run Snapshot & History Quick Actions Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-950/70 border border-cyan-950/80 p-3 rounded-xl backdrop-blur-md text-xs font-mono">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
-                  <History className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-zinc-200 font-bold block">Scoring History & Audit Vault</span>
-                  <span className="text-[10px] text-zinc-400 font-sans">
-                    {scoringHistory.length > 0
-                      ? `${scoringHistory.length} previous scoring run${scoringHistory.length > 1 ? 's' : ''} saved in audit history`
-                      : 'No saved runs yet. Snapshot and name your current scoring configuration anytime.'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center flex-wrap gap-2">
-                {/* Resume Intelligence & Sync Button */}
-                <button
-                  onClick={() => setIsResumeSyncOpen(true)}
-                  className="px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 font-bold rounded-lg border border-cyan-800 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  title="Scan & Parse Candidate Google Drive & PDF Resumes"
-                >
-                  <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Resume Sync</span>
-                </button>
-
-                {/* Parallel Deep Scan Button (Dual-stream Concurrent GitHub + Resume Auditor) */}
-                <button
-                  onClick={() => setIsParallelSyncOpen(true)}
-                  className="px-3 py-1.5 bg-gradient-to-r from-blue-950/70 to-cyan-950/70 hover:from-blue-900/90 hover:to-cyan-900/90 text-cyan-200 font-bold rounded-lg border border-cyan-400/60 hover:border-cyan-300 transition-colors flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                  title="Run Live GitHub Velocity & Cloud Resume Parsing Concurrently in Parallel"
-                >
-                  <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                  <span>Parallel Deep Scan</span>
-                </button>
-
-                {/* Formulae Studio Button */}
-                <Link
-                  href="/formulas"
-                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title="Open Formula & Algorithm Studio"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Formulae Studio</span>
-                </Link>
-
-                {/* Toggle Filter Sidebar Button */}
-                <button
-                  onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}
-                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title={isConfigCollapsed ? 'Show Filters Sidebar' : 'Hide Filters Sidebar to Expand Leaderboard'}
-                >
-                  {isConfigCollapsed ? (
-                    <>
-                      <PanelLeftOpen className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Show Filters</span>
-                    </>
-                  ) : (
-                    <>
-                      <PanelLeftClose className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>Hide Filters</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    const customName = prompt(
-                      'Enter a name for this scoring run snapshot:',
-                      `Run #${scoringHistory.length + 1} (${config.presetName} - Top ${config.shortlistCount})`
-                    );
-                    if (customName !== null) {
-                      saveScoringSnapshot(customName);
-                      setIsHistoryOpen(true);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                  title="Save and name the current scoring run"
-                >
-                  <BookmarkPlus className="w-3.5 h-3.5" />
-                  <span>📸 Save Scoring Run</span>
-                </button>
-
-                <button
-                  onClick={() => setIsHistoryOpen(true)}
-                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-medium rounded-lg border border-zinc-800 hover:border-cyan-500/50 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title="Open Scoring Run History Modal"
-                >
-                  <History className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>History Vault ({scoringHistory.length})</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Split View: Config Panel (3 cols) & Cyber Leaderboard (9 cols or full 12 cols when collapsed) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Tunable Configuration Panel (3 cols on XL) */}
-              {!isConfigCollapsed && (
-                <div className="lg:col-span-4 xl:col-span-3 sticky top-18 space-y-4">
-                  <ConfigPanel
-                    config={config}
-                    onChange={setConfig}
-                    totalTeamsCount={baseTeams.length}
-                  />
-                </div>
-              )}
-
-              {/* Right Column: Incursion Cyber Leaderboard (9 cols on XL, 12 cols when collapsed) */}
-              <div className={`${isConfigCollapsed ? 'col-span-12' : 'lg:col-span-8 xl:col-span-9'} space-y-4`}>
-                <TeamsTable
-                  teams={rankedTeams}
-                  config={config}
-                  onSelectTeam={setSelectedTeam}
-                  onCompareTeams={(teamAId) => handleLaunchCompare(teamAId)}
-                  onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
-                />
-              </div>
+            {/* Full-Width Incursion Cyber Leaderboard */}
+            <div className="w-full space-y-4">
+              <TeamsTable
+                teams={rankedTeams}
+                config={config}
+                onSelectTeam={setSelectedTeam}
+                onCompareTeams={(teamAId) => handleLaunchCompare(teamAId)}
+                onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
+                onOpenFilters={() => setIsConfigDrawerOpen(true)}
+                onSaveRun={handleSaveRun}
+              />
             </div>
           </div>
         )}
       </main>
+
+      {/* Slide-over Scoring Model & Filters Drawer (Independent scroll container) */}
+      {isConfigDrawerOpen && (
+        <div
+          className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm flex justify-end animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="scoring-drawer-title"
+        >
+          {/* Click backdrop to close */}
+          <div
+            className="fixed inset-0 cursor-pointer"
+            onClick={() => setIsConfigDrawerOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950 border-l border-cyan-500/40 shadow-[-10px_0_40px_rgba(6,182,212,0.25)] h-full flex flex-col font-mono text-zinc-300 z-10 animate-in slide-in-from-right duration-300">
+            {/* Drawer Header */}
+            <div className="p-4 sm:p-5 border-b border-cyan-950/80 bg-zinc-950/90 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                  <Sliders className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 id="scoring-drawer-title" className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                    <span>Scoring Model & Filters</span>
+                    <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800/80 px-2 py-0.5 rounded font-bold">
+                      {config.presetName?.toUpperCase() || 'BALANCED'}
+                    </span>
+                  </h2>
+                  <p className="text-[11px] text-zinc-400 font-sans">
+                    Adjust criteria weights, minimum qualification thresholds, and tie-breakers.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSaveRun}
+                  className="px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800 hover:border-cyan-400 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Save current model configuration snapshot"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">Save Run</span>
+                </button>
+                <button
+                  onClick={() => setIsConfigDrawerOpen(false)}
+                  className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 transition-colors cursor-pointer"
+                  title="Close Drawer (Esc)"
+                  aria-label="Close Drawer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Drawer Body - Separate Scroll Powers */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 cyber-scrollbar space-y-6">
+              <ConfigPanel
+                config={config}
+                onChange={setConfig}
+                totalTeamsCount={baseTeams.length}
+                onHideFilters={() => setIsConfigDrawerOpen(false)}
+                onSaveRun={handleSaveRun}
+              />
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-3.5 sm:p-4 border-t border-cyan-950/80 bg-zinc-950/95 flex items-center justify-between gap-3 text-xs shrink-0">
+              <Link
+                href="/formulas"
+                className="text-cyan-400 hover:text-cyan-300 underline font-bold flex items-center gap-1 text-xs"
+                onClick={() => setIsConfigDrawerOpen(false)}
+              >
+                <span>Advanced Formula Studio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                onClick={() => setIsConfigDrawerOpen(false)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-black font-black rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer text-xs"
+              >
+                Done & Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Team Drilldown Modal */}
       {selectedTeam && (
@@ -540,16 +525,6 @@ export default function Home() {
           config={config}
           onClose={() => setSelectedTeam(null)}
           onUpdateManualStatus={handleUpdateManualStatus}
-        />
-      )}
-
-      {/* Column Mapper Modal */}
-      {isMapperOpen && columnMapping && (
-        <ColumnMapperModal
-          headers={rawHeaders}
-          currentMapping={columnMapping}
-          onSave={handleSaveMapping}
-          onClose={() => setIsMapperOpen(false)}
         />
       )}
 

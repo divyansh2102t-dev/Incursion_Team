@@ -23,6 +23,18 @@ export interface ExtractedSignals {
   hasResume: boolean;
   hasGithub: boolean;
   hasLinkedin: boolean;
+  linkedinUsername?: string;
+  linkedinMetrics?: {
+    username?: string;
+    headline?: string;
+    company?: string;
+    seniorityLevel: 'senior' | 'mid' | 'junior' | 'founder' | 'student' | 'unknown';
+    has500PlusConnections: boolean;
+    isCustomVanitySlug: boolean;
+    crossMatchesGithub: boolean;
+    extractedSkills: string[];
+    verifiedScore: number;
+  };
   hasPortfolio: boolean;
   completenessRatio: number; // 0 to 1
   rawTextSummary?: string;
@@ -32,6 +44,8 @@ export interface MemberProfile {
   id: string;
   name: string;
   email?: string;
+  gender?: 'female' | 'male' | 'non_binary' | 'other' | 'unspecified';
+  isFemale?: boolean;
   githubUrl?: string;
   linkedinUrl?: string;
   portfolioUrl?: string;
@@ -56,6 +70,7 @@ export interface TeamComputedMetrics {
   projectExperienceScore: number;
   skillComplementarityScore: number;
   dataCompletenessScore: number;
+  linkedinScore?: number; // 0 to 100
   
   // Total weighted score
   finalScore: number;
@@ -95,6 +110,8 @@ export interface HardFilterConfig {
   minGithubContributionsOverall: number;
   requireAtLeastOneResumeOrPortfolio: boolean;
   minTotalSkillsCount: number;
+  requireFemaleMember?: boolean; // Compulsory female participation (e.g. SIH / diversity rules)
+  minFemaleCount?: number;        // Minimum required female participants (default 1)
 }
 
 export interface ScoringWeights {
@@ -123,6 +140,13 @@ export interface FormulaCoefficients {
   githubStarsDivisor: number;          // default 15
   githubSkillBreadthMaxPoints: number; // default 20
   githubSkillDivisor: number;          // default 10
+
+  // LinkedIn profile formula parameters (100% in user's hands)
+  linkedinSeniorityMaxPoints: number;      // default 30
+  linkedinPedigreeMaxPoints: number;       // default 25
+  linkedinConnections500Points: number;    // default 20
+  linkedinVanitySlugPoints: number;        // default 15
+  linkedinGithubMatchPoints: number;       // default 10
 
   // Anti-cheat penalty factor
   suspiciousAccountDiscount: number;   // default 0.70 (30% discount)
@@ -157,6 +181,7 @@ export interface ColumnMappingConfig {
     memberIndex: number; // 1, 2, 3...
     nameCol?: string;
     emailCol?: string;
+    genderCol?: string;
     githubCol?: string;
     linkedinCol?: string;
     portfolioCol?: string;

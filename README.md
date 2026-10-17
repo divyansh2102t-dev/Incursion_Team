@@ -16,6 +16,7 @@ A reusable, 100% zero-cost ($0 API bills) recruitment automation platform design
 - **Encrypted Multi-Token GitHub Manager:** Client-side encrypted token vault supporting multiple organizer tokens, live quota tracking, and automatic failover for high-volume cohorts.
 - **Unopinionated & Fully Tunable:** Dedicated **Formula & Algorithm Studio** (`/formulas`) where organizers can tune the exact mathematical multipliers and normalizers with factory reset and undo buttons.
 - **Progressive Web App (PWA) & Offline Shell:** Installable on desktop & mobile with standalone window, maskable icons, and a Service Worker providing instant load and offline caching.
+- **100% Legal LinkedIn Profile & Pedigree Scorer:** Zero-cost career signal extraction utilizing public search engine snippets, public OpenGraph tags (`og:title`, `og:description`), and GitHub cross-corroboration. 100% user-tunable coefficients with zero cookie scraping and zero ToS liability.
 - **Enterprise SEO & Brand Identity:** Custom geometric vector cyber logo (`/icon.svg`), automated OpenGraph & Twitter social cards, JSON-LD schema, dynamic `/sitemap.xml`, and `/robots.txt`.
 - **Mobile-Friendly UI:** Responsive table/card view toggle, mobile search, and touch-optimized controls.
 
@@ -149,6 +150,10 @@ The hard-qualification pipeline enforces eligibility before candidates enter the
 - **Minimum GitHub Velocity:** Minimum combined commits threshold (e.g., $\ge 20$ commits).
 - **Minimum Skills Breadth:** Rejects submissions with fewer than $N$ unique verified technologies.
 - **Portfolio & Resume Requirements:** Enforces at least one verified resume or portfolio link.
+- **Compulsory Female Participation Gate (SIH / Diversity Rule):**
+  - **Tunable Minimum:** Enforces at least $N$ verified female participants per team (default $\ge 1$ female member).
+  - **Multi-Vector Detection:** Automatically resolves female participation across explicit registration gender columns (`Gender`, `Sex`, `Pronouns`), pronoun matching (`she/her`, `female`), and an extensive Indian & international given-name taxonomy.
+  - **Strict Qualification Gate:** Instantly flags and disqualifies teams that fail diversity rules with clear, explainable audit reasons in the scorecard and telemetry HUD.
 
 ---
 
@@ -211,7 +216,7 @@ Incursion is built as a production-grade, installable Progressive Web App (PWA) 
 - **Progressive Web App (PWA) Installability:**
   - **Service Worker (`/sw.js`):** Intercepts navigation and static assets with a network-first strategy and offline cache fallback, allowing organizers to access scoring history and rankings even during offline venue network drops.
   - **Web App Manifest (`/manifest.webmanifest` & `/manifest.json`):** Full standalone display configuration with `theme_color: '#06b6d4'`, `background_color: '#030712'`, and adaptive maskable icons (192x192, 512x512).
-  - **Interactive Install Banner:** Detects browser `beforeinstallprompt` and offers a one-click desktop/mobile app installation prompt.
+  - **Zero-Intrusion Silent Registration:** Operates silently in the background with zero in-page popups, banners, or explicit installation prompts, preserving a clean workspace.
 - **Enterprise Search Engine Optimization (SEO):**
   - **Next.js Metadata API:** Canonical URLs, rich title templates, comprehensive meta descriptions, author tags, and 15+ high-intent hackathon recruitment keywords.
   - **Social Graph Sharing:** Pre-configured OpenGraph (`og:image`, `og:title`, `og:type`) and Twitter Cards (`summary_large_image`) for rich previews on Slack, Discord, Twitter/X, and LinkedIn.
@@ -220,15 +225,67 @@ Incursion is built as a production-grade, installable Progressive Web App (PWA) 
 
 ---
 
-## 🛠️ 11. Multi-Page Application Layout
+## 💼 11. 100% Legal & Ethical LinkedIn Profile & Pedigree Architecture
+
+Incursion includes a legal, zero-cost professional background evaluation pipeline that extracts verifiable career signals without violating LinkedIn Terms of Service, triggering account bans, or requiring expensive enterprise scrapers.
+
+```mermaid
+flowchart TD
+    A["Applicant LinkedIn URL\n(e.g. linkedin.com/in/username)"] --> B["Handle Extraction & Sanitizer"]
+    B --> C["Vanity Slug Heuristic Check\n(Distinguishes claimed custom handle vs random hash)"]
+    B --> D["Cross-Platform Corroboration Engine\n(Cross-references candidate GitHub handle & name)"]
+    B --> E["Server-Side Metadata Resolver (/api/parse-linkedin)\n(Simulates social preview crawler like Slackbot/Twitterbot)"]
+    
+    E --> F["Public OpenGraph Tags\n(og:title, og:description, canonical)"]
+    F --> G["Headline & Title Signal Parser\n- Seniority (Founder, Principal, Senior, Mid, Junior, Student)\n- Pedigree Institutions (FAANG, OpenAI, Stripe, YC alumni)\n- Network Milestone (500+ Connections indicator)\n- Extracted Core Technologies"]
+    
+    C & D & G --> H["Tunable Scoring Algorithm\n(Governed 100% by Formula Studio & Custom Equations)"]
+    H --> I["Leaderboard Profile Enrichment & Audit Drilldown"]
+```
+
+### Three-Pillar Legal Compliance Architecture:
+1. **Strategy 1: Public Search Engine Cache & Snippet Signals:**
+   - Ingests public indexing metadata and page snippet representations without authenticating or bypassing access barriers.
+2. **Strategy 2: Public OpenGraph Link Preview Headers (`/api/parse-linkedin`):**
+   - By querying public LinkedIn endpoints with social bot user-agents (`Twitterbot/1.0`, `Slackbot-LinkExpanding`), Incursion extracts public OpenGraph `<meta>` tags (`og:title`, `og:description`) containing headlines and current affiliations provided by LinkedIn for public unfurls.
+   - **Zero Cookie Retention:** Never requests personal session cookies (`li_at`), eliminating any risk to organizers' personal LinkedIn accounts.
+3. **Strategy 3: Cross-Corroboration Anchors:**
+   - Compares the candidate's declared LinkedIn username against their verified GitHub profile handle and resume text occurrences to detect imposter profiles or fabricated links.
+
+### What is Visible vs What Remains Protected:
+- **Visible & Scored:**
+  - **Seniority Hierarchy:** Founder/C-level, Principal/Lead, Senior, Mid, Junior, Student.
+  - **Tier-1 Engineering Pedigree:** Top technology companies, research labs, and startup accelerators.
+  - **500+ Connections Milestone:** Industry-standard public network indicator.
+  - **Claimed Vanity URL Slug:** Identifies claimed personal slugs (`/in/alexchen`) versus unmanaged default IDs (`/in/alex-837492b`).
+  - **Corroborated Skills & Projects:** Tech stack keywords corroborated across headline and resume text.
+- **Strictly Protected (Not Scraped):**
+  - Private endorsements, recommendations, mutual connection graphs, and full job descriptions remain locked behind user authentication walls and are never accessed to maintain 100% legal compliance.
+
+### 100% User-Tunable Scoring Formula:
+The scoring calculation is completely in the hands of the organizer:
+$$\text{LinkedIn Score} = \min\Big(100,\; \text{Seniority} + \text{Pedigree} + \text{Conn}_{500} + \text{Vanity} + \text{GitHubMatch}\Big)$$
+
+- **Seniority Max Points ($P_{\text{seniority}}$):** Configurable up to 50 pts (scaled by role tier).
+- **Pedigree Max Points ($P_{\text{pedigree}}$):** Configurable up to 50 pts (awarded for Tier-1 institutions).
+- **500+ Connections Bonus ($P_{500}$):** Configurable up to 40 pts.
+- **Custom Vanity Slug Bonus ($P_{\text{vanity}}$):** Configurable up to 30 pts.
+- **GitHub Cross-Match Bonus ($P_{\text{match}}$):** Configurable up to 30 pts.
+- **Custom Formula Variables:** Exposes `linkedin` (0-100), `linkedin_seniority`, `linkedin_connections`, and `linkedin_verified` inside the Custom Mathematical Formula Expression Studio (`/formulas`).
+
+---
+
+## 🛠️ 12. Multi-Page Application Layout
 
 1. **Dashboard & Evaluation (`/`):**
    - **Above-the-fold Cyber Hero:** Arc-Reactor HUD wheel with straight upright counter-rotating icons and instant file/folder pickers.
-   - **Clean Streamlined Navigation:** Clicking the **INCURSION** brand pill or **Upload** button opens the Home upload terminal; clicking **Leaderboard** switches directly to the shortlist rankings.
-   - **Live Candidate Leaderboard:** Ranked shortlist with visual Top $X$ Cutoff boundary and Sticky Action buttons.
-   - **Filter Pills:** Real-time filtering by Shortlist, Waitlist, and Disqualified.
-   - **Responsive Views:** Desktop tabular view and mobile-friendly card view for small screens.
-   - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Custom Column Mapper.
+   - **Clean Streamlined Navigation:** Brand pill or Upload button opens the intake terminal; clicking Leaderboard switches directly to rankings. Centralized header actions for **Compare**, **Sensitivity**, **GitHub Sync**, **Resume Sync**, **Parallel Scan**, **History**, and direct **Save Run** snapshots.
+   - **Full-Width Incursion Cyber Leaderboard:** 100% viewport width allocation giving maximum horizontal room for candidate metrics, tech stacks, and signals.
+   - **Slide-Over Scoring Model & Filters Drawer:** A spacious on-demand flyout drawer (`max-w-2xl`) with independent scroll powers that opens without displacing or squishing the leaderboard table.
+   - **Streamlined Row Actions:** Each candidate row features a dedicated **Scorecard** button for instant inspection, while head-to-head comparison is elegantly centralized at the top.
+   - **Filter Tabs & Size Selectors:** Real-time filtering by Overall, GitHub, LinkedIn, Skill Synergy, Hackathon Wins, Shortlist, and Disqualified, with instant team size selection.
+   - **Responsive Views:** Desktop tabular view with sticky actions and mobile-friendly card view for smaller devices.
+   - **Analysis Modals:** Scorecard Drilldown, SVG Skill Radar Chart, Pairwise Comparison, Sensitivity Analysis, and Scoring Run History Vault.
 2. **Formula & Algorithm Studio (`/formulas`):**
    - **Custom Formula Expression Studio:** Write and test custom equations with live validator and sandbox simulation (compact when OFF).
    - **Tunable Math Multipliers:** Direct control over every coefficient, divisor, and threshold.

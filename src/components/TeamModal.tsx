@@ -20,6 +20,7 @@ import {
   Link2,
   Globe,
 } from 'lucide-react';
+import { LinkedinIcon } from './LinkedinIcon';
 
 interface TeamModalProps {
   team: TeamRecord | null;
@@ -118,6 +119,15 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                   <span className="text-zinc-500 block">Data Completeness ({config.weights.dataCompleteness}%):</span>
                   <div className="font-bold text-cyan-300 mt-0.5">{team.computed.dataCompletenessScore} / 100</div>
                 </div>
+                {team.computed.linkedinScore !== undefined && (
+                  <div className="bg-blue-950/20 p-2.5 rounded-lg border border-blue-900/60 col-span-2">
+                    <span className="text-blue-400 block flex items-center gap-1 font-mono text-[11px]">
+                      <LinkedinIcon className="w-3 h-3 text-blue-400" />
+                      LinkedIn Professional Signal:
+                    </span>
+                    <div className="font-bold text-blue-300 mt-0.5">{team.computed.linkedinScore} / 100</div>
+                  </div>
+                )}
               </div>
 
               <div className="text-[11px] text-zinc-400 pt-1 font-sans">
@@ -207,7 +217,14 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                 return (
                   <div key={member.id} className="p-3 bg-black/40 border border-zinc-800/80 rounded-lg space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <div className="font-bold text-zinc-100">{memberName}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-zinc-100">{memberName}</span>
+                        {member.isFemale && (
+                          <span className="text-[10px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1.5 py-0.2 rounded font-bold font-mono">
+                            ♀ Female
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] bg-zinc-900 border border-zinc-700 text-cyan-300 px-1.5 py-0.5 rounded font-bold">
                         {Math.round(member.rawSignals.completenessRatio * 100)}% Complete
                       </span>
@@ -284,6 +301,50 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                           <strong className="text-blue-400">
                             ~{member.rawSignals.githubMetrics.estimatedContributions}
                           </strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* LinkedIn verified stats if available */}
+                    {member.rawSignals.linkedinMetrics && (
+                      <div className="bg-blue-950/20 p-2 rounded border border-blue-900/50 text-[11px] space-y-1 text-zinc-300">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1 text-blue-400 font-semibold truncate max-w-[170px]">
+                            <LinkedinIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span>@{member.rawSignals.linkedinMetrics.username}</span>
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-950 border border-blue-800 text-blue-300 shrink-0">
+                            {member.rawSignals.linkedinMetrics.verifiedScore} pts
+                          </span>
+                        </div>
+
+                        {member.rawSignals.linkedinMetrics.headline && (
+                          <div className="text-[10px] text-zinc-400 italic line-clamp-2">
+                            &ldquo;{member.rawSignals.linkedinMetrics.headline}&rdquo;
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {member.rawSignals.linkedinMetrics.seniorityLevel !== 'unknown' && (
+                            <span className="bg-zinc-900 border border-zinc-700 text-cyan-300 text-[9px] px-1.5 py-0.5 rounded font-mono uppercase">
+                              Level: {member.rawSignals.linkedinMetrics.seniorityLevel}
+                            </span>
+                          )}
+                          {member.rawSignals.linkedinMetrics.has500PlusConnections && (
+                            <span className="bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold">
+                              500+ Connections
+                            </span>
+                          )}
+                          {member.rawSignals.linkedinMetrics.isCustomVanitySlug && (
+                            <span className="bg-purple-950/80 border border-purple-800 text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-mono">
+                              Vanity Slug Claimed
+                            </span>
+                          )}
+                          {member.rawSignals.linkedinMetrics.crossMatchesGithub && (
+                            <span className="bg-blue-950/80 border border-blue-800 text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-mono">
+                              ✓ Matches GitHub
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}

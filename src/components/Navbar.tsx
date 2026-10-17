@@ -5,10 +5,6 @@ import Link from 'next/link';
 import {
   Upload,
   Download,
-  Eye,
-  EyeOff,
-  Sparkles,
-  Columns,
   Activity,
   ArrowRightLeft,
   FileSpreadsheet,
@@ -20,6 +16,7 @@ import {
   History,
   LayoutDashboard,
   FileText,
+  BookmarkPlus,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -28,13 +25,14 @@ interface NavbarProps {
   config: SelectionConfig;
   onUpdateConfig: (updated: SelectionConfig) => void;
   onFileUpload: (file: File) => void;
-  onOpenMapper: () => void;
   onOpenSensitivity: () => void;
   onOpenCompare: () => void;
   onOpenGitHubSync: () => void;
   onOpenResumeSync?: () => void;
   onOpenParallelSync?: () => void;
   onOpenHistory: () => void;
+  onSaveRun?: () => void;
+  onOpenFilters?: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
   hasData: boolean;
@@ -47,13 +45,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   config,
   onUpdateConfig,
   onFileUpload,
-  onOpenMapper,
   onOpenSensitivity,
   onOpenCompare,
   onOpenGitHubSync,
   onOpenResumeSync,
   onOpenParallelSync,
   onOpenHistory,
+  onSaveRun,
+  onOpenFilters,
   onExportCSV,
   onExportJSON,
   hasData,
@@ -198,6 +197,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
+          {/* Quick Save Scoring Run Button in Navbar */}
+          {hasData && onSaveRun && (
+            <button
+              onClick={onSaveRun}
+              className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+              title="Save & snapshot the current scoring run into audit vault"
+            >
+              <BookmarkPlus className="w-3.5 h-3.5" />
+              <span>Save Run</span>
+            </button>
+          )}
+
+          {/* Scoring Model & Filters Drawer Trigger */}
+          {hasData && onOpenFilters && currentView === 'dashboard' && (
+            <button
+              onClick={onOpenFilters}
+              className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold rounded-lg border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+              title="Open Scoring Model, Weights & Filters Drawer"
+            >
+              <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Filters</span>
+            </button>
+          )}
+
           {hasData && (
             <>
               {/* GitHub PAT & Sync */}
@@ -234,16 +257,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
 
-              {/* Mapper */}
-              <button
-                onClick={onOpenMapper}
-                className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
-                title="Inspect / Edit Column Mappings"
-              >
-                <Columns className="w-3.5 h-3.5 text-zinc-400" />
-                <span className="hidden md:inline">Mapper</span>
-              </button>
-
               {/* Compare */}
               <button
                 onClick={onOpenCompare}
@@ -262,20 +275,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Activity className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="hidden md:inline">Sensitivity</span>
-              </button>
-
-              {/* Blind Mode Toggle */}
-              <button
-                onClick={() => onUpdateConfig({ ...config, anonymizeMode: !config.anonymizeMode })}
-                className={`px-3 py-1.5 rounded-lg font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
-                  config.anonymizeMode
-                    ? 'bg-purple-950/80 text-purple-300 border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                    : 'bg-zinc-900/80 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                }`}
-                title="Anonymize candidate names, emails, and personal identifiers to reduce bias"
-              >
-                {config.anonymizeMode ? <EyeOff className="w-3.5 h-3.5 text-purple-400" /> : <Eye className="w-3.5 h-3.5" />}
-                <span>Blind {config.anonymizeMode ? 'ON' : 'OFF'}</span>
               </button>
 
               {/* Export Buttons */}

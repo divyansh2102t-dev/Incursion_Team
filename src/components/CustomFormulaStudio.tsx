@@ -55,6 +55,10 @@ export const CustomFormulaStudio: React.FC<CustomFormulaStudioProps> = ({
     { name: 'exp', label: 'Project Experience', desc: 'Hackathon accolades, skills & proof-of-work (0-100)' },
     { name: 'synergy', label: 'Role Synergy', desc: 'Frontend + Backend + AI + Design coverage (0-100)' },
     { name: 'completeness', label: 'Profile Completeness', desc: 'Ratio of provided profile links & resumes (0-100)' },
+    { name: 'linkedin', label: 'LinkedIn Score', desc: 'Normalized profile score from seniority, pedigree & connections (0-100)' },
+    { name: 'linkedin_seniority', label: 'Seniority Points', desc: 'Points awarded for Founder/Senior/Lead level (0-30)' },
+    { name: 'linkedin_connections', label: '500+ Connections', desc: '1 if candidate has 500+ network milestone, else 0' },
+    { name: 'linkedin_verified', label: 'LinkedIn Verified', desc: 'Ratio of team members with verified LinkedIn links (0-1)' },
     { name: 'commits', label: 'GitHub Commits', desc: 'Total estimated annual commits volume' },
     { name: 'stars', label: 'Repo Stars', desc: 'Total GitHub original repository stars' },
     { name: 'wins', label: 'Hackathon Wins', desc: 'Verified hackathon placements & trophies count' },
@@ -79,6 +83,12 @@ export const CustomFormulaStudio: React.FC<CustomFormulaStudioProps> = ({
       name: 'Balanced Core V1',
       formula: '0.40 * tech + 0.30 * exp + 0.20 * synergy + 0.10 * completeness',
       desc: 'Solid distributed weighting across all 4 candidate dimensions.',
+    },
+    {
+      title: 'Pedigree & Professional Track',
+      name: 'LinkedIn Pedigree Weighted',
+      formula: '0.35 * tech + 0.25 * exp + 0.20 * linkedin + 0.20 * synergy',
+      desc: 'Factors verified professional seniority and company pedigree into the scoring matrix.',
     },
     {
       title: 'Hackathon Heavyweight',

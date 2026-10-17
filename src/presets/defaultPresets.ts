@@ -16,6 +16,13 @@ export const DEFAULT_FORMULA_COEFFICIENTS: FormulaCoefficients = {
   githubSkillBreadthMaxPoints: 20,
   githubSkillDivisor: 10,
 
+  // LinkedIn profile formula parameters (100% in user's hands)
+  linkedinSeniorityMaxPoints: 30,
+  linkedinPedigreeMaxPoints: 25,
+  linkedinConnections500Points: 20,
+  linkedinVanitySlugPoints: 15,
+  linkedinGithubMatchPoints: 10,
+
   // Anti-cheat penalty factor
   suspiciousAccountDiscount: 0.70,
 
@@ -43,6 +50,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       minGithubContributionsOverall: 20,
       requireAtLeastOneResumeOrPortfolio: false,
       minTotalSkillsCount: 2,
+      requireFemaleMember: false,
+      minFemaleCount: 1,
     },
     aggregationStrategy: 'BALANCED_MEAN',
     missingDataPolicy: 'NEUTRAL',
@@ -70,6 +79,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       minGithubContributionsOverall: 75,
       requireAtLeastOneResumeOrPortfolio: false,
       minTotalSkillsCount: 3,
+      requireFemaleMember: false,
+      minFemaleCount: 1,
     },
     aggregationStrategy: 'MAX_SKILL',
     missingDataPolicy: 'PENALTY_10',
@@ -102,6 +113,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       minGithubContributionsOverall: 0,
       requireAtLeastOneResumeOrPortfolio: false,
       minTotalSkillsCount: 1,
+      requireFemaleMember: false,
+      minFemaleCount: 1,
     },
     aggregationStrategy: 'BALANCED_MEAN',
     missingDataPolicy: 'NEUTRAL',
@@ -134,6 +147,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       minGithubContributionsOverall: 30,
       requireAtLeastOneResumeOrPortfolio: true,
       minTotalSkillsCount: 3,
+      requireFemaleMember: false,
+      minFemaleCount: 1,
     },
     aggregationStrategy: 'DIMINISHING_RETURNS',
     missingDataPolicy: 'PENALTY_10',

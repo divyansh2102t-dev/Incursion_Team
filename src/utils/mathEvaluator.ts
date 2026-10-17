@@ -17,6 +17,11 @@ export interface MathScope {
   synergy?: number;
   roles?: number;
   completeness?: number;
+  linkedin?: number;
+  linkedin_score?: number;
+  linkedin_seniority?: number;
+  linkedin_connections?: number;
+  linkedin_verified?: number;
   commits?: number;
   stars?: number;
   wins?: number;
@@ -399,6 +404,11 @@ export function validateExpression(
     synergy: 90,
     roles: 90,
     completeness: 100,
+    linkedin: 80,
+    linkedin_score: 80,
+    linkedin_seniority: 25,
+    linkedin_connections: 1,
+    linkedin_verified: 1,
     commits: 250,
     stars: 15,
     wins: 2,
