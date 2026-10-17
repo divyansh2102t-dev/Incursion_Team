@@ -1,18 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { PWARegistration } from '@/components/PWARegistration';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+const geistSans = { variable: 'font-sans' };
+const geistMono = { variable: 'font-mono' };
 
 export const viewport: Viewport = {
   themeColor: '#06b6d4',
