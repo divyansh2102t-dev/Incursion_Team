@@ -692,6 +692,37 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                     </div>
                   </div>
                 )}
+                {currentTeam.computed.acmScore !== undefined && currentTeam.computed.acmScore > 0 && (
+                  <div className="bg-gradient-to-r from-cyan-950/30 via-blue-950/20 to-black/60 p-2.5 rounded-lg border border-cyan-800/60 col-span-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-cyan-400 block flex items-center gap-1 font-mono text-[11px] font-bold">
+                        💎 Official ACM NIT Surat Chapter Telemetry:
+                      </span>
+                      <span className="text-[10px] text-cyan-300 font-mono">
+                        {currentTeam.computed.acmRank ? `Chapter Rank #${currentTeam.computed.acmRank}` : 'Verified Members'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-1.5 text-xs font-mono">
+                      <div>
+                        <span className="text-zinc-500 block text-[10px]">ACM Score:</span>
+                        <strong className="text-cyan-300">{currentTeam.computed.acmScore} pts</strong>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block text-[10px]">LeetCode Peak:</span>
+                        <strong className="text-amber-400">{currentTeam.computed.leetcodeRating || 'Unrated'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block text-[10px]">Codeforces Peak:</span>
+                        <strong className="text-blue-400">{currentTeam.computed.cfRating || 'Unrated'}</strong>
+                      </div>
+                    </div>
+                    {currentTeam.computed.acmSourceNotice && (
+                      <div className="text-[10px] text-zinc-400 mt-1 font-sans">
+                        {currentTeam.computed.acmSourceNotice}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="text-[11px] text-zinc-400 pt-1 font-sans">
@@ -1378,6 +1409,135 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                               Vanity Slug Claimed
                             </span>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Official ACM NIT Surat Chapter Telemetry & CP Profiles */}
+                    {member.acmProfile && (
+                      <div className="bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-black/60 p-2.5 rounded-lg border border-cyan-800/70 text-[11px] space-y-2 text-zinc-300">
+                        {/* ACM Chapter Header */}
+                        <div className="flex items-center justify-between flex-wrap gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-cyan-400 font-bold flex items-center gap-1">
+                              💎 ACM NIT Surat Verified
+                            </span>
+                            <span className="bg-cyan-950 text-cyan-300 border border-cyan-700 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold uppercase">
+                              {member.acmProfile.rollNumber || member.rollNumber || 'SVNIT'}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-mono">
+                              {member.acmProfile.branch.toUpperCase()} &apos;{member.acmProfile.graduationBatch || member.acmProfile.currentYear}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-500/60 text-cyan-300 font-mono">
+                              ACM #{member.acmProfile.acm?.overallRank || '—'} • {member.acmProfile.acm?.score || 0} pts
+                            </span>
+                            {member.acmDataSource && (
+                              <span
+                                className={`text-[9px] font-bold px-1.5 py-0.2 rounded border font-mono ${
+                                  member.acmDataSource === 'acm_website'
+                                    ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
+                                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                                }`}
+                              >
+                                {member.acmDataSource === 'acm_website' ? '🛡️ ACM OVERRIDE' : '✨ BACKFILLED'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* CP Profile Breakdown: LeetCode, Codeforces, CodeChef */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-0.5">
+                          {/* LeetCode */}
+                          <div className="bg-black/60 border border-zinc-800 p-1.5 rounded">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                                🟡 LeetCode
+                              </span>
+                              {member.acmProfile.leetcode?.username && (
+                                <a
+                                  href={`https://leetcode.com/u/${member.acmProfile.leetcode.username}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-zinc-500 hover:text-amber-300 font-mono flex items-center gap-0.5"
+                                >
+                                  @{member.acmProfile.leetcode.username}
+                                  <ExternalLink className="w-2 h-2" />
+                                </a>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-zinc-300 font-mono mt-0.5">
+                              Rating: <strong className="text-amber-300">{member.acmProfile.leetcode?.rating || 'Unrated'}</strong>
+                            </div>
+                            <div className="text-[9px] text-zinc-500 font-mono">
+                              Solved: {member.acmProfile.leetcode?.totalSolved || 0} (E: {member.acmProfile.leetcode?.easySolved || 0} / M: {member.acmProfile.leetcode?.mediumSolved || 0} / H: {member.acmProfile.leetcode?.hardSolved || 0})
+                            </div>
+                          </div>
+
+                          {/* Codeforces */}
+                          <div className="bg-black/60 border border-zinc-800 p-1.5 rounded">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-blue-400 font-bold flex items-center gap-0.5">
+                                🔵 Codeforces
+                              </span>
+                              {member.acmProfile.codeforces?.handle && (
+                                <a
+                                  href={`https://codeforces.com/profile/${member.acmProfile.codeforces.handle}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-zinc-500 hover:text-blue-300 font-mono flex items-center gap-0.5"
+                                >
+                                  @{member.acmProfile.codeforces.handle}
+                                  <ExternalLink className="w-2 h-2" />
+                                </a>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-zinc-300 font-mono mt-0.5">
+                              Rating: <strong className="text-blue-300">{member.acmProfile.codeforces?.currentRating || 'Unrated'}</strong>
+                            </div>
+                            <div className="text-[9px] text-zinc-500 font-mono capitalize">
+                              Rank: {member.acmProfile.codeforces?.currentRank || 'Unrated'} ({member.acmProfile.codeforces?.problemsSolved || 0} solved)
+                            </div>
+                          </div>
+
+                          {/* CodeChef */}
+                          <div className="bg-black/60 border border-zinc-800 p-1.5 rounded">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-amber-500 font-bold flex items-center gap-0.5">
+                                🟤 CodeChef
+                              </span>
+                              {member.acmProfile.codechef?.username && (
+                                <a
+                                  href={`https://www.codechef.com/users/${member.acmProfile.codechef.username}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-zinc-500 hover:text-amber-400 font-mono flex items-center gap-0.5"
+                                >
+                                  @{member.acmProfile.codechef.username}
+                                  <ExternalLink className="w-2 h-2" />
+                                </a>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-zinc-300 font-mono mt-0.5">
+                              Stars: <strong className="text-amber-400">{member.acmProfile.codechef?.stars ? `${member.acmProfile.codechef.stars}★` : '1★'}</strong>
+                            </div>
+                            <div className="text-[9px] text-zinc-500 font-mono">
+                              Rating: {member.acmProfile.codechef?.currentRating || 'Unrated'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-[9px] text-zinc-500 font-mono flex items-center justify-between">
+                          <span>Verified live via official ACM NIT Surat endpoint</span>
+                          <a
+                            href="https://acmnitsurat.in"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-400 hover:underline"
+                          >
+                            acmnitsurat.in ↗
+                          </a>
                         </div>
                       </div>
                     )}

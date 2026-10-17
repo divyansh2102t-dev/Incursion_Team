@@ -32,6 +32,83 @@ export interface CustomKeywordWeight {
   enabled?: boolean; // individual keyword toggle
 }
 
+export type AcmDataPriority = 'ACM_OVERWRITE' | 'PRESERVE_INPUT';
+export type AcmScoringMode = 'DEFAULT_ACM_SCORE' | 'CUSTOM_FORMULA';
+
+export interface AcmStudentProfile {
+  uid?: string;
+  rollNumber: string;
+  displayName: string;
+  firstName?: string;
+  lastName?: string;
+  branch: string;
+  currentYear: number;
+  graduationBatch: number;
+  profileImageUrl?: string;
+  slug?: string;
+  acm: {
+    score: number;
+    overallRank: number;
+    branchRank: number;
+    yearRank: number;
+    platformRanks?: {
+      leetcode?: number;
+      codeforces?: number;
+      codechef?: number;
+      github?: number;
+    };
+    lastCalculated?: string;
+  };
+  leetcode?: {
+    username: string;
+    rating: number;
+    totalSolved: number;
+    easySolved: number;
+    mediumSolved: number;
+    hardSolved: number;
+    contestCount: number;
+    globalRank: number;
+  };
+  codeforces?: {
+    handle: string;
+    currentRating: number;
+    maxRating: number;
+    currentRank: string;
+    maxRank: string;
+    problemsSolved: number;
+    contestCount: number;
+  };
+  codechef?: {
+    username: string;
+    currentRating: number;
+    highestRating: number;
+    stars: number;
+    contestCount: number;
+    globalRank: number;
+  };
+  github?: {
+    username: string;
+    totalCommits: number;
+    publicRepos: number;
+    followers: number;
+    starsReceived: number;
+    pullRequests: number;
+    issues: number;
+  };
+}
+
+export interface AcmEventConfig {
+  enabled: boolean;                      // "ACM Only Event" toggle
+  dataPriority: AcmDataPriority;         // Whether to override with ACM data or preserve input/calculated data
+  scoringMode: AcmScoringMode;           // Official acm.score vs Formula Studio
+  acmWeight: number;                     // Weight % (e.g. 35%) when blending with Overall Score
+  autoEnrichProfiles: boolean;           // Auto-fill LeetCode, Codeforces, CodeChef, GitHub handles
+  minAcmScoreRequired?: number;          // Hard gate threshold (default 0, e.g. >= 20)
+  requireAllMembersAcm?: boolean;        // Hard gate: all members must be verified on ACM NIT Surat
+  lastSyncTimestamp?: string;
+  cachedProfilesCount?: number;
+}
+
 export interface WorkExperienceConfig {
   enabled: boolean;
   baseWorkExpEnabled?: boolean;
@@ -99,6 +176,10 @@ export interface MemberProfile {
   gradYear?: string;
   gender?: 'female' | 'male' | 'non_binary' | 'other' | 'unspecified';
   isFemale?: boolean;
+  rollNumber?: string;
+  acmProfile?: AcmStudentProfile;
+  isAcmMatched?: boolean;
+  acmDataSource?: 'acm_website' | 'input_form' | 'hybrid';
   githubUrl?: string;
   linkedinUrl?: string;
   portfolioUrl?: string;
@@ -130,6 +211,15 @@ export interface TeamComputedMetrics {
   finalScore: number;
   rank: number;
   customScoreApplied?: boolean;
+
+  // ACM NIT Surat Chapter metrics
+  acmScore?: number;
+  acmRank?: number;
+  acmMatchedCount?: number;
+  acmSourceNotice?: string;
+  cfRating?: number;
+  leetcodeRating?: number;
+  codechefStars?: number;
 
   // Analysis & Flags
   coveredRoles: RoleCategory[];
@@ -242,6 +332,7 @@ export interface SelectionConfig {
   customFormulaName?: string;
   customKeywords?: CustomKeywordWeight[];
   workExperienceConfig?: WorkExperienceConfig;
+  acmEventConfig?: AcmEventConfig;
 }
 
 export interface ColumnMappingConfig {

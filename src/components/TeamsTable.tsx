@@ -43,7 +43,7 @@ interface TeamsTableProps {
   onSaveRun?: () => void;
 }
 
-export type TableTab = 'OVERALL' | 'GITHUB' | 'LINKEDIN' | 'ROLES' | 'ACCOLADES' | 'SHORTLIST' | 'DISQUALIFIED';
+export type TableTab = 'OVERALL' | 'GITHUB' | 'LINKEDIN' | 'ROLES' | 'ACCOLADES' | 'SHORTLIST' | 'DISQUALIFIED' | 'ACM';
 
 interface TeamDimensionStats {
   totalCommits: number;
@@ -76,6 +76,14 @@ interface TeamDimensionStats {
   femaleCount: number;
   contactCount: number;
   failedGates: string[];
+
+  acmScore: number;
+  acmRank: number;
+  acmMatchedCount: number;
+  cfRating: number;
+  leetcodeRating: number;
+  codechefStars: number;
+  hasAcmData: boolean;
 }
 
 function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
@@ -191,6 +199,17 @@ function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
     femaleCount,
     contactCount,
     failedGates,
+
+    acmScore: team.computed.acmScore ?? 0,
+    acmRank: team.computed.acmRank ?? 0,
+    acmMatchedCount: team.computed.acmMatchedCount ?? 0,
+    cfRating: team.computed.cfRating ?? 0,
+    leetcodeRating: team.computed.leetcodeRating ?? 0,
+    codechefStars: team.computed.codechefStars ?? 0,
+    hasAcmData:
+      (team.computed.acmMatchedCount ?? 0) > 0 ||
+      (team.computed.acmScore ?? 0) > 0 ||
+      team.members.some((m) => m.isAcmMatched),
   };
 }
 
@@ -236,6 +255,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
     let accolades = 0;
     let shortlist = 0;
     let disqualified = 0;
+    let acm = 0;
 
     teams.forEach((t) => {
       overall++;
@@ -249,11 +269,12 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
       const st = statsMap.get(t.id);
       if (st && (st.githubMemberCount > 0 || st.techScore > 0)) github++;
       if (st && (st.linkedinMemberCount > 0 || st.linkedinScore > 0)) linkedin++;
+      if (st && st.hasAcmData) acm++;
       roles++;
       accolades++;
     });
 
-    return { overall, github, linkedin, roles, accolades, shortlist, disqualified };
+    return { overall, github, linkedin, roles, accolades, shortlist, disqualified, acm };
   }, [teams, config.shortlistCount, statsMap]);
 
   // Filter teams by search, team size, and category tab
@@ -280,6 +301,10 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
 
       if (activeTab === 'SHORTLIST') return isShortlisted;
       if (activeTab === 'DISQUALIFIED') return !t.computed.isEligible || t.computed.manualStatus === 'excluded';
+      if (activeTab === 'ACM') {
+        const st = statsMap.get(t.id);
+        return Boolean(st?.hasAcmData || config.acmEventConfig?.enabled);
+      }
       if (activeTab === 'GITHUB') {
         const st = statsMap.get(t.id);
         return Boolean(st && (st.githubMemberCount > 0 || st.techScore > 0));
@@ -293,7 +318,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
 
       return true;
     });
-  }, [teams, searchQuery, selectedSizeFilter, activeTab, config.anonymizeMode, config.shortlistCount, statsMap]);
+  }, [teams, searchQuery, selectedSizeFilter, activeTab, config.anonymizeMode, config.shortlistCount, config.acmEventConfig?.enabled, statsMap]);
 
   // Sort teams based on tab or user clicked column
   const sortedTeams = useMemo(() => {
@@ -323,11 +348,27 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
         else if (sortField === 'wins') { valA = stA.hackathonWins; valB = stB.hackathonWins; }
         else if (sortField === 'skills') { valA = stA.uniqueSkills.length; valB = stB.uniqueSkills.length; }
         else if (sortField === 'rank') { valA = a.computed.rank; valB = b.computed.rank; }
+        else if (sortField === 'acm') { valA = a.computed.acmScore ?? 0; valB = b.computed.acmScore ?? 0; }
+        else if (sortField === 'cf') { valA = a.computed.cfRating ?? 0; valB = b.computed.cfRating ?? 0; }
+        else if (sortField === 'leetcode') { valA = a.computed.leetcodeRating ?? 0; valB = b.computed.leetcodeRating ?? 0; }
 
         return sortDirection === 'desc' ? valB - valA : valA - valB;
       }
 
       // 2. Default domain-specific sort per tab
+      if (activeTab === 'ACM') {
+        const acmA = a.computed.acmScore ?? 0;
+        const acmB = b.computed.acmScore ?? 0;
+        if (acmB !== acmA) return acmB - acmA;
+        const cfA = a.computed.cfRating ?? 0;
+        const cfB = b.computed.cfRating ?? 0;
+        if (cfB !== cfA) return cfB - cfA;
+        const lcA = a.computed.leetcodeRating ?? 0;
+        const lcB = b.computed.leetcodeRating ?? 0;
+        if (lcB !== lcA) return lcB - lcA;
+        return a.computed.rank - b.computed.rank;
+      }
+
       if (activeTab === 'GITHUB') {
         // Highest Technical Depth Score first
         if (b.computed.technicalDepthScore !== a.computed.technicalDepthScore) {
@@ -435,6 +476,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
             </div>
             <p className="text-[11px] font-mono text-zinc-400 tracking-wider mt-0.5">
               {activeTab === 'OVERALL' && 'DETERMINISTIC COMPOSITE RANKINGS & SQUAD METRICS'}
+              {activeTab === 'ACM' && 'ACM NIT SURAT VERIFIED TELEMETRY • LIVE CP & DEV STATS FROM ACMNITSURAT.IN'}
               {activeTab === 'GITHUB' && 'GITHUB CODE INTEL • VELOCITY, STARS & REPO INTEGRITY'}
               {activeTab === 'LINKEDIN' && 'LINKEDIN PEDIGREE • SENIORITY, 500+ NETWORKS & ENTERPRISE ROLES'}
               {activeTab === 'ROLES' && 'SKILL SYNERGY & ROLE COMPLEMENTARITY • BALANCED SQUADS'}
@@ -481,6 +523,9 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
         <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto mt-4 border-b border-zinc-800/80 text-xs font-mono">
           {[
             { id: 'OVERALL', label: 'OVERALL', count: tabCounts.overall },
+            ...(config.acmEventConfig?.enabled || tabCounts.acm > 0
+              ? [{ id: 'ACM' as TableTab, label: 'ACM NIT SURAT', count: tabCounts.acm }]
+              : []),
             { id: 'GITHUB', label: 'GITHUB CODE', count: tabCounts.github },
             { id: 'LINKEDIN', label: 'LINKEDIN', count: tabCounts.linkedin },
             { id: 'ROLES', label: 'SKILL SYNERGY', count: tabCounts.roles },
@@ -521,6 +566,51 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
           })}
         </div>
       </div>
+
+      {/* ACM Event Mode Live Sync & Conflict Priority Banner */}
+      {config.acmEventConfig?.enabled && (
+        <div className="bg-gradient-to-r from-cyan-950/80 via-blue-950/50 to-zinc-950 px-4 py-2 border-b border-cyan-500/30 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_6px_#22d3ee]" />
+            <span className="text-cyan-300 font-bold flex items-center gap-1.5">
+              💎 ACM NIT SURAT EVENT MODE ACTIVE
+            </span>
+            <span className="text-zinc-500 hidden sm:inline">|</span>
+            <span className="text-zinc-400 hidden sm:inline">
+              Data fetched & verified live from{' '}
+              <a
+                href="https://acmnitsurat.in"
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-300 underline hover:text-cyan-200"
+              >
+                acmnitsurat.in
+              </a>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                config.acmEventConfig.dataPriority === 'ACM_OVERWRITE'
+                  ? 'bg-cyan-950 text-cyan-300 border-cyan-700/80'
+                  : 'bg-amber-950 text-amber-300 border-amber-700/80'
+              }`}
+            >
+              PRIORITY:{' '}
+              {config.acmEventConfig.dataPriority === 'ACM_OVERWRITE'
+                ? '🛡️ ACM OVERWRITES INPUT'
+                : '📝 PRESERVE REGISTRATION INPUT'}
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-black/60 border-cyan-800 text-cyan-300">
+              SCORING:{' '}
+              {config.acmEventConfig.scoringMode === 'DEFAULT_ACM_SCORE'
+                ? `🏆 OFFICIAL SCORE (${config.acmEventConfig.acmWeight ?? 35}%)`
+                : '🧮 CUSTOM FORMULA'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 2. Search and Filter Bar Controls */}
       <div className="p-3.5 sm:p-4 bg-zinc-950/60 border-b border-cyan-950/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
@@ -658,6 +748,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
 
                   <div className="text-right">
                     <span className="text-lg font-black font-mono text-cyan-400 neon-glow-cyan block">
+                      {activeTab === 'ACM' && (team.computed.acmScore ?? 0)}
                       {activeTab === 'GITHUB' && team.computed.technicalDepthScore}
                       {activeTab === 'LINKEDIN' && st.linkedinScore}
                       {activeTab === 'ROLES' && team.computed.skillComplementarityScore}
@@ -665,6 +756,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       {(activeTab === 'OVERALL' || activeTab === 'SHORTLIST' || activeTab === 'DISQUALIFIED') && team.computed.finalScore}
                     </span>
                     <span className="text-[9px] font-mono text-zinc-500 uppercase">
+                      {activeTab === 'ACM' && 'ACM SCORE'}
                       {activeTab === 'GITHUB' && 'TECH SCORE'}
                       {activeTab === 'LINKEDIN' && 'LINKEDIN SCORE'}
                       {activeTab === 'ROLES' && 'SYNERGY SCORE'}
@@ -675,7 +767,22 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                 </div>
 
                 {/* Adaptive Middle Grid based on active Tab */}
-                {activeTab === 'GITHUB' ? (
+                {activeTab === 'ACM' ? (
+                  <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-mono bg-zinc-900/60 p-2 rounded-lg border border-cyan-900/60">
+                    <div>
+                      <span className="text-zinc-500 block">ACM SCORE</span>
+                      <strong className="text-cyan-300 font-bold">{team.computed.acmScore ?? 0} pts</strong>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block">LEETCODE</span>
+                      <strong className="text-amber-300">{team.computed.leetcodeRating ? `${team.computed.leetcodeRating}` : 'Unrated'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block">CODEFORCES</span>
+                      <strong className="text-blue-300">{team.computed.cfRating ? `${team.computed.cfRating}` : 'Unrated'}</strong>
+                    </div>
+                  </div>
+                ) : activeTab === 'GITHUB' ? (
                   <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-mono bg-zinc-900/60 p-2 rounded-lg border border-zinc-800">
                     <div>
                       <span className="text-zinc-500 block">COMMITS</span>
@@ -813,7 +920,52 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                 </th>
 
                 {/* 4. Dynamic Middle Columns depending on activeTab */}
-                {activeTab === 'GITHUB' ? (
+                {activeTab === 'ACM' ? (
+                  <>
+                    <th
+                      onClick={() => handleHeaderSort('acm')}
+                      className="py-3 px-3 text-right text-cyan-300 cursor-pointer hover:text-cyan-200 transition-colors select-none"
+                      title="Sort by Official ACM Platform Score"
+                    >
+                      <span>ACM SCORE</span>
+                      {renderSortIcon('acm')}
+                    </th>
+                    <th className="py-3 px-2.5 text-center">DATA SOURCE</th>
+                    <th
+                      onClick={() => handleHeaderSort('leetcode')}
+                      className="py-3 px-2.5 text-right cursor-pointer hover:text-cyan-400 transition-colors select-none"
+                      title="Sort by LeetCode Rating"
+                    >
+                      <span>LEETCODE</span>
+                      {renderSortIcon('leetcode')}
+                    </th>
+                    <th
+                      onClick={() => handleHeaderSort('cf')}
+                      className="py-3 px-2.5 text-right cursor-pointer hover:text-cyan-400 transition-colors select-none"
+                      title="Sort by Codeforces Rating"
+                    >
+                      <span>CODEFORCES</span>
+                      {renderSortIcon('cf')}
+                    </th>
+                    <th className="py-3 px-2.5 text-center">CODECHEF</th>
+                    <th
+                      onClick={() => handleHeaderSort('commits')}
+                      className="py-3 px-2.5 text-right cursor-pointer hover:text-cyan-400 transition-colors select-none"
+                      title="Sort by GitHub Commits"
+                    >
+                      <span>COMMITS</span>
+                      {renderSortIcon('commits')}
+                    </th>
+                    <th
+                      onClick={() => handleHeaderSort('score')}
+                      className="py-3 px-3 text-right text-cyan-300 cursor-pointer hover:text-cyan-200 transition-colors select-none"
+                      title="Sort by Final Composite Score"
+                    >
+                      <span>FINAL SCORE</span>
+                      {renderSortIcon('score')}
+                    </th>
+                  </>
+                ) : activeTab === 'GITHUB' ? (
                   <>
                     <th
                       onClick={() => handleHeaderSort('commits')}
@@ -1055,7 +1207,21 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
 
                         {/* Subtitle handles / roles */}
                         <div className="text-[11px] text-zinc-500 truncate max-w-[260px]">
-                          {activeTab === 'GITHUB' ? (
+                          {activeTab === 'ACM' ? (
+                            (() => {
+                              const rolls = team.members.map((m) => m.rollNumber || m.acmProfile?.rollNumber).filter(Boolean);
+                              const branches = Array.from(new Set(team.members.map((m) => m.acmProfile?.branch).filter(Boolean)));
+                              if (rolls.length > 0) {
+                                return (
+                                  <span className="text-cyan-400/90 font-mono">
+                                    {rolls.map((r) => r?.toUpperCase()).join(', ')}
+                                    {branches.length > 0 && ` • ${branches.join('/')}`}
+                                  </span>
+                                );
+                              }
+                              return 'ACM Chapter Telemetry';
+                            })()
+                          ) : activeTab === 'GITHUB' ? (
                             st.githubHandles.length > 0 ? (
                               <span className="text-cyan-400/90 font-mono">
                                 {st.githubHandles.map((h) => `@${h}`).join(', ')}
@@ -1091,7 +1257,97 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       </td>
 
                       {/* 4. Adaptive Columns Rendering by Tab */}
-                      {activeTab === 'GITHUB' ? (
+                      {activeTab === 'ACM' ? (
+                        <>
+                          {/* Official ACM Score */}
+                          <td className="py-2.5 px-3 text-right font-mono">
+                            <span className="text-base font-black text-cyan-400 neon-glow-cyan">
+                              {team.computed.acmScore ?? 0}
+                            </span>
+                            {team.computed.acmRank ? (
+                              <span className="text-[10px] text-zinc-500 block">
+                                Rank #{team.computed.acmRank}
+                              </span>
+                            ) : null}
+                          </td>
+
+                          {/* Data Source Badge */}
+                          <td className="py-2.5 px-2.5 text-center">
+                            {team.members.some((m) => m.acmDataSource === 'acm_website') ? (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-700 font-mono">
+                                🛡️ ACM OVERRIDE
+                              </span>
+                            ) : team.members.some((m) => m.acmDataSource === 'hybrid') ? (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+                                ✨ ACM BACKFILL
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 font-mono">
+                                📝 REGISTRATION
+                              </span>
+                            )}
+                          </td>
+
+                          {/* LeetCode */}
+                          <td className="py-2.5 px-2.5 text-right font-mono">
+                            {team.computed.leetcodeRating ? (
+                              <div>
+                                <span className="font-bold text-amber-400">
+                                  {team.computed.leetcodeRating}
+                                </span>
+                                {team.members.some((m) => m.acmProfile?.leetcode?.totalSolved) && (
+                                  <span className="text-[10px] text-zinc-500 block">
+                                    {Math.max(...team.members.map((m) => m.acmProfile?.leetcode?.totalSolved || 0))} solved
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-zinc-600 text-[10px]">Unrated</span>
+                            )}
+                          </td>
+
+                          {/* Codeforces */}
+                          <td className="py-2.5 px-2.5 text-right font-mono">
+                            {team.computed.cfRating ? (
+                              <div>
+                                <span className="font-bold text-blue-400">
+                                  {team.computed.cfRating}
+                                </span>
+                                {team.members.find((m) => m.acmProfile?.codeforces?.currentRank)?.acmProfile?.codeforces?.currentRank && (
+                                  <span className="text-[10px] text-zinc-500 block capitalize">
+                                    {team.members.find((m) => m.acmProfile?.codeforces?.currentRank)?.acmProfile?.codeforces?.currentRank}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-zinc-600 text-[10px]">Unrated</span>
+                            )}
+                          </td>
+
+                          {/* CodeChef */}
+                          <td className="py-2.5 px-2.5 text-center font-mono">
+                            {team.computed.codechefStars ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-800">
+                                {'★'.repeat(team.computed.codechefStars)} ({team.computed.codechefStars}★)
+                              </span>
+                            ) : (
+                              <span className="text-zinc-600 text-[10px]">Unrated</span>
+                            )}
+                          </td>
+
+                          {/* Commits */}
+                          <td className="py-2.5 px-2.5 text-right font-medium text-emerald-400 font-mono">
+                            {st.totalCommits.toLocaleString()}
+                          </td>
+
+                          {/* Final Score */}
+                          <td className="py-2.5 px-3 text-right">
+                            <span className="text-base font-black text-cyan-400 font-mono">
+                              {team.computed.finalScore}
+                            </span>
+                          </td>
+                        </>
+                      ) : activeTab === 'GITHUB' ? (
                         <>
                           {/* Commits */}
                           <td className="py-2.5 px-2.5 text-right font-medium text-emerald-400 font-mono">

@@ -6,6 +6,7 @@ import { DEFAULT_FORMULA_COEFFICIENTS } from '@/presets/defaultPresets';
 import { evaluateCustomFormula, MathScope } from '@/utils/mathEvaluator';
 import { computeMemberLinkedinScore } from './linkedin';
 import { evaluateTeamExperienceAndKeywords } from './experienceParser';
+import { computeTeamAcmStats } from './acmIntegration';
 
 export function runFullShortlistingEngine(
   teams: TeamRecord[],
@@ -19,6 +20,46 @@ export function runFullShortlistingEngine(
   const computedTeams: TeamRecord[] = teams.map((team) => {
     const aggregated = aggregateTeamSignals(team.members, config.aggregationStrategy, coef);
     const filterAudit = evaluateHardFilters(team.members, aggregated, config.filters);
+
+    // Compute live ACM NIT Surat statistics
+    const acmStats = computeTeamAcmStats(team.members);
+
+    // ACM Hard Gate Filter checks if ACM Event Mode is active
+    if (config.acmEventConfig?.enabled) {
+      if (config.acmEventConfig.requireAllMembersAcm) {
+        const unverifiedCount = team.members.filter((m) => !m.isAcmMatched).length;
+        if (unverifiedCount > 0) {
+          filterAudit.failedFilters.push({
+            passed: false,
+            filterName: 'ACM NIT Surat Chapter Verification',
+            reason: `${unverifiedCount} member(s) not registered on acmnitsurat.in (ACM-Only Event)`,
+          });
+        } else {
+          filterAudit.passedFilters.push({
+            passed: true,
+            filterName: 'ACM NIT Surat Chapter Verification',
+            reason: 'All members verified on official ACM NIT Surat platform',
+          });
+        }
+      }
+
+      if ((config.acmEventConfig.minAcmScoreRequired || 0) > 0) {
+        const minReq = config.acmEventConfig.minAcmScoreRequired!;
+        if (acmStats.teamAcmScore < minReq) {
+          filterAudit.failedFilters.push({
+            passed: false,
+            filterName: 'Minimum ACM Score',
+            reason: `Team ACM score (${acmStats.teamAcmScore}) is below required minimum (${minReq})`,
+          });
+        } else {
+          filterAudit.passedFilters.push({
+            passed: true,
+            filterName: 'Minimum ACM Score',
+            reason: `Team ACM score (${acmStats.teamAcmScore}) satisfies requirement (>= ${minReq})`,
+          });
+        }
+      }
+    }
 
     // Evaluate Work Experiences, Tier-1 Companies, Research Internships, Clubs, and Custom Keywords
     const expEval = evaluateTeamExperienceAndKeywords(
@@ -148,6 +189,15 @@ export function runFullShortlistingEngine(
     let finalScore = standardScore;
     let customScoreApplied = false;
 
+    // Apply ACM Platform Score blending if ACM Event Mode is enabled in DEFAULT_ACM_SCORE mode
+    if (config.acmEventConfig?.enabled && config.acmEventConfig.scoringMode === 'DEFAULT_ACM_SCORE') {
+      const acmWeightPct = Math.max(0, Math.min(100, config.acmEventConfig.acmWeight ?? 35));
+      const acmRatio = acmWeightPct / 100;
+      finalScore = Number(
+        (standardScore * (1 - acmRatio) + acmStats.teamAcmScore * acmRatio).toFixed(2)
+      );
+    }
+
     // Check if Custom Scoring Formula is enabled & populated
     if (config.customFormulaEnabled && config.customFormulaExpression?.trim()) {
       const scope: MathScope = {
@@ -187,6 +237,15 @@ export function runFullShortlistingEngine(
         size: team.members.length,
         skills: aggregated.totalUniqueSkills.length,
         skills_count: aggregated.totalUniqueSkills.length,
+        // Live ACM NIT Surat platform signals
+        acm_score: acmStats.teamAcmScore,
+        acm_rank: acmStats.bestAcmRank,
+        cf_rating: acmStats.maxCfRating,
+        cf_problems: acmStats.totalCfProblems,
+        leetcode_rating: acmStats.maxLeetcodeRating,
+        leetcode_solved: acmStats.totalLeetcodeSolved,
+        cc_stars: acmStats.maxCcStars,
+        acm_matched: acmStats.matchedCount,
       };
 
       const customEvaluated = evaluateCustomFormula(
@@ -291,6 +350,18 @@ export function runFullShortlistingEngine(
       finalScore: effectiveFinalScore,
       customScoreApplied,
       hasManualOverrides: hasOverrides,
+      // Live ACM NIT Surat chapter metrics
+      acmScore: acmStats.teamAcmScore,
+      acmRank: acmStats.bestAcmRank,
+      acmMatchedCount: acmStats.matchedCount,
+      acmSourceNotice: config.acmEventConfig?.enabled
+        ? config.acmEventConfig.dataPriority === 'ACM_OVERWRITE'
+          ? 'Data verified & fetched live from acmnitsurat.in (ACM Data Overrides Input)'
+          : 'Data verified & fetched live from acmnitsurat.in (Input Data Preserved)'
+        : undefined,
+      cfRating: acmStats.maxCfRating,
+      leetcodeRating: acmStats.maxLeetcodeRating,
+      codechefStars: acmStats.maxCcStars,
       rank: 0, // Assigned in step 3
       coveredRoles: coveredRolesList,
       missingRoles: missingRolesList,

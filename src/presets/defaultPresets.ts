@@ -49,6 +49,16 @@ export const DEFAULT_WORK_EXPERIENCE_CONFIG: import('@/types').WorkExperienceCon
   customKeywordsEnabled: true,
 };
 
+export const DEFAULT_ACM_EVENT_CONFIG: import('@/types').AcmEventConfig = {
+  enabled: false,
+  dataPriority: 'ACM_OVERWRITE',
+  scoringMode: 'DEFAULT_ACM_SCORE',
+  acmWeight: 35,
+  autoEnrichProfiles: true,
+  minAcmScoreRequired: 0,
+  requireAllMembersAcm: false,
+};
+
 export const PRESETS: Record<string, SelectionConfig> = {
   balanced: {
     presetName: 'Balanced Hackathon (Generalist)',
@@ -85,6 +95,7 @@ export const PRESETS: Record<string, SelectionConfig> = {
     formulaCoefficients: { ...DEFAULT_FORMULA_COEFFICIENTS },
     workExperienceConfig: { ...DEFAULT_WORK_EXPERIENCE_CONFIG },
     customKeywords: [],
+    acmEventConfig: { ...DEFAULT_ACM_EVENT_CONFIG },
   },
 
   deepTech: {

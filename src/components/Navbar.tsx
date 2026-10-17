@@ -9,6 +9,7 @@ import {
   ArrowRightLeft,
   FileSpreadsheet,
   FileCode,
+  FileDown,
   Code2,
   Sliders,
   Terminal,
@@ -35,6 +36,7 @@ interface NavbarProps {
   onOpenFilters?: () => void;
   onExportCSV: () => void;
   onExportJSON: () => void;
+  onExportPDF?: () => void;
   hasData: boolean;
   onGoHome?: () => void;
   onGoDashboard?: () => void;
@@ -55,6 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenFilters,
   onExportCSV,
   onExportJSON,
+  onExportPDF,
   hasData,
   onGoHome,
   onGoDashboard,
@@ -295,6 +298,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <FileCode className="w-3.5 h-3.5 text-cyan-400" />
                   <span>JSON</span>
                 </button>
+                {onExportPDF && (
+                  <button
+                    onClick={onExportPDF}
+                    className="px-2.5 py-1.5 hover:bg-zinc-800 text-zinc-300 hover:text-rose-300 font-medium flex items-center gap-1 border-l border-zinc-800 transition-colors cursor-pointer"
+                    title="Export Detailed Analytical Audit Report with Leaderboard, Equations & Squad-by-Squad Explainability as PDF"
+                  >
+                    <FileDown className="w-3.5 h-3.5 text-rose-400" />
+                    <span>PDF Report</span>
+                  </button>
+                )}
               </div>
             </>
           )}

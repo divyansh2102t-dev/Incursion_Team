@@ -1,5 +1,14 @@
 import { SelectionConfig, TeamRecord } from '@/types';
 import Papa from 'papaparse';
+import { generateAnalyticalReportPDF } from './pdfReportGenerator';
+
+export function exportAnalyticalReportPDF(
+  teams: TeamRecord[],
+  config: SelectionConfig,
+  shortlistCount: number
+): void {
+  generateAnalyticalReportPDF(teams, config, shortlistCount);
+}
 
 export function exportShortlistToCSV(
   teams: TeamRecord[],
