@@ -20,6 +20,7 @@ import {
   Code2,
   Sliders,
 } from 'lucide-react';
+import { LinkedinIcon } from './LinkedinIcon';
 
 interface TeamsTableProps {
   teams: TeamRecord[];
@@ -37,7 +38,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
   onOpenGitHubSync,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'OVERALL' | 'GITHUB' | 'ROLES' | 'ACCOLADES' | 'SHORTLIST' | 'DISQUALIFIED'>('OVERALL');
+  const [activeTab, setActiveTab] = useState<'OVERALL' | 'GITHUB' | 'LINKEDIN' | 'ROLES' | 'ACCOLADES' | 'SHORTLIST' | 'DISQUALIFIED'>('OVERALL');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -70,6 +71,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
     if (activeTab === 'SHORTLIST') return isShortlisted;
     if (activeTab === 'DISQUALIFIED') return !t.computed.isEligible || t.computed.manualStatus === 'excluded';
     if (activeTab === 'GITHUB') return t.members.some((m) => m.githubUrl || m.rawSignals.githubMetrics);
+    if (activeTab === 'LINKEDIN') return t.members.some((m) => m.linkedinUrl || m.rawSignals.linkedinMetrics);
     if (activeTab === 'ACCOLADES') return t.computed.projectExperienceScore > 30;
     if (activeTab === 'ROLES') return t.computed.coveredRoles.length >= 2;
 
@@ -111,6 +113,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
           {[
             { id: 'OVERALL', label: 'OVERALL' },
             { id: 'GITHUB', label: 'GITHUB CODE' },
+            { id: 'LINKEDIN', label: 'LINKEDIN' },
             { id: 'ROLES', label: 'SKILL SYNERGY' },
             { id: 'ACCOLADES', label: 'HACKATHON WINS' },
             { id: 'SHORTLIST', label: `SHORTLIST (${config.shortlistCount})` },
@@ -231,7 +234,19 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       {team.computed.rank}
                     </div>
                     <div>
-                      <h4 className="font-bold text-zinc-100 text-sm">{teamDisplayName}</h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-bold text-zinc-100 text-sm">{teamDisplayName}</h4>
+                        {team.members.some((m) => m.rawSignals.linkedinMetrics?.has500PlusConnections) && (
+                          <span title="Verified 500+ industry connections" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold">
+                            500+
+                          </span>
+                        )}
+                        {team.members.some((m) => m.rawSignals.linkedinMetrics?.seniorityLevel === 'founder' || m.rawSignals.linkedinMetrics?.seniorityLevel === 'senior') && (
+                          <span title="Senior engineering leadership / founder" className="text-[9px] bg-blue-950/80 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-mono">
+                            in:Sr
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px] text-zinc-500 font-mono">
                         {team.members.length} members • {team.computed.coveredRoles.join(', ') || 'General'}
                       </p>
@@ -365,13 +380,23 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         )}
                       </td>
 
-                      {/* Team Name & Roles (Logo box removed as requested) */}
+                      {/* Team Name & Roles */}
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-zinc-100 flex items-center gap-1.5">
-                          <span className="truncate max-w-[220px] font-semibold">{teamDisplayName}</span>
+                        <div className="font-bold text-zinc-100 flex items-center gap-1.5 flex-wrap">
+                          <span className="truncate max-w-[200px] font-semibold">{teamDisplayName}</span>
                           {team.computed.antiCheatFlags.length > 0 && (
                             <span title="Flagged for suspicious commits or forks" className="inline-flex items-center">
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            </span>
+                          )}
+                          {team.members.some((m) => m.rawSignals.linkedinMetrics?.has500PlusConnections) && (
+                            <span title="Verified 500+ industry network connection" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold shrink-0">
+                              500+
+                            </span>
+                          )}
+                          {team.members.some((m) => m.rawSignals.linkedinMetrics?.seniorityLevel === 'founder' || m.rawSignals.linkedinMetrics?.seniorityLevel === 'senior') && (
+                            <span title="Senior engineering leadership / founder" className="text-[9px] bg-blue-950/80 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-mono shrink-0">
+                              in:Sr
                             </span>
                           )}
                         </div>

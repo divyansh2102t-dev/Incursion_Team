@@ -20,6 +20,7 @@ import {
   Zap,
   History,
 } from 'lucide-react';
+import { LinkedinIcon } from '@/components/LinkedinIcon';
 import { triggerDownload } from '@/utils/exportUtils';
 import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
 import { CustomFormulaStudio } from '@/components/CustomFormulaStudio';
@@ -825,6 +826,203 @@ export default function FormulasPage() {
                   onChange={(e) => updateCoef('balancedMeanMaxCap', parseFloat(e.target.value))}
                   className="w-full accent-emerald-400 cursor-pointer"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: LinkedIn Profile & Professional Pedigree Formula */}
+          <div className="bg-zinc-950/85 border border-cyan-950/80 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] p-5 space-y-5 font-mono text-zinc-300 backdrop-blur-xl lg:col-span-2">
+            <div className="flex items-center gap-2.5 pb-2 border-b border-cyan-950/60">
+              <LinkedinIcon className="w-5 h-5 text-blue-400" />
+              <div>
+                <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                  <span>LinkedIn & Professional Pedigree Formula</span>
+                  <span className="text-[9px] font-bold bg-blue-950 text-blue-300 border border-blue-800 px-2 py-0.5 rounded">
+                    100% LEGAL & ETHICAL
+                  </span>
+                </h2>
+                <p className="text-[10px] text-zinc-500">
+                  Evaluates public professional signals: seniority hierarchy, pedigree institutions, 500+ network milestone, vanity slug ownership, and GitHub cross-corroboration
+                </p>
+              </div>
+            </div>
+
+            {/* Live Formula Display Box */}
+            <div className="bg-black/60 border border-blue-900/40 rounded-xl p-3.5 font-mono text-[11px] space-y-1">
+              <div className="text-[10px] uppercase font-bold text-zinc-500">Live Mathematical Formula</div>
+              <div className="font-semibold text-blue-300 overflow-x-auto">
+                Score = min(100, Seniority (up to {coef.linkedinSeniorityMaxPoints ?? 30} pts) + Pedigree (up to {coef.linkedinPedigreeMaxPoints ?? 25} pts) + Conn500 ({coef.linkedinConnections500Points ?? 20} pts) + Vanity ({coef.linkedinVanitySlugPoints ?? 15} pts) + GitHubMatch ({coef.linkedinGithubMatchPoints ?? 10} pts))
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+              {/* Seniority Points */}
+              <div className="space-y-1 bg-black/40 p-3 rounded-xl border border-zinc-900">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Seniority Tier Max Points:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={coef.linkedinSeniorityMaxPoints ?? 30}
+                      onChange={(e) => updateCoef('linkedinSeniorityMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-blue-400 text-blue-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-blue-400 text-[11px]">pts</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="5"
+                  value={coef.linkedinSeniorityMaxPoints ?? 30}
+                  onChange={(e) => updateCoef('linkedinSeniorityMaxPoints', parseInt(e.target.value))}
+                  className="w-full accent-blue-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-zinc-500 font-sans block">
+                  Scaled by role: Founder/C-level (100%), Lead/Principal (90%), Senior (80%), Mid (55%), Junior (35%), Student (20%).
+                </span>
+              </div>
+
+              {/* Pedigree Points */}
+              <div className="space-y-1 bg-black/40 p-3 rounded-xl border border-zinc-900">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Tier-1 Tech Pedigree Points:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={coef.linkedinPedigreeMaxPoints ?? 25}
+                      onChange={(e) => updateCoef('linkedinPedigreeMaxPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-blue-400 text-blue-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-blue-400 text-[11px]">pts</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="5"
+                  value={coef.linkedinPedigreeMaxPoints ?? 25}
+                  onChange={(e) => updateCoef('linkedinPedigreeMaxPoints', parseInt(e.target.value))}
+                  className="w-full accent-blue-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-zinc-500 font-sans block">
+                  Awarded for recognized top engineering organizations (FAANG, OpenAI, Stripe, YC alumni, unicorns).
+                </span>
+              </div>
+
+              {/* 500+ Connections */}
+              <div className="space-y-1 bg-black/40 p-3 rounded-xl border border-zinc-900">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>500+ Connections Milestone:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="40"
+                      value={coef.linkedinConnections500Points ?? 20}
+                      onChange={(e) => updateCoef('linkedinConnections500Points', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-blue-400 text-blue-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-blue-400 text-[11px]">pts</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="40"
+                  step="5"
+                  value={coef.linkedinConnections500Points ?? 20}
+                  onChange={(e) => updateCoef('linkedinConnections500Points', parseInt(e.target.value))}
+                  className="w-full accent-blue-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-zinc-500 font-sans block">
+                  Reward for reaching LinkedIn&apos;s industry-standard &ldquo;500+ connections&rdquo; threshold.
+                </span>
+              </div>
+
+              {/* Vanity Slug Points */}
+              <div className="space-y-1 bg-black/40 p-3 rounded-xl border border-zinc-900">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>Custom Vanity Slug Bonus:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={coef.linkedinVanitySlugPoints ?? 15}
+                      onChange={(e) => updateCoef('linkedinVanitySlugPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-blue-400 text-blue-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-blue-400 text-[11px]">pts</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="30"
+                  step="1"
+                  value={coef.linkedinVanitySlugPoints ?? 15}
+                  onChange={(e) => updateCoef('linkedinVanitySlugPoints', parseInt(e.target.value))}
+                  className="w-full accent-blue-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-zinc-500 font-sans block">
+                  Differentiates professional claimed handles (<code className="text-blue-300">/in/alexchen</code>) from auto-generated defaults (<code className="text-zinc-400">/in/alex-982348a</code>).
+                </span>
+              </div>
+
+              {/* GitHub Match Points */}
+              <div className="space-y-1 bg-black/40 p-3 rounded-xl border border-zinc-900">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span>GitHub Cross-Corroboration:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={coef.linkedinGithubMatchPoints ?? 10}
+                      onChange={(e) => updateCoef('linkedinGithubMatchPoints', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-blue-400 text-blue-400 font-bold text-center rounded font-mono text-xs outline-none"
+                      title="Type exact points to auto-set the slider"
+                    />
+                    <span className="font-bold text-blue-400 text-[11px]">pts</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="30"
+                  step="1"
+                  value={coef.linkedinGithubMatchPoints ?? 10}
+                  onChange={(e) => updateCoef('linkedinGithubMatchPoints', parseInt(e.target.value))}
+                  className="w-full accent-blue-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-zinc-500 font-sans block">
+                  Bonus awarded when LinkedIn handle or name directly corroborates applicant&apos;s GitHub profile.
+                </span>
+              </div>
+
+              {/* Total Potential Cap & Formula Note */}
+              <div className="space-y-2 bg-blue-950/20 p-3 rounded-xl border border-blue-900/50 flex flex-col justify-center">
+                <div className="text-[11px] font-bold text-blue-300 uppercase">
+                  Custom Formula Variable
+                </div>
+                <p className="text-[10px] text-zinc-400 font-sans leading-relaxed">
+                  Use <code className="text-cyan-300 font-mono font-bold">linkedin</code> in your Custom Formula Studio expression (e.g. <code className="text-zinc-200">0.4*tech + 0.3*exp + 0.3*linkedin</code>) to weigh professional pedigree directly into final candidate ranking.
+                </p>
+                <div className="text-[10px] text-zinc-500 font-mono">
+                  Sub-variables: <span className="text-blue-300">linkedin_seniority</span>, <span className="text-blue-300">linkedin_connections</span>, <span className="text-blue-300">linkedin_verified</span>.
+                </div>
               </div>
             </div>
           </div>

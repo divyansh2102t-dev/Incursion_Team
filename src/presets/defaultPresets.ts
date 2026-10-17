@@ -16,6 +16,13 @@ export const DEFAULT_FORMULA_COEFFICIENTS: FormulaCoefficients = {
   githubSkillBreadthMaxPoints: 20,
   githubSkillDivisor: 10,
 
+  // LinkedIn profile formula parameters (100% in user's hands)
+  linkedinSeniorityMaxPoints: 30,
+  linkedinPedigreeMaxPoints: 25,
+  linkedinConnections500Points: 20,
+  linkedinVanitySlugPoints: 15,
+  linkedinGithubMatchPoints: 10,
+
   // Anti-cheat penalty factor
   suspiciousAccountDiscount: 0.70,
 

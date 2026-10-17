@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { ColumnMappingConfig, MemberProfile, TeamRecord } from '@/types';
 import { extractSkillsAndRoles } from './taxonomy';
 import { extractGithubUsername, generateHeuristicFallback } from './github';
+import { extractLinkedinUsername, isCustomVanitySlug, analyzeCrossMatch } from './linkedin';
 
 export interface ParseResult {
   headers: string[];
@@ -195,6 +196,22 @@ export function parseRawDataToTeams(
         });
       }
 
+      // LinkedIn extraction
+      const linkedinUsername = extractLinkedinUsername(linkedinUrl) || undefined;
+      const isCustomSlug = isCustomVanitySlug(linkedinUsername);
+      const crossMatch = analyzeCrossMatch(linkedinUsername, ghUsername || undefined, name);
+      const linkedinMetrics = linkedinUsername
+        ? {
+            username: linkedinUsername,
+            seniorityLevel: 'unknown' as const,
+            has500PlusConnections: false,
+            isCustomVanitySlug: isCustomSlug,
+            crossMatchesGithub: crossMatch,
+            extractedSkills: [],
+            verifiedScore: isCustomSlug ? 35 : 20,
+          }
+        : undefined;
+
       // Calculate completeness ratio
       const signalsPresent = [
         Boolean(name),
@@ -224,7 +241,9 @@ export function parseRawDataToTeams(
           hackathonExperienceCount: extracted.hackathonMentionCount,
           hasResume: Boolean(resumeUrl),
           hasGithub: Boolean(githubUrl || ghUsername),
-          hasLinkedin: Boolean(linkedinUrl),
+          hasLinkedin: Boolean(linkedinUrl || linkedinUsername),
+          linkedinUsername,
+          linkedinMetrics,
           hasPortfolio: Boolean(portfolioUrl),
           completenessRatio,
           rawTextSummary: roleOrBio,
