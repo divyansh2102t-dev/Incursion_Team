@@ -53,6 +53,9 @@ interface TeamDimensionStats {
   githubHandles: string[];
   hasForkSuspicion: boolean;
   techScore: number;
+  unverifiedGhCount: number;
+  ghFallbackHashes: number[];
+  isGhLiveVerified: boolean;
 
   linkedinScore: number;
   seniorityLevels: string[];
@@ -109,6 +112,9 @@ function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
   let femaleCount = 0;
   let contactCount = 0;
 
+  let unverifiedGhCount = 0;
+  const ghFallbackHashes: number[] = [];
+
   team.members.forEach((m) => {
     if (m.isFemale) femaleCount++;
     if (m.phone) contactCount++;
@@ -124,6 +130,15 @@ function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
       totalCommits += m.rawSignals.githubMetrics.estimatedContributions || 0;
       totalStars += m.rawSignals.githubMetrics.totalStars || 0;
       (m.rawSignals.githubMetrics.topLanguages || []).forEach((l) => langSet.add(l));
+
+      if (m.rawSignals.githubMetrics.syncStatus !== 'live_verified') {
+        unverifiedGhCount++;
+        if (m.rawSignals.githubMetrics.fallbackHash) {
+          ghFallbackHashes.push(m.rawSignals.githubMetrics.fallbackHash);
+        }
+      }
+    } else if (m.githubUrl || m.rawSignals.githubUsername) {
+      unverifiedGhCount++;
     }
 
     // LinkedIn extraction
@@ -176,6 +191,9 @@ function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
     githubHandles: Array.from(ghHandleSet).filter(Boolean),
     hasForkSuspicion,
     techScore: team.computed.technicalDepthScore,
+    unverifiedGhCount,
+    ghFallbackHashes,
+    isGhLiveVerified: githubMemberCount > 0 && unverifiedGhCount === 0,
 
     linkedinScore,
     seniorityLevels: Array.from(senioritySet),
@@ -245,6 +263,16 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
     });
     return map;
   }, [teams]);
+
+  // Cohort-wide count of candidates whose GitHub stats are currently unverified (using hash fallback)
+  const cohortUnverifiedGhCount = useMemo(() => {
+    let count = 0;
+    teams.forEach((t) => {
+      const st = statsMap.get(t.id);
+      if (st) count += st.unverifiedGhCount;
+    });
+    return count;
+  }, [teams, statsMap]);
 
   // Tab count metrics
   const tabCounts = useMemo(() => {
@@ -612,6 +640,33 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
         </div>
       )}
 
+      {/* GitHub Rate Limit / Temporary Hash Fallback Notice */}
+      {cohortUnverifiedGhCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-950/80 via-zinc-950 to-zinc-950 px-4 py-2 border-b border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_#f59e0b]" />
+            <span className="text-amber-300 font-bold flex items-center gap-1.5">
+              ⚠️ GITHUB RATE LIMIT / TEMPORARY HASH ACTIVE
+            </span>
+            <span className="text-zinc-500 hidden sm:inline">|</span>
+            <span className="text-zinc-300 text-[11px]">
+              {cohortUnverifiedGhCount} candidate(s) currently scored using temporary username hash values (<span className="text-amber-300 font-bold">#hash</span>) while API limit is reached.
+            </span>
+          </div>
+
+          {onOpenGitHubSync && (
+            <button
+              onClick={onOpenGitHubSync}
+              className="px-2.5 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/50 hover:border-amber-400 rounded text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Add a free GitHub Personal Access Token or resume sync when rate limit resets"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Fetch Remaining ({cohortUnverifiedGhCount})</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 2. Search and Filter Bar Controls */}
       <div className="p-3.5 sm:p-4 bg-zinc-950/60 border-b border-cyan-950/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
         {/* Search Bar with '/' hotkey badge */}
@@ -783,19 +838,31 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                     </div>
                   </div>
                 ) : activeTab === 'GITHUB' ? (
-                  <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-mono bg-zinc-900/60 p-2 rounded-lg border border-zinc-800">
-                    <div>
-                      <span className="text-zinc-500 block">COMMITS</span>
-                      <strong className="text-emerald-300">{st.totalCommits.toLocaleString()}</strong>
+                  <div className="space-y-1.5 font-mono">
+                    <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] bg-zinc-900/60 p-2 rounded-lg border border-zinc-800">
+                      <div>
+                        <span className="text-zinc-500 block">COMMITS</span>
+                        <strong className="text-emerald-300">{st.totalCommits.toLocaleString()}</strong>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">STARS</span>
+                        <strong className="text-amber-300">⭐ {st.totalStars}</strong>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">LANGUAGES</span>
+                        <strong className="text-zinc-200 truncate block">{st.topLanguages.slice(0, 2).join(', ') || 'N/A'}</strong>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-zinc-500 block">STARS</span>
-                      <strong className="text-amber-300">⭐ {st.totalStars}</strong>
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 block">LANGUAGES</span>
-                      <strong className="text-zinc-200 truncate block">{st.topLanguages.slice(0, 2).join(', ') || 'N/A'}</strong>
-                    </div>
+                    {st.unverifiedGhCount > 0 ? (
+                      <div className="bg-amber-950/40 border border-amber-800/60 px-2 py-0.5 rounded text-[10px] text-amber-300 font-bold flex items-center justify-between">
+                        <span>⚠️ Hash Estimate: #{st.ghFallbackHashes[0] || 'TEMP'}</span>
+                        <span className="text-[9px] text-amber-400/80">API Limit Fallback</span>
+                      </div>
+                    ) : (
+                      <div className="bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] text-emerald-300 font-bold flex items-center justify-center gap-1">
+                        <span>✓ Live Verified GitHub Stats</span>
+                      </div>
+                    )}
                   </div>
                 ) : activeTab === 'LINKEDIN' ? (
                   <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-mono bg-zinc-900/60 p-2 rounded-lg border border-zinc-800">
@@ -984,7 +1051,7 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       {renderSortIcon('stars')}
                     </th>
                     <th className="py-3 px-2.5 text-left">TOP LANGUAGES</th>
-                    <th className="py-3 px-2.5 text-center">FORK INTEGRITY</th>
+                    <th className="py-3 px-2.5 text-center">VERIFICATION / INTEGRITY</th>
                     <th
                       onClick={() => handleHeaderSort('tech')}
                       className="py-3 px-3 text-right text-cyan-300 cursor-pointer hover:text-cyan-200 transition-colors select-none"
@@ -1223,8 +1290,22 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                             })()
                           ) : activeTab === 'GITHUB' ? (
                             st.githubHandles.length > 0 ? (
-                              <span className="text-cyan-400/90 font-mono">
-                                {st.githubHandles.map((h) => `@${h}`).join(', ')}
+                              <span className="text-cyan-400/90 font-mono flex flex-wrap items-center gap-1.5">
+                                {st.githubHandles.map((h) => {
+                                  const mem = team.members.find((m) => m.rawSignals.githubUsername === h);
+                                  const isUnverified = mem?.rawSignals.githubMetrics?.syncStatus !== 'live_verified';
+                                  const hashVal = mem?.rawSignals.githubMetrics?.fallbackHash;
+                                  return (
+                                    <span key={h} className="inline-flex items-center gap-1">
+                                      <span>@{h}</span>
+                                      {isUnverified && hashVal && (
+                                        <span className="text-[9px] bg-amber-950/80 text-amber-300 border border-amber-700/80 px-1 py-0.2 rounded font-mono font-bold" title={`Temporary hash estimate #${hashVal} while GitHub API rate limit is reached`}>
+                                          #{hashVal}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
                               </span>
                             ) : (
                               'No GitHub linked'
@@ -1371,15 +1452,22 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                               )}
                             </div>
                           </td>
-                          {/* Fork Integrity */}
+                          {/* Verification & Fork Integrity */}
                           <td className="py-2.5 px-2.5 text-center">
-                            {st.hasForkSuspicion ? (
+                            {st.unverifiedGhCount > 0 ? (
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/90 text-amber-300 border border-amber-600/80 font-mono inline-flex items-center gap-1 shadow-xs cursor-help"
+                                title={`Temporary Hash Estimate (#${st.ghFallbackHashes.join(', ') || 'N/A'}). Real GitHub API was rate limited or pending sync. Click 'GitHub PAT' to fetch real data.`}
+                              >
+                                <span>⚠️ HASH #{st.ghFallbackHashes[0] || 'TEMP'}</span>
+                              </span>
+                            ) : st.hasForkSuspicion ? (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-800">
                                 ⚠️ Suspicious
                               </span>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800">
-                                ✓ Clean
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800 font-mono">
+                                ✓ Live Verified
                               </span>
                             )}
                           </td>

@@ -11,10 +11,21 @@ export interface GitHubStats {
   isSuspicious: boolean;
   suspiciousReason?: string;
   avatarUrl?: string;
+  isHeuristicFallback?: boolean;
+  fallbackHash?: number;
+  syncStatus?: 'live_verified' | 'fallback_hash' | 'rate_limited';
 }
 
 // In-memory cache for the session to prevent duplicate network calls
 const GITHUB_CACHE = new Map<string, GitHubStats>();
+
+export function clearGitHubUserCache(username?: string): void {
+  if (username) {
+    GITHUB_CACHE.delete(username.replace(/^@/, '').trim().toLowerCase());
+  } else {
+    GITHUB_CACHE.clear();
+  }
+}
 
 export interface RateLimitInfo {
   limit: number;
@@ -80,8 +91,12 @@ export async function fetchGitHubStats(
   userToken?: string
 ): Promise<GitHubStats> {
   const cleanUser = username.replace(/^@/, '').trim();
-  if (GITHUB_CACHE.has(cleanUser)) {
-    return GITHUB_CACHE.get(cleanUser)!;
+  const cached = GITHUB_CACHE.get(cleanUser);
+  if (cached) {
+    // If cached as a rate limited fallback and a new token was supplied, bypass cache and attempt live fetch
+    if (!(cached.isHeuristicFallback && userToken)) {
+      return cached;
+    }
   }
 
   const headers: Record<string, string> = {
@@ -107,14 +122,19 @@ export async function fetchGitHubStats(
         topLanguages: [],
         isSuspicious: true,
         suspiciousReason: 'GitHub profile does not exist (404)',
+        isHeuristicFallback: false,
+        syncStatus: 'live_verified',
       };
       GITHUB_CACHE.set(cleanUser, notFoundStats);
       return notFoundStats;
     }
 
     if (!userRes.ok) {
-      // If rate limited or network issue, generate reasonable heuristic fallback based on username
-      return generateHeuristicFallback(cleanUser);
+      // If rate limited (status 403) or network issue, generate reasonable heuristic fallback based on username
+      const isRateLimited = userRes.status === 403;
+      const fallback = generateHeuristicFallback(cleanUser, isRateLimited);
+      GITHUB_CACHE.set(cleanUser, fallback);
+      return fallback;
     }
 
     const userData = await userRes.json();
@@ -185,12 +205,15 @@ export async function fetchGitHubStats(
       isSuspicious,
       suspiciousReason,
       avatarUrl: userData.avatar_url,
+      isHeuristicFallback: false,
+      fallbackHash: undefined,
+      syncStatus: 'live_verified',
     };
 
     GITHUB_CACHE.set(cleanUser, stats);
     return stats;
   } catch {
-    return generateHeuristicFallback(cleanUser);
+    return generateHeuristicFallback(cleanUser, false);
   }
 }
 
@@ -198,7 +221,10 @@ export async function fetchGitHubStats(
  * Deterministic offline fallback in case of rate limits or offline use.
  * Produces realistic, stable numbers based on string hash so results are 100% reproducible.
  */
-export function generateHeuristicFallback(username: string): GitHubStats {
+export function generateHeuristicFallback(
+  username: string,
+  isRateLimited: boolean = false
+): GitHubStats {
   let hash = 0;
   for (let i = 0; i < username.length; i++) {
     hash = (hash << 5) - hash + username.charCodeAt(i);
@@ -227,5 +253,8 @@ export function generateHeuristicFallback(username: string): GitHubStats {
     estimatedContributions,
     topLanguages,
     isSuspicious: false,
+    isHeuristicFallback: true,
+    fallbackHash: positiveHash,
+    syncStatus: isRateLimited ? 'rate_limited' : 'fallback_hash',
   };
 }

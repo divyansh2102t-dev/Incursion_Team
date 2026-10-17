@@ -452,7 +452,12 @@ export function generateAnalyticalReportPDF(
       const parts = [m.name];
       if (m.college) parts.push(m.college);
       if (m.gradYear) parts.push(`'${m.gradYear}`);
-      if (m.rawSignals.githubUsername) parts.push(`gh:@${m.rawSignals.githubUsername}`);
+      if (m.rawSignals.githubUsername) {
+        const ghTag = m.rawSignals.githubMetrics?.syncStatus === 'live_verified'
+          ? `gh:@${m.rawSignals.githubUsername} (Verified)`
+          : `gh:@${m.rawSignals.githubUsername} (Hash #${m.rawSignals.githubMetrics?.fallbackHash || 'TEMP'})`;
+        parts.push(ghTag);
+      }
       if (m.acmProfile?.rollNumber || m.rollNumber) parts.push(`roll:${(m.acmProfile?.rollNumber || m.rollNumber)?.toUpperCase()}`);
       return parts.join(' | ');
     }).join('\n');

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TeamRecord } from '@/types';
 import {
   X,
@@ -16,8 +16,9 @@ import {
   ShieldCheck,
   Check,
   Lock,
+  Zap,
 } from 'lucide-react';
-import { checkGitHubRateLimit, fetchGitHubStats, RateLimitInfo } from '@/engine/github';
+import { checkGitHubRateLimit, fetchGitHubStats, clearGitHubUserCache, RateLimitInfo } from '@/engine/github';
 import { encryptTokenString, decryptTokenString, maskToken } from '@/utils/cryptoUtils';
 
 export interface StoredTokenItem {
@@ -156,34 +157,82 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
   };
 
   // Find all unique candidate GitHub usernames across all teams
-  const uniqueUsernames = Array.from(
-    new Set(
-      teams.flatMap((t) =>
-        t.members
-          .map((m) => m.rawSignals.githubUsername)
-          .filter((u): u is string => Boolean(u))
+  const uniqueUsernames = useMemo(() => {
+    return Array.from(
+      new Set(
+        teams.flatMap((t) =>
+          t.members
+            .map((m) => m.rawSignals.githubUsername)
+            .filter((u): u is string => Boolean(u))
+        )
       )
-    )
-  );
+    );
+  }, [teams]);
 
-  const startLiveSync = async () => {
+  const verifiedUsernames = useMemo(() => {
+    return Array.from(
+      new Set(
+        teams.flatMap((t) =>
+          t.members
+            .filter(
+              (m) =>
+                m.rawSignals.githubUsername &&
+                m.rawSignals.githubMetrics?.syncStatus === 'live_verified'
+            )
+            .map((m) => m.rawSignals.githubUsername!)
+        )
+      )
+    );
+  }, [teams]);
+
+  const unverifiedUsernames = useMemo(() => {
+    return Array.from(
+      new Set(
+        teams.flatMap((t) =>
+          t.members
+            .filter(
+              (m) =>
+                m.rawSignals.githubUsername &&
+                m.rawSignals.githubMetrics?.syncStatus !== 'live_verified'
+            )
+            .map((m) => m.rawSignals.githubUsername!)
+        )
+      )
+    );
+  }, [teams]);
+
+  const [rateLimitNotice, setRateLimitNotice] = useState<string | null>(null);
+
+  const startLiveSync = async (onlyRemaining: boolean = false) => {
     setIsSyncing(true);
     setSyncCompleted(false);
+    setRateLimitNotice(null);
 
     let currentToken = getActiveDecryptedToken();
+    const targetUsernames = onlyRemaining ? unverifiedUsernames : uniqueUsernames;
+
+    // If full sync requested, clear session cache so all handles are fresh
+    if (!onlyRemaining) {
+      clearGitHubUserCache();
+    }
+
     const statsMap = new Map<string, any>();
     let processed = 0;
+    let rateLimitEncountered = false;
 
-    for (const username of uniqueUsernames) {
+    for (const username of targetUsernames) {
       setProgress({
         current: processed + 1,
-        total: uniqueUsernames.length,
+        total: targetUsernames.length,
         user: username,
       });
 
       try {
         const stats = await fetchGitHubStats(username, currentToken);
         statsMap.set(username.toLowerCase(), stats);
+        if (stats.syncStatus === 'rate_limited') {
+          rateLimitEncountered = true;
+        }
       } catch (err: any) {
         console.error('GitHub fetch error for:', username, err);
       }
@@ -218,6 +267,11 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
     setIsSyncing(false);
     setSyncCompleted(true);
+    if (rateLimitEncountered) {
+      setRateLimitNotice(
+        `Rate limit reached during sync. Unreached candidates are flagged with their temporary #hash values. You can resume fetching the remaining candidates once your quota resets or by adding another PAT.`
+      );
+    }
     loadTokens(); // Refresh quota indicators
   };
 
@@ -404,30 +458,75 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
             )}
           </div>
 
+          {/* Candidate Sync Telemetry Summary */}
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Total Handles</span>
+              <span className="text-base font-black text-zinc-100">{uniqueUsernames.length}</span>
+            </div>
+            <div className="bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-lg">
+              <span className="text-emerald-400 block text-[10px] uppercase font-bold">✓ Live Verified</span>
+              <span className="text-base font-black text-emerald-300">{verifiedUsernames.length}</span>
+            </div>
+            <div className="bg-amber-950/40 border border-amber-800/60 p-2.5 rounded-lg">
+              <span className="text-amber-400 block text-[10px] uppercase font-bold">⚠️ Unsynced (Hash)</span>
+              <span className="text-base font-black text-amber-300">{unverifiedUsernames.length}</span>
+            </div>
+          </div>
+
+          {unverifiedUsernames.length > 0 && (
+            <div className="bg-amber-950/30 border border-amber-800/60 p-3 rounded-lg text-amber-200 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block">
+                  {unverifiedUsernames.length} candidate(s) currently scored using temporary username hash values.
+                </span>
+                <span className="text-zinc-400 text-[11px] block mt-0.5">
+                  To ensure 100% fair evaluation, click <strong>Fetch Remaining</strong> below once your GitHub API limit resets or after activating a PAT above.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Sync Trigger Area */}
           <div className="border-t border-cyan-950/60 pt-4 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="font-bold text-zinc-100">
                   Enrich Candidate Data from GitHub API
                 </div>
                 <div className="text-[11px] text-zinc-500">
-                  {uniqueUsernames.length} unique candidate GitHub handles found across {teams.length} teams.
+                  {verifiedUsernames.length} of {uniqueUsernames.length} candidates verified live.
                 </div>
               </div>
 
-              <button
-                onClick={startLiveSync}
-                disabled={isSyncing || uniqueUsernames.length === 0}
-                className={`px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  isSyncing
-                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                    : 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                }`}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Syncing...' : 'Sync Live GitHub Stats'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {unverifiedUsernames.length > 0 && (
+                  <button
+                    onClick={() => startLiveSync(true)}
+                    disabled={isSyncing}
+                    className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black rounded-lg text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.3)] cursor-pointer disabled:opacity-50 transition-all"
+                    title="Fetch only the remaining candidates whose stats are currently temporary hash values"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-black" />
+                    <span>Fetch Remaining ({unverifiedUsernames.length})</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => startLiveSync(false)}
+                  disabled={isSyncing || uniqueUsernames.length === 0}
+                  className={`px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    isSyncing
+                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                      : 'bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80'
+                  }`}
+                  title="Clear session cache and re-query all candidate handles from GitHub"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Syncing...' : unverifiedUsernames.length === 0 ? 'Re-sync All' : 'Full Sync'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Progress Bar */}

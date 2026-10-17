@@ -141,6 +141,9 @@ export interface ExtractedSignals {
     isSuspicious: boolean;
     suspiciousReason?: string;
     avatarUrl?: string;
+    isHeuristicFallback?: boolean;
+    fallbackHash?: number;
+    syncStatus?: 'live_verified' | 'fallback_hash' | 'rate_limited';
   };
   experienceYears?: number;
   hackathonExperienceCount: number;
