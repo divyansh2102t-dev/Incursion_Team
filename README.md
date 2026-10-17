@@ -150,6 +150,10 @@ The hard-qualification pipeline enforces eligibility before candidates enter the
 - **Minimum GitHub Velocity:** Minimum combined commits threshold (e.g., $\ge 20$ commits).
 - **Minimum Skills Breadth:** Rejects submissions with fewer than $N$ unique verified technologies.
 - **Portfolio & Resume Requirements:** Enforces at least one verified resume or portfolio link.
+- **Compulsory Female Participation Gate (SIH / Diversity Rule):**
+  - **Tunable Minimum:** Enforces at least $N$ verified female participants per team (default $\ge 1$ female member).
+  - **Multi-Vector Detection:** Automatically resolves female participation across explicit registration gender columns (`Gender`, `Sex`, `Pronouns`), pronoun matching (`she/her`, `female`), and an extensive Indian & international given-name taxonomy.
+  - **Strict Qualification Gate:** Instantly flags and disqualifies teams that fail diversity rules with clear, explainable audit reasons in the scorecard and telemetry HUD.
 
 ---
 

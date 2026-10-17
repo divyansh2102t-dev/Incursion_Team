@@ -44,6 +44,8 @@ export interface MemberProfile {
   id: string;
   name: string;
   email?: string;
+  gender?: 'female' | 'male' | 'non_binary' | 'other' | 'unspecified';
+  isFemale?: boolean;
   githubUrl?: string;
   linkedinUrl?: string;
   portfolioUrl?: string;
@@ -108,6 +110,8 @@ export interface HardFilterConfig {
   minGithubContributionsOverall: number;
   requireAtLeastOneResumeOrPortfolio: boolean;
   minTotalSkillsCount: number;
+  requireFemaleMember?: boolean; // Compulsory female participation (e.g. SIH / diversity rules)
+  minFemaleCount?: number;        // Minimum required female participants (default 1)
 }
 
 export interface ScoringWeights {
@@ -177,6 +181,7 @@ export interface ColumnMappingConfig {
     memberIndex: number; // 1, 2, 3...
     nameCol?: string;
     emailCol?: string;
+    genderCol?: string;
     githubCol?: string;
     linkedinCol?: string;
     portfolioCol?: string;

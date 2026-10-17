@@ -4,6 +4,7 @@ import { ColumnMappingConfig, MemberProfile, TeamRecord } from '@/types';
 import { extractSkillsAndRoles } from './taxonomy';
 import { extractGithubUsername, generateHeuristicFallback } from './github';
 import { extractLinkedinUsername, isCustomVanitySlug, analyzeCrossMatch } from './linkedin';
+import { detectMemberGender } from './genderDetection';
 
 export interface ParseResult {
   headers: string[];
@@ -110,17 +111,19 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
 
     const nameCol = findCol(['name', 'full name', 'first name']);
     const emailCol = findCol(['email', 'mail']);
+    const genderCol = findCol(['gender', 'sex', 'pronoun']);
     const githubCol = findCol(['github', 'git', 'repo', 'gh']);
     const linkedinCol = findCol(['linkedin', 'linked in']);
     const portfolioCol = findCol(['portfolio', 'website', 'personal site']);
     const resumeCol = findCol(['resume', 'cv', 'drive', 'doc']);
     const roleOrBioCol = findCol(['role', 'bio', 'skills', 'about', 'experience']);
 
-    if (nameCol || githubCol || resumeCol || emailCol) {
+    if (nameCol || githubCol || resumeCol || emailCol || genderCol) {
       memberColumns.push({
         memberIndex: m,
         nameCol,
         emailCol,
+        genderCol,
         githubCol,
         linkedinCol,
         portfolioCol,
@@ -136,6 +139,7 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
       memberIndex: 1,
       nameCol: headers.find((h) => /name/i.test(h) && !/team/i.test(h)),
       emailCol: headers.find((h) => /email/i.test(h)),
+      genderCol: headers.find((h) => /gender|sex|pronoun/i.test(h)),
       githubCol: headers.find((h) => /github|git/i.test(h)),
       linkedinCol: headers.find((h) => /linkedin/i.test(h)),
       portfolioCol: headers.find((h) => /portfolio|website/i.test(h)),
@@ -224,10 +228,20 @@ export function parseRawDataToTeams(
 
       const completenessRatio = Number((signalsPresent / 6).toFixed(2));
 
+      // Intelligent Gender Detection
+      const rawGender = mCol.genderCol ? (row[mCol.genderCol] || '').trim() : '';
+      const genderRes = detectMemberGender({
+        rawGender,
+        name,
+        roleOrBio,
+      });
+
       members.push({
         id: `mem-${rowIdx + 1}-${idx + 1}`,
         name: name || `Member ${idx + 1}`,
         email,
+        gender: genderRes.gender,
+        isFemale: genderRes.isFemale,
         githubUrl,
         linkedinUrl,
         portfolioUrl,
@@ -250,6 +264,20 @@ export function parseRawDataToTeams(
         },
       });
     });
+
+    // Team-level diversity check fallback (e.g. "Has Female Member" column)
+    const hasTeamLevelFemaleSignal = Object.entries(row).some(([colName, val]) => {
+      const lcCol = colName.toLowerCase();
+      const lcVal = (val || '').toLowerCase().trim();
+      return (
+        (lcCol.includes('female') || lcCol.includes('women') || lcCol.includes('diversity')) &&
+        (lcVal === 'yes' || lcVal === 'true' || lcVal === '1' || lcVal.includes('female'))
+      );
+    });
+    if (hasTeamLevelFemaleSignal && !members.some((m) => m.isFemale) && members.length > 0) {
+      members[0].isFemale = true;
+      members[0].gender = 'female';
+    }
 
     // Default uncalculated computed state (will be populated by scoring engine)
     return {

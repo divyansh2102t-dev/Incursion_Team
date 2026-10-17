@@ -217,7 +217,14 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                 return (
                   <div key={member.id} className="p-3 bg-black/40 border border-zinc-800/80 rounded-lg space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <div className="font-bold text-zinc-100">{memberName}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-zinc-100">{memberName}</span>
+                        {member.isFemale && (
+                          <span className="text-[10px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1.5 py-0.2 rounded font-bold font-mono">
+                            ♀ Female
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] bg-zinc-900 border border-zinc-700 text-cyan-300 px-1.5 py-0.5 rounded font-bold">
                         {Math.round(member.rawSignals.completenessRatio * 100)}% Complete
                       </span>

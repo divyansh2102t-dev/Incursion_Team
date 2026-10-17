@@ -277,6 +277,24 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                             in:Sr
                           </span>
                         )}
+                        {(() => {
+                          const femaleCount = team.members.filter((m) => m.isFemale).length;
+                          if (femaleCount > 0) {
+                            return (
+                              <span title={`${femaleCount} verified female participant(s)`} className="text-[9px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1 py-0.2 rounded font-mono font-bold">
+                                ♀ {femaleCount}F
+                              </span>
+                            );
+                          }
+                          if (config.filters.requireFemaleMember && femaleCount === 0) {
+                            return (
+                              <span title="Compulsory female participant requirement missing (Gate Failed)" className="text-[9px] bg-rose-950/80 text-rose-300 border border-rose-800 px-1 py-0.2 rounded font-mono font-bold">
+                                ♀ MISSING
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                       <p className="text-[11px] text-zinc-500 font-mono">
                         {team.members.length} members • {team.computed.coveredRoles.join(', ') || 'General'}
@@ -421,6 +439,24 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                               in:Sr
                             </span>
                           )}
+                          {(() => {
+                            const femaleCount = team.members.filter((m) => m.isFemale).length;
+                            if (femaleCount > 0) {
+                              return (
+                                <span title={`${femaleCount} verified female participant(s)`} className="text-[9px] bg-pink-950/80 text-pink-300 border border-pink-800/80 px-1 py-0.2 rounded font-mono font-bold shrink-0">
+                                  ♀ {femaleCount}F
+                                </span>
+                              );
+                            }
+                            if (config.filters.requireFemaleMember && femaleCount === 0) {
+                              return (
+                                <span title="Compulsory female participant requirement missing (Gate Failed)" className="text-[9px] bg-rose-950/80 text-rose-300 border border-rose-800 px-1 py-0.2 rounded font-mono font-bold shrink-0">
+                                  ♀ MISSING
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <div className="text-[11px] text-zinc-500 truncate max-w-[240px]">
                           {team.computed.coveredRoles.join(', ') || 'General / Unspecified'}

@@ -122,6 +122,27 @@ export function evaluateHardFilters(
     }
   }
 
+  // 6. Compulsory Female Participation Gate (Diversity / SIH rule)
+  if (filters.requireFemaleMember) {
+    const requiredCount = filters.minFemaleCount && filters.minFemaleCount > 0 ? filters.minFemaleCount : 1;
+    const femaleMembers = members.filter((m) => m.isFemale);
+    const passed = femaleMembers.length >= requiredCount;
+
+    if (!passed) {
+      failedFilters.push({
+        filterName: 'Compulsory Female Participation',
+        passed: false,
+        reason: `Team has ${femaleMembers.length} verified female member(s), but minimum requirement is ${requiredCount} female participant(s).`,
+      });
+    } else {
+      passedFilters.push({
+        filterName: 'Compulsory Female Participation',
+        passed: true,
+        reason: `Team satisfies diversity requirement with ${femaleMembers.length} verified female participant(s) (${femaleMembers.map((m) => m.name || 'Member').join(', ')}).`,
+      });
+    }
+  }
+
   return {
     isEligible: failedFilters.length === 0,
     passedFilters,
