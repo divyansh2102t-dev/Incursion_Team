@@ -6,7 +6,7 @@ import { ColumnMappingConfig, SelectionConfig, TeamRecord } from '@/types';
 import { DEFAULT_CONFIG } from '@/presets/defaultPresets';
 import { parseCSVString, parseRawDataToTeams, parseExcelArrayBuffer } from '@/engine/parser';
 import { runFullShortlistingEngine } from '@/engine/scoring';
-import { exportShortlistToCSV, exportShortlistWithConfigJSON } from '@/utils/exportUtils';
+import { exportShortlistToCSV, exportShortlistWithConfigJSON, exportAnalyticalReportPDF } from '@/utils/exportUtils';
 import { parseLocalPdfFile, matchResumeToCandidate } from '@/engine/resumeParser';
 import { enrichTeamsWithAcmDatabase } from '@/engine/acmIntegration';
 
@@ -329,6 +329,7 @@ export default function Home() {
         onOpenFilters={() => setIsConfigDrawerOpen(true)}
         onExportCSV={() => exportShortlistToCSV(rankedTeams, config, config.shortlistCount)}
         onExportJSON={() => exportShortlistWithConfigJSON(rankedTeams, config, config.shortlistCount)}
+        onExportPDF={() => exportAnalyticalReportPDF(rankedTeams, config, config.shortlistCount)}
         hasData={baseTeams.length > 0}
         onGoHome={() => setCurrentView('home')}
         onGoDashboard={() => setCurrentView('dashboard')}
