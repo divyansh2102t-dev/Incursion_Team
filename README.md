@@ -211,7 +211,7 @@ Incursion is built as a production-grade, installable Progressive Web App (PWA) 
 - **Progressive Web App (PWA) Installability:**
   - **Service Worker (`/sw.js`):** Intercepts navigation and static assets with a network-first strategy and offline cache fallback, allowing organizers to access scoring history and rankings even during offline venue network drops.
   - **Web App Manifest (`/manifest.webmanifest` & `/manifest.json`):** Full standalone display configuration with `theme_color: '#06b6d4'`, `background_color: '#030712'`, and adaptive maskable icons (192x192, 512x512).
-  - **Interactive Install Banner:** Detects browser `beforeinstallprompt` and offers a one-click desktop/mobile app installation prompt.
+  - **Zero-Intrusion Silent Registration:** Operates silently in the background with zero in-page popups, banners, or explicit installation prompts, preserving a clean workspace.
 - **Enterprise Search Engine Optimization (SEO):**
   - **Next.js Metadata API:** Canonical URLs, rich title templates, comprehensive meta descriptions, author tags, and 15+ high-intent hackathon recruitment keywords.
   - **Social Graph Sharing:** Pre-configured OpenGraph (`og:image`, `og:title`, `og:type`) and Twitter Cards (`summary_large_image`) for rich previews on Slack, Discord, Twitter/X, and LinkedIn.
