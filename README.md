@@ -332,6 +332,107 @@ flowchart TD
 
 ---
 
+## 🛡️ 14. Zero Data Loss & Universal Intake Ingestion Engine
+
+When ingesting registration exports from Google Forms, Devpost, Unstop, Typeform, or custom spreadsheets, column titles and table structures vary dramatically. Incursion guarantees **Zero Data Loss**, **Zero Redundancy**, and **100% Deterministic Integrity** through a 5-layer ingestion pipeline:
+
+```mermaid
+flowchart TD
+    A["Raw Ingestion Source\n(Google Form, CSV, TSV, Excel .xlsx, JSON)"] --> B["Layer 1: Header Offset Sniffer\n(Bypasses title banners & preamble metadata)"]
+    B --> C["Layer 2: Dual Format Detector"]
+    
+    C -- "Wide Format (1 row = 1 team)" --> D1["Multi-Member Parser\n(Member 1..N columns)"]
+    C -- "Tall Format (1 row = 1 participant)" --> D2["Row Grouping Engine\n(Groups repeating Team Name/ID into squads)"]
+    
+    D1 & D2 --> E["Layer 3: Content-Aware Cell Sniffer\n(Inspects cell values for github.com, linkedin.com, drive.google.com, emails)"]
+    
+    E --> F["Layer 4: Deduplication & Collision Resolver\n(Detects duplicate submissions & merges updates)"]
+    
+    F --> G["Layer 5: Full Raw Data Vault & NLP Tokenizer\n(100% original cells preserved in rawRowData)"]
+    G --> H["Clean In-Memory Cohort\n(Zero data loss • Zero redundant ghost teams)"]
+```
+
+### Ingestion Guarantees:
+1. **Wide vs. Tall Format Auto-Detection:**
+   - **Wide Format:** 1 row per team with `Leader Name`, `Member 2 Name`, etc.
+   - **Tall / Long Format:** 1 row per participant with a repeating `Team Name` or `Team ID`. Incursion automatically groups participants into the correct squad, preventing broken 1-person teams and preserving accurate team sizes.
+2. **Deep Content-Aware Cell Sniffing:**
+   - If headers are cryptic (e.g. `Col 4`, `Link 1`, `Q2`) or verbose Google Form questions (`"Please share your GitHub profile link"`), the engine inspects the actual cell values:
+     - `github.com` or `gitlab.com` $\rightarrow$ GitHub Profile
+     - `linkedin.com/in` $\rightarrow$ LinkedIn Profile
+     - `drive.google.com`, `dropbox.com`, `.pdf` $\rightarrow$ Resume / CV
+     - Regex matching `name@domain.com` $\rightarrow$ Email
+     - Gender terms (`female`, `she/her`, `woman`) $\rightarrow$ Gender / Diversity Signal
+3. **Comprehensive Candidate Demographics & Academic Profiles:**
+   - Automatically detects and surfaces:
+     - **Mobile / WhatsApp Numbers:** Click-to-call links and contact indicators (`📞`).
+     - **College / University / Campus:** Displayed prominently in the leaderboard subtext, member scorecards, and pairwise comparisons.
+     - **Year of College / Graduation Year:** Displays academic standing (e.g. `🎓 3rd Year (2026)`).
+     - **Gender & Pronoun Badges:** Real-time diversity tags (`♀ Female`, `♂ Male`, `Other`).
+4. **Arbitrary Custom Form Fields & Full Question Inspector:**
+   - Any extra questions in the Google Form or Excel export (e.g., *Track Choice*, *T-Shirt Size*, *Dietary Needs*, *City*, *Branch/Stream*, *Project Pitch*) are captured into `customFields` on each member.
+   - The **Scorecard Drilldown Modal** includes a dedicated **Complete Form Submission & Custom Fields** viewer displaying 100% of the questions and answers from the original response row.
+5. **Preamble & Title Banner Auto-Offset:**
+   - Detects if an Excel or CSV file begins with title rows, disclaimers, or empty cells, auto-identifying the true header row.
+6. **Zero Redundancy (Deduplication):**
+   - If a participant submits the form multiple times to update their details, Incursion detects identical team names or leader profiles, keeping the latest submission and merging any newly provided fields.
+7. **Zero Data Loss (100% Raw Preservation):**
+   - Every column from the original file is preserved in `team.rawRowData`.
+   - Freeform text columns (bios, project ideas, custom questions) are tokenized by the NLP taxonomy extractor to catch any mentioned skills, technologies, or hackathon wins.
+8. **Human-in-the-Loop Safeguards:**
+   - Organizers can use **Edit & Override** mode on any scorecard to fine-tune signals (including phone, college, and year), or run a single-member live sync with zero global re-sync overhead.
+
+---
+
+## 🎚️ 13. Interactive On/Off Toggles for Scoring Weights
+
+Organizers have full control to toggle individual scoring criteria on and off with a single click:
+- **Instant Dimension Toggles:** Turn off or on any of the four primary dimensions:
+  - 💻 **Technical Depth (GitHub)**
+  - 🏆 **Project Experience & Accolades**
+  - 🧩 **Role Complementarity**
+  - 📋 **Profile Completeness & Evidence**
+- **Dynamic Recalibration:** Toggling a dimension OFF immediately excludes it from scoring calculations (effective weight = 0%) and recalibrates the remaining active dimensions to 100% of the total score.
+- **State Preservation:** When toggled back ON, the dimension automatically restores its previously configured percentage so organizers never lose their tuned numbers.
+
+---
+
+## 💼 14. Resume Work Experience, Research (IIT/NIT/IIIT) & Clubs Engine
+
+Incursion extracts and evaluates candidate employment, research, and extracurricular leadership directly from resume PDFs and registration bios without paid LLMs:
+- **🏛️ Tier-1 Research Internships:**
+  - Automated detection of research roles at premier institutes and global labs: IITs (Bombay, Delhi, Madras, etc.), NITs (Trichy, Surathkal, Warangal, etc.), IIITs, IISc Bangalore, BITS Pilani, TIFR, ISRO, DRDO, MIT, Stanford, CMU, Harvard, UC Berkeley, Max Planck, CERN, etc.
+  - Tunable bonus points (default +25 pts) with dedicated toggle switch.
+- **🏢 Tier-1 Global Tech Titans & Unicorns:**
+  - Automated recognition of engineering and internship roles at FAANG & top global tech companies (Google, Microsoft, Amazon, Meta, Apple, Netflix, Nvidia, OpenAI, Stripe, Uber, Databricks, Palantir, Goldman Sachs, Jane Street, Citadel, Flipkart, Razorpay, Swiggy, Zomato, etc.).
+  - Tunable bonus points (default +20 pts) with dedicated toggle switch.
+- **🎯 College Clubs & Extracurricular Leadership:**
+  - Identifies student leadership: GDSC Leads, IEEE Student Branch Chairs, ACM Chapter Presidents, E-Cell leads, Hackathon Organizing Committee chairs, and Core Team coordinators.
+  - Tunable bonus points (default +15 pts) with dedicated toggle switch.
+- **🛡️ Anti-Cheat Spam Work Experience Filter:**
+  - Detects fake or misleading employment claims:
+    - Paid summer training/course certificates disguised as company internships.
+    - Self-proclaimed solo founders of "stealth" personal project placeholders.
+    - Ultra-short superficial programs (< 2 weeks).
+  - Automatically flags warnings in the Anti-Cheat audit log and discounts or voids experience points (configurable penalty multiplier).
+
+---
+
+## 🏷️ 15. Organizer Custom Keyword Point Weights (Case-Insensitive)
+
+Organizers can specify explicit custom keywords to reward or penalize specific domains or track requirements:
+- **Cross-Channel Case-Insensitive Matching:** Keywords are scanned across:
+  - Extracted Resume PDF text streams.
+  - Candidate GitHub repositories, top languages, usernames, and bios.
+  - Candidate LinkedIn headlines, companies, and verified skill tags.
+  - Form questionnaire responses, essay answers, and custom survey fields.
+- **Granular Toggle Controls:** Master toggle for the entire keyword engine, plus individual ON/OFF toggle switches for every added keyword.
+- **Tunable Point Weights:** Organizers specify exact bonus or penalty points (e.g. `+15 pts` for *Kubernetes*, `+20 pts` for *Solana*, `+25 pts` for *PyTorch*).
+- **Formula Studio Integration:** Custom keywords and experience metrics are available as mathematical variables in the Custom Formula Studio:
+  - `keywords`, `matched_keywords_count`, `work_exp`, `research_intern`, `tier1_company`, `clubs`.
+
+---
+
 ## 📦 Getting Started
 
 ### Prerequisites

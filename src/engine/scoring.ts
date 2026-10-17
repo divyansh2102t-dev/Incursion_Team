@@ -5,6 +5,7 @@ import { aggregateTeamSignals } from './normalization';
 import { DEFAULT_FORMULA_COEFFICIENTS } from '@/presets/defaultPresets';
 import { evaluateCustomFormula, MathScope } from '@/utils/mathEvaluator';
 import { computeMemberLinkedinScore } from './linkedin';
+import { evaluateTeamExperienceAndKeywords } from './experienceParser';
 
 export function runFullShortlistingEngine(
   teams: TeamRecord[],
@@ -18,7 +19,18 @@ export function runFullShortlistingEngine(
   const computedTeams: TeamRecord[] = teams.map((team) => {
     const aggregated = aggregateTeamSignals(team.members, config.aggregationStrategy, coef);
     const filterAudit = evaluateHardFilters(team.members, aggregated, config.filters);
-    const antiCheatFlags = antiCheatMap.get(team.id) || [];
+
+    // Evaluate Work Experiences, Tier-1 Companies, Research Internships, Clubs, and Custom Keywords
+    const expEval = evaluateTeamExperienceAndKeywords(
+      team.members,
+      config.workExperienceConfig,
+      config.customKeywords || []
+    );
+
+    const antiCheatFlags = [
+      ...(antiCheatMap.get(team.id) || []),
+      ...expEval.spamWarnings,
+    ];
 
     // --- Dimension 1: Technical Depth (0 - 100) ---
     const contribNorm = Math.min(
@@ -52,7 +64,16 @@ export function runFullShortlistingEngine(
     const hasProofBonus =
       aggregated.totalGithubStars > 0 || team.members.some((m) => m.rawSignals.hasPortfolio);
     const proofBonus = hasProofBonus ? coef.verifiableLinksBonusPoints : 0;
-    const rawExperienceScore = Math.min(100, Math.round(hackathonScore + skillsScore + proofBonus));
+    const rawExperienceScore = Math.min(
+      100,
+      Math.round(
+        hackathonScore +
+          skillsScore +
+          proofBonus +
+          expEval.experienceScore +
+          expEval.keywordScore
+      )
+    );
 
     // --- Dimension 3: Skill Complementarity & Diversity (0 - 100) ---
     // Full coverage across 4 key roles (frontend, backend, ai_ml, design) yields 100
@@ -107,20 +128,20 @@ export function runFullShortlistingEngine(
       policyMultiplier = 0.75;
     }
 
-    // Calculate total weighted score
-    const totalWeights =
-      config.weights.technicalDepth +
-      config.weights.projectExperience +
-      config.weights.skillComplementarity +
-      config.weights.dataCompleteness;
+    // Calculate total weighted score respecting weightsEnabled toggles
+    const techWeight = config.weightsEnabled?.technicalDepth !== false ? config.weights.technicalDepth : 0;
+    const expWeight = config.weightsEnabled?.projectExperience !== false ? config.weights.projectExperience : 0;
+    const compWeight = config.weightsEnabled?.skillComplementarity !== false ? config.weights.skillComplementarity : 0;
+    const completenessWeight = config.weightsEnabled?.dataCompleteness !== false ? config.weights.dataCompleteness : 0;
 
+    const totalWeights = techWeight + expWeight + compWeight + completenessWeight;
     const safeTotalWeights = totalWeights > 0 ? totalWeights : 100;
 
     const weightedScoreRaw =
-      (rawTechnicalScore * config.weights.technicalDepth +
-        rawExperienceScore * config.weights.projectExperience +
-        rawComplementarityScore * config.weights.skillComplementarity +
-        rawCompletenessScore * config.weights.dataCompleteness) /
+      (rawTechnicalScore * techWeight +
+        rawExperienceScore * expWeight +
+        rawComplementarityScore * compWeight +
+        rawCompletenessScore * completenessWeight) /
       safeTotalWeights;
 
     const standardScore = Number((weightedScoreRaw * policyMultiplier).toFixed(2));
@@ -156,6 +177,12 @@ export function runFullShortlistingEngine(
         stars: aggregated.totalGithubStars || 0,
         wins: aggregated.totalHackathonCount || 0,
         hackathon_wins: aggregated.totalHackathonCount || 0,
+        work_exp: expEval.experienceScore,
+        research_intern: expEval.researchCount,
+        tier1_company: expEval.tier1Count,
+        clubs: expEval.clubsCount,
+        keywords: expEval.keywordScore,
+        matched_keywords_count: expEval.allMatchedKeywords.length,
         team_size: team.members.length,
         size: team.members.length,
         skills: aggregated.totalUniqueSkills.length,
@@ -238,10 +265,10 @@ export function runFullShortlistingEngine(
       overrides?.dataCompletenessScore !== undefined
     ) {
       const reweighted =
-        (effectiveTechnicalScore * config.weights.technicalDepth +
-          effectiveExperienceScore * config.weights.projectExperience +
-          effectiveComplementarityScore * config.weights.skillComplementarity +
-          effectiveCompletenessScore * config.weights.dataCompleteness) /
+        (effectiveTechnicalScore * techWeight +
+          effectiveExperienceScore * expWeight +
+          effectiveComplementarityScore * compWeight +
+          effectiveCompletenessScore * completenessWeight) /
         safeTotalWeights;
       effectiveFinalScore = Number((reweighted * policyMultiplier).toFixed(2));
     }

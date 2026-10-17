@@ -1,9 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { AggregationStrategy, MissingDataPolicy, SelectionConfig } from '@/types';
-import { Sliders, Shield, Award, HelpCircle, Layers, FileSpreadsheet, Zap, ArrowRight, PanelLeftClose, BookmarkPlus } from 'lucide-react';
+import {
+  AggregationStrategy,
+  MissingDataPolicy,
+  SelectionConfig,
+  ScoringWeightsToggles,
+  WorkExperienceConfig,
+  CustomKeywordWeight,
+} from '@/types';
+import { DEFAULT_WORK_EXPERIENCE_CONFIG } from '@/presets/defaultPresets';
+import {
+  Sliders,
+  Shield,
+  Award,
+  HelpCircle,
+  Layers,
+  FileSpreadsheet,
+  Zap,
+  ArrowRight,
+  PanelLeftClose,
+  BookmarkPlus,
+  Briefcase,
+  GraduationCap,
+  Building2,
+  AlertTriangle,
+  Tag,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 interface ConfigPanelProps {
   config: SelectionConfig;
@@ -20,6 +49,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onHideFilters,
   onSaveRun,
 }) => {
+  const [newKeyword, setNewKeyword] = useState('');
+  const [newWeight, setNewWeight] = useState(10);
+  const [showWorkDetails, setShowWorkDetails] = useState(true);
+  const [showKeywordDetails, setShowKeywordDetails] = useState(true);
+
   const updateWeight = (key: keyof SelectionConfig['weights'], value: number) => {
     onChange({
       ...config,
@@ -27,6 +61,71 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         ...config.weights,
         [key]: value,
       },
+    });
+  };
+
+  const toggleWeight = (key: keyof ScoringWeightsToggles) => {
+    const current = config.weightsEnabled?.[key] !== false;
+    onChange({
+      ...config,
+      weightsEnabled: {
+        ...(config.weightsEnabled || {
+          technicalDepth: true,
+          projectExperience: true,
+          skillComplementarity: true,
+          dataCompleteness: true,
+        }),
+        [key]: !current,
+      },
+    });
+  };
+
+  const updateWorkConfig = (updates: Partial<WorkExperienceConfig>) => {
+    onChange({
+      ...config,
+      workExperienceConfig: {
+        ...(config.workExperienceConfig || DEFAULT_WORK_EXPERIENCE_CONFIG),
+        ...updates,
+      },
+    });
+  };
+
+  const handleAddKeyword = () => {
+    const trimmed = newKeyword.trim();
+    if (!trimmed) return;
+    const existing = config.customKeywords || [];
+    if (existing.some((k) => k.keyword.toLowerCase() === trimmed.toLowerCase())) {
+      alert('This keyword is already configured in the list.');
+      return;
+    }
+    const newEntry: CustomKeywordWeight = {
+      id: `kw-${Date.now()}`,
+      keyword: trimmed,
+      weight: newWeight,
+      enabled: true,
+    };
+    onChange({
+      ...config,
+      customKeywords: [...existing, newEntry],
+    });
+    setNewKeyword('');
+  };
+
+  const handleToggleKeyword = (id: string) => {
+    const existing = config.customKeywords || [];
+    onChange({
+      ...config,
+      customKeywords: existing.map((k) =>
+        k.id === id ? { ...k, enabled: k.enabled === false ? true : false } : k
+      ),
+    });
+  };
+
+  const handleRemoveKeyword = (id: string) => {
+    const existing = config.customKeywords || [];
+    onChange({
+      ...config,
+      customKeywords: existing.filter((k) => k.id !== id),
     });
   };
 
@@ -139,9 +238,14 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       {/* Multi-Criteria Scoring Weights (With Manual Number Input + Auto-Updating Sliders) */}
       <div className="space-y-3.5 text-xs">
         <div className="flex items-center justify-between">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
-            Scoring Dimensions (Weights)
-          </h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+              Scoring Dimensions (Weights)
+            </h3>
+            <span className="text-[9px] text-zinc-500 font-normal">
+              (Use toggles to turn off/on dimensions)
+            </span>
+          </div>
           <Link
             href="/formulas"
             className="text-[10px] text-zinc-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
@@ -153,133 +257,660 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
 
         {/* 1. Technical Depth */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs text-zinc-300">
-            <span>💻 Technical Depth (GitHub repos, commits)</span>
-            <div className="flex items-center gap-1">
+        {(() => {
+          const isTechEnabled = config.weightsEnabled?.technicalDepth !== false;
+          return (
+            <div className={`space-y-1 p-2 rounded-lg transition-colors ${isTechEnabled ? 'bg-black/30' : 'bg-zinc-950/40 border border-zinc-900/60'}`}>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleWeight('technicalDepth')}
+                    className={`w-7 h-4 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                      isTechEnabled ? 'bg-cyan-500' : 'bg-zinc-800'
+                    }`}
+                    title={isTechEnabled ? 'Turn OFF Technical Depth from scoring' : 'Turn ON Technical Depth for scoring'}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${
+                        isTechEnabled ? 'translate-x-3 bg-black' : 'translate-x-0 bg-zinc-400'
+                      }`}
+                    />
+                  </button>
+                  <span className={isTechEnabled ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                    💻 Technical Depth (GitHub repos, commits)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {!isTechEnabled ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 text-zinc-500 rounded border border-zinc-800">
+                      OFF (0%)
+                    </span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={config.weights.technicalDepth}
+                        onChange={(e) =>
+                          updateWeight(
+                            'technicalDepth',
+                            Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                          )
+                        }
+                        className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                        title="Type exact weight to auto-set the bar"
+                      />
+                      <span className="text-zinc-500 text-xs font-bold">%</span>
+                    </>
+                  )}
+                </div>
+              </div>
               <input
-                type="number"
+                type="range"
                 min="0"
                 max="100"
-                value={config.weights.technicalDepth}
-                onChange={(e) =>
-                  updateWeight(
-                    'technicalDepth',
-                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                  )
-                }
-                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
-                title="Type exact weight to auto-set the bar"
+                disabled={!isTechEnabled}
+                value={isTechEnabled ? config.weights.technicalDepth : 0}
+                onChange={(e) => updateWeight('technicalDepth', parseInt(e.target.value) || 0)}
+                className={`w-full accent-cyan-400 cursor-pointer ${!isTechEnabled ? 'opacity-30 cursor-not-allowed' : ''}`}
               />
-              <span className="text-zinc-500 text-xs font-bold">%</span>
             </div>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={config.weights.technicalDepth}
-            onChange={(e) => updateWeight('technicalDepth', parseInt(e.target.value) || 0)}
-            className="w-full accent-cyan-400 cursor-pointer"
-          />
-        </div>
+          );
+        })()}
 
         {/* 2. Project Experience */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs text-zinc-300">
-            <span>🏆 Projects & Hackathon Accolades</span>
-            <div className="flex items-center gap-1">
+        {(() => {
+          const isExpEnabled = config.weightsEnabled?.projectExperience !== false;
+          return (
+            <div className={`space-y-1 p-2 rounded-lg transition-colors ${isExpEnabled ? 'bg-black/30' : 'bg-zinc-950/40 border border-zinc-900/60'}`}>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleWeight('projectExperience')}
+                    className={`w-7 h-4 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                      isExpEnabled ? 'bg-cyan-500' : 'bg-zinc-800'
+                    }`}
+                    title={isExpEnabled ? 'Turn OFF Project Experience from scoring' : 'Turn ON Project Experience for scoring'}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${
+                        isExpEnabled ? 'translate-x-3 bg-black' : 'translate-x-0 bg-zinc-400'
+                      }`}
+                    />
+                  </button>
+                  <span className={isExpEnabled ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                    🏆 Projects & Hackathon Accolades
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {!isExpEnabled ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 text-zinc-500 rounded border border-zinc-800">
+                      OFF (0%)
+                    </span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={config.weights.projectExperience}
+                        onChange={(e) =>
+                          updateWeight(
+                            'projectExperience',
+                            Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                          )
+                        }
+                        className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                        title="Type exact weight to auto-set the bar"
+                      />
+                      <span className="text-zinc-500 text-xs font-bold">%</span>
+                    </>
+                  )}
+                </div>
+              </div>
               <input
-                type="number"
+                type="range"
                 min="0"
                 max="100"
-                value={config.weights.projectExperience}
-                onChange={(e) =>
-                  updateWeight(
-                    'projectExperience',
-                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                  )
-                }
-                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
-                title="Type exact weight to auto-set the bar"
+                disabled={!isExpEnabled}
+                value={isExpEnabled ? config.weights.projectExperience : 0}
+                onChange={(e) => updateWeight('projectExperience', parseInt(e.target.value) || 0)}
+                className={`w-full accent-cyan-400 cursor-pointer ${!isExpEnabled ? 'opacity-30 cursor-not-allowed' : ''}`}
               />
-              <span className="text-zinc-500 text-xs font-bold">%</span>
             </div>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={config.weights.projectExperience}
-            onChange={(e) => updateWeight('projectExperience', parseInt(e.target.value) || 0)}
-            className="w-full accent-cyan-400 cursor-pointer"
-          />
-        </div>
+          );
+        })()}
 
         {/* 3. Skill Complementarity */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs text-zinc-300">
-            <span>🧩 Role Complementarity (Frontend + Backend + AI)</span>
-            <div className="flex items-center gap-1">
+        {(() => {
+          const isCompEnabled = config.weightsEnabled?.skillComplementarity !== false;
+          return (
+            <div className={`space-y-1 p-2 rounded-lg transition-colors ${isCompEnabled ? 'bg-black/30' : 'bg-zinc-950/40 border border-zinc-900/60'}`}>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleWeight('skillComplementarity')}
+                    className={`w-7 h-4 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                      isCompEnabled ? 'bg-cyan-500' : 'bg-zinc-800'
+                    }`}
+                    title={isCompEnabled ? 'Turn OFF Role Complementarity from scoring' : 'Turn ON Role Complementarity for scoring'}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${
+                        isCompEnabled ? 'translate-x-3 bg-black' : 'translate-x-0 bg-zinc-400'
+                      }`}
+                    />
+                  </button>
+                  <span className={isCompEnabled ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                    🧩 Role Complementarity (Frontend + Backend + AI)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {!isCompEnabled ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 text-zinc-500 rounded border border-zinc-800">
+                      OFF (0%)
+                    </span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={config.weights.skillComplementarity}
+                        onChange={(e) =>
+                          updateWeight(
+                            'skillComplementarity',
+                            Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                          )
+                        }
+                        className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                        title="Type exact weight to auto-set the bar"
+                      />
+                      <span className="text-zinc-500 text-xs font-bold">%</span>
+                    </>
+                  )}
+                </div>
+              </div>
               <input
-                type="number"
+                type="range"
                 min="0"
                 max="100"
-                value={config.weights.skillComplementarity}
-                onChange={(e) =>
-                  updateWeight(
-                    'skillComplementarity',
-                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                  )
-                }
-                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
-                title="Type exact weight to auto-set the bar"
+                disabled={!isCompEnabled}
+                value={isCompEnabled ? config.weights.skillComplementarity : 0}
+                onChange={(e) => updateWeight('skillComplementarity', parseInt(e.target.value) || 0)}
+                className={`w-full accent-cyan-400 cursor-pointer ${!isCompEnabled ? 'opacity-30 cursor-not-allowed' : ''}`}
               />
-              <span className="text-zinc-500 text-xs font-bold">%</span>
             </div>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={config.weights.skillComplementarity}
-            onChange={(e) => updateWeight('skillComplementarity', parseInt(e.target.value) || 0)}
-            className="w-full accent-cyan-400 cursor-pointer"
-          />
-        </div>
+          );
+        })()}
 
         {/* 4. Data Completeness */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs text-zinc-300">
-            <span>📋 Profile Completeness & Evidence</span>
-            <div className="flex items-center gap-1">
+        {(() => {
+          const isDataEnabled = config.weightsEnabled?.dataCompleteness !== false;
+          return (
+            <div className={`space-y-1 p-2 rounded-lg transition-colors ${isDataEnabled ? 'bg-black/30' : 'bg-zinc-950/40 border border-zinc-900/60'}`}>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleWeight('dataCompleteness')}
+                    className={`w-7 h-4 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                      isDataEnabled ? 'bg-cyan-500' : 'bg-zinc-800'
+                    }`}
+                    title={isDataEnabled ? 'Turn OFF Profile Completeness from scoring' : 'Turn ON Profile Completeness for scoring'}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${
+                        isDataEnabled ? 'translate-x-3 bg-black' : 'translate-x-0 bg-zinc-400'
+                      }`}
+                    />
+                  </button>
+                  <span className={isDataEnabled ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                    📋 Profile Completeness & Evidence
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {!isDataEnabled ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 text-zinc-500 rounded border border-zinc-800">
+                      OFF (0%)
+                    </span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={config.weights.dataCompleteness}
+                        onChange={(e) =>
+                          updateWeight(
+                            'dataCompleteness',
+                            Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
+                          )
+                        }
+                        className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
+                        title="Type exact weight to auto-set the bar"
+                      />
+                      <span className="text-zinc-500 text-xs font-bold">%</span>
+                    </>
+                  )}
+                </div>
+              </div>
               <input
-                type="number"
+                type="range"
                 min="0"
                 max="100"
-                value={config.weights.dataCompleteness}
-                onChange={(e) =>
-                  updateWeight(
-                    'dataCompleteness',
-                    Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                  )
-                }
-                className="w-14 px-1.5 py-0.5 bg-black/80 border border-zinc-700 focus:border-cyan-400 text-cyan-400 font-bold text-center rounded font-mono text-xs outline-none"
-                title="Type exact weight to auto-set the bar"
+                disabled={!isDataEnabled}
+                value={isDataEnabled ? config.weights.dataCompleteness : 0}
+                onChange={(e) => updateWeight('dataCompleteness', parseInt(e.target.value) || 0)}
+                className={`w-full accent-cyan-400 cursor-pointer ${!isDataEnabled ? 'opacity-30 cursor-not-allowed' : ''}`}
               />
-              <span className="text-zinc-500 text-xs font-bold">%</span>
             </div>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={config.weights.dataCompleteness}
-            onChange={(e) => updateWeight('dataCompleteness', parseInt(e.target.value) || 0)}
-            className="w-full accent-cyan-400 cursor-pointer"
-          />
-        </div>
+          );
+        })()}
       </div>
+
+      {/* --- Work & Research Experience Scoring Section --- */}
+      {(() => {
+        const wCfg = config.workExperienceConfig || DEFAULT_WORK_EXPERIENCE_CONFIG;
+        const isMasterWorkOn = wCfg.enabled !== false;
+
+        return (
+          <div className="bg-black/50 border border-indigo-900/40 rounded-xl p-3.5 space-y-3 font-mono">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-indigo-400" />
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+                    Work & Research Experience
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-sans">
+                    Score internships in IIT/NIT/IIIT, Tier-1 companies & clubs
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateWorkConfig({ enabled: !isMasterWorkOn })}
+                  className={`w-8 h-4.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                    isMasterWorkOn ? 'bg-indigo-500' : 'bg-zinc-800'
+                  }`}
+                  title={isMasterWorkOn ? 'Disable Work Experience scoring' : 'Enable Work Experience scoring'}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full transition-transform ${
+                      isMasterWorkOn ? 'translate-x-3.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                    }`}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowWorkDetails(!showWorkDetails)}
+                  className="text-zinc-500 hover:text-zinc-300 p-0.5"
+                  title="Expand or collapse work experience options"
+                >
+                  {showWorkDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            {isMasterWorkOn && showWorkDetails && (
+              <div className="space-y-3 pt-2 border-t border-indigo-950/70 text-xs">
+                {/* 1. Research Internships in IIT / NIT / IIIT */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateWorkConfig({
+                          researchInternshipEnabled: !(wCfg.researchInternshipEnabled !== false),
+                        })
+                      }
+                      className={`w-6 h-3.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                        wCfg.researchInternshipEnabled !== false ? 'bg-indigo-500' : 'bg-zinc-800'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${
+                          wCfg.researchInternshipEnabled !== false ? 'translate-x-2.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                        }`}
+                      />
+                    </button>
+                    <span className={wCfg.researchInternshipEnabled !== false ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                      🏛️ Research in NIT / IIT / IIIT / Top Labs
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      disabled={wCfg.researchInternshipEnabled === false}
+                      value={wCfg.researchInternshipBonus}
+                      onChange={(e) =>
+                        updateWorkConfig({
+                          researchInternshipBonus: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-12 px-1 py-0.5 bg-black/80 border border-zinc-700 text-indigo-300 font-bold text-center rounded text-xs outline-none disabled:opacity-40"
+                    />
+                    <span className="text-[10px] text-zinc-500">pts</span>
+                  </div>
+                </div>
+
+                {/* 2. Tier-1 Global Companies */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateWorkConfig({
+                          tier1CompanyEnabled: !(wCfg.tier1CompanyEnabled !== false),
+                        })
+                      }
+                      className={`w-6 h-3.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                        wCfg.tier1CompanyEnabled !== false ? 'bg-indigo-500' : 'bg-zinc-800'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${
+                          wCfg.tier1CompanyEnabled !== false ? 'translate-x-2.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                        }`}
+                      />
+                    </button>
+                    <span className={wCfg.tier1CompanyEnabled !== false ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                      🏢 Tier-1 Tech Titans (FAANG / OpenAI / Nvidia)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      disabled={wCfg.tier1CompanyEnabled === false}
+                      value={wCfg.tier1CompanyBonus}
+                      onChange={(e) =>
+                        updateWorkConfig({
+                          tier1CompanyBonus: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-12 px-1 py-0.5 bg-black/80 border border-zinc-700 text-indigo-300 font-bold text-center rounded text-xs outline-none disabled:opacity-40"
+                    />
+                    <span className="text-[10px] text-zinc-500">pts</span>
+                  </div>
+                </div>
+
+                {/* 3. College Clubs & Leadership */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateWorkConfig({
+                          clubLeadershipEnabled: !(wCfg.clubLeadershipEnabled !== false),
+                        })
+                      }
+                      className={`w-6 h-3.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                        wCfg.clubLeadershipEnabled !== false ? 'bg-indigo-500' : 'bg-zinc-800'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${
+                          wCfg.clubLeadershipEnabled !== false ? 'translate-x-2.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                        }`}
+                      />
+                    </button>
+                    <span className={wCfg.clubLeadershipEnabled !== false ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                      🎯 Club Leads (GDSC / IEEE / ACM / E-Cell)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      disabled={wCfg.clubLeadershipEnabled === false}
+                      value={wCfg.clubLeadershipBonus}
+                      onChange={(e) =>
+                        updateWorkConfig({
+                          clubLeadershipBonus: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-12 px-1 py-0.5 bg-black/80 border border-zinc-700 text-indigo-300 font-bold text-center rounded text-xs outline-none disabled:opacity-40"
+                    />
+                    <span className="text-[10px] text-zinc-500">pts</span>
+                  </div>
+                </div>
+
+                {/* 4. General Verified Work Experience */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateWorkConfig({
+                          baseWorkExpEnabled: !(wCfg.baseWorkExpEnabled !== false),
+                        })
+                      }
+                      className={`w-6 h-3.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                        wCfg.baseWorkExpEnabled !== false ? 'bg-indigo-500' : 'bg-zinc-800'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${
+                          wCfg.baseWorkExpEnabled !== false ? 'translate-x-2.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                        }`}
+                      />
+                    </button>
+                    <span className={wCfg.baseWorkExpEnabled !== false ? 'text-zinc-200' : 'text-zinc-500 line-through'}>
+                      💼 General Verified Work Experience
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      disabled={wCfg.baseWorkExpEnabled === false}
+                      value={wCfg.baseWorkExpPoints}
+                      onChange={(e) =>
+                        updateWorkConfig({
+                          baseWorkExpPoints: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-12 px-1 py-0.5 bg-black/80 border border-zinc-700 text-indigo-300 font-bold text-center rounded text-xs outline-none disabled:opacity-40"
+                    />
+                    <span className="text-[10px] text-zinc-500">pts</span>
+                  </div>
+                </div>
+
+                {/* 5. Spam / Fake Experience Anti-Cheat Filter */}
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateWorkConfig({
+                          penalizeSpam: !(wCfg.penalizeSpam !== false),
+                        })
+                      }
+                      className={`w-6 h-3.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                        wCfg.penalizeSpam !== false ? 'bg-amber-500' : 'bg-zinc-800'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${
+                          wCfg.penalizeSpam !== false ? 'translate-x-2.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                        }`}
+                      />
+                    </button>
+                    <span className="text-zinc-300 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Detect & Discount Spam Experiences</span>
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-400/80">
+                    {wCfg.penalizeSpam !== false ? 'Auto-discount & Flag' : 'Ignored'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* --- Custom Keyword Weights Section (Case-Insensitive) --- */}
+      {(() => {
+        const isKeywordsOn = config.workExperienceConfig?.customKeywordsEnabled !== false;
+        const keywords = config.customKeywords || [];
+
+        return (
+          <div className="bg-black/50 border border-emerald-900/40 rounded-xl p-3.5 space-y-3 font-mono">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-emerald-400" />
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+                    Custom Keyword Point Weights
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-sans">
+                    Award explicit bonus points for organizer keywords (case-insensitive)
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateWorkConfig({
+                      customKeywordsEnabled: !isKeywordsOn,
+                    })
+                  }
+                  className={`w-8 h-4.5 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                    isKeywordsOn ? 'bg-emerald-500' : 'bg-zinc-800'
+                  }`}
+                  title={isKeywordsOn ? 'Disable Custom Keyword weights' : 'Enable Custom Keyword weights'}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full transition-transform ${
+                      isKeywordsOn ? 'translate-x-3.5 bg-black' : 'translate-x-0 bg-zinc-500'
+                    }`}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowKeywordDetails(!showKeywordDetails)}
+                  className="text-zinc-500 hover:text-zinc-300 p-0.5"
+                  title="Expand or collapse keywords"
+                >
+                  {showKeywordDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            {isKeywordsOn && showKeywordDetails && (
+              <div className="space-y-3 pt-2 border-t border-emerald-950/70 text-xs">
+                {/* Add Keyword Form */}
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Keyword (e.g. Kubernetes, Rust, Solana, PyTorch)"
+                    value={newKeyword}
+                    onChange={(e) => setNewKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddKeyword();
+                    }}
+                    className="flex-1 px-2.5 py-1 bg-black/80 border border-zinc-700 focus:border-emerald-400 text-zinc-200 placeholder-zinc-500 rounded text-xs outline-none"
+                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={newWeight}
+                      onChange={(e) => setNewWeight(parseInt(e.target.value) || 0)}
+                      className="w-12 px-1 py-1 bg-black/80 border border-zinc-700 focus:border-emerald-400 text-emerald-400 font-bold text-center rounded text-xs outline-none"
+                      title="Points awarded if keyword found"
+                    />
+                    <span className="text-[10px] text-zinc-500">pts</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddKeyword}
+                    className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/80 rounded flex items-center gap-1 font-bold transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3 text-emerald-400" />
+                    <span>Add</span>
+                  </button>
+                </div>
+
+                {/* List of Keywords */}
+                {keywords.length === 0 ? (
+                  <p className="text-[11px] text-zinc-500 italic">
+                    No custom keywords added yet. Add keywords above to scan across Resumes, GitHub, LinkedIn & form responses.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {keywords.map((kw) => {
+                      const isKwActive = kw.enabled !== false;
+                      return (
+                        <div
+                          key={kw.id}
+                          className={`flex items-center justify-between p-1.5 rounded-lg border transition-colors ${
+                            isKwActive
+                              ? 'bg-emerald-950/30 border-emerald-900/60 text-zinc-200'
+                              : 'bg-zinc-950/40 border-zinc-900 text-zinc-500'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleKeyword(kw.id)}
+                              className={`w-5 h-3 rounded-full transition-colors relative cursor-pointer flex-shrink-0 ${
+                                isKwActive ? 'bg-emerald-500' : 'bg-zinc-800'
+                              }`}
+                              title={isKwActive ? 'Turn off this keyword' : 'Turn on this keyword'}
+                            >
+                              <span
+                                className={`absolute top-0.5 left-0.5 w-2 h-2 rounded-full transition-transform ${
+                                  isKwActive ? 'translate-x-2 bg-black' : 'translate-x-0 bg-zinc-500'
+                                }`}
+                              />
+                            </button>
+                            <span className={`font-semibold ${isKwActive ? 'text-emerald-300' : 'line-through text-zinc-600'}`}>
+                              {kw.keyword}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                              isKwActive ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+                            }`}>
+                              +{kw.weight} pts
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveKeyword(kw.id)}
+                              className="text-zinc-600 hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
+                              title="Delete keyword"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="text-[10px] text-zinc-500">
+                  Scanned across Resume PDFs, GitHub bio/repos, LinkedIn headline/skills, and candidate form inputs.
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <hr className="border-cyan-950/60" />
 

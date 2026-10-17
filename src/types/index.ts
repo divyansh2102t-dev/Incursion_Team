@@ -2,6 +2,53 @@
 
 export type RoleCategory = 'frontend' | 'backend' | 'ai_ml' | 'mobile' | 'design' | 'devops' | 'general';
 
+export interface WorkExperienceItem {
+  title: string;
+  organization: string;
+  duration?: string;
+  isResearchInternship: boolean; // NIT / IIT / IIIT / IISc / BITS / MIT / Stanford etc.
+  isTier1Company: boolean;       // FAANG, Nvidia, OpenAI, Stripe, Uber, top unicorns
+  isSpamOrSuspicious: boolean;   // Paid training, unverified solo placeholder founder
+  suspiciousReason?: string;
+}
+
+export interface ClubActivityItem {
+  role: string;
+  clubName: string;
+  isHighImpactLead: boolean;     // Lead, President, Chairperson, Core Lead, Hackathon Organizer
+}
+
+export interface ScoringWeightsToggles {
+  technicalDepth?: boolean;
+  projectExperience?: boolean;
+  skillComplementarity?: boolean;
+  dataCompleteness?: boolean;
+}
+
+export interface CustomKeywordWeight {
+  id: string;
+  keyword: string;
+  weight: number; // bonus or penalty points assigned if found
+  enabled?: boolean; // individual keyword toggle
+}
+
+export interface WorkExperienceConfig {
+  enabled: boolean;
+  baseWorkExpEnabled?: boolean;
+  baseWorkExpPoints: number;        // Points for any verified work experience (default 10)
+  tier1CompanyEnabled?: boolean;
+  tier1CompanyBonus: number;        // Points bonus for FAANG / Tier 1 (default 20)
+  researchInternshipEnabled?: boolean;
+  researchInternshipBonus: number;  // Points bonus for IIT / NIT / IIIT / Top Lab research (default 25)
+  clubLeadershipEnabled?: boolean;
+  clubLeadershipBonus: number;      // Points bonus for GDSC/IEEE/ACM Lead / Hackathon Chair (default 15)
+  clubMemberBonus: number;          // Points bonus for general club member (default 5)
+  penalizeSpam: boolean;            // Whether to nullify / penalize spam experiences (default true)
+  spamPenaltyDiscount: number;      // Multiplier discount if spam detected, e.g. 0.5 (or 0)
+  maxTotalExperiencePoints: number; // Cap on total experience points, e.g. 50
+  customKeywordsEnabled?: boolean;  // Master toggle for custom keywords
+}
+
 export interface ExtractedSignals {
   skills: string[];
   roleDistribution: Record<RoleCategory, number>; // 0 to 1
@@ -20,6 +67,9 @@ export interface ExtractedSignals {
   };
   experienceYears?: number;
   hackathonExperienceCount: number;
+  workExperiences?: WorkExperienceItem[];
+  clubActivities?: ClubActivityItem[];
+  matchedCustomKeywords?: string[];
   hasResume: boolean;
   hasGithub: boolean;
   hasLinkedin: boolean;
@@ -44,6 +94,9 @@ export interface MemberProfile {
   id: string;
   name: string;
   email?: string;
+  phone?: string;
+  college?: string;
+  gradYear?: string;
   gender?: 'female' | 'male' | 'non_binary' | 'other' | 'unspecified';
   isFemale?: boolean;
   githubUrl?: string;
@@ -51,6 +104,7 @@ export interface MemberProfile {
   portfolioUrl?: string;
   resumeUrl?: string;
   roleOrBio?: string;
+  customFields?: Record<string, string>;
   rawSignals: ExtractedSignals;
 }
 
@@ -176,6 +230,7 @@ export interface SelectionConfig {
   presetName: string;
   shortlistCount: number; // Top X
   weights: ScoringWeights;
+  weightsEnabled?: ScoringWeightsToggles;
   filters: HardFilterConfig;
   aggregationStrategy: AggregationStrategy;
   missingDataPolicy: MissingDataPolicy;
@@ -185,6 +240,8 @@ export interface SelectionConfig {
   customFormulaEnabled?: boolean;
   customFormulaExpression?: string;
   customFormulaName?: string;
+  customKeywords?: CustomKeywordWeight[];
+  workExperienceConfig?: WorkExperienceConfig;
 }
 
 export interface ColumnMappingConfig {
@@ -196,6 +253,9 @@ export interface ColumnMappingConfig {
     memberIndex: number; // 1, 2, 3...
     nameCol?: string;
     emailCol?: string;
+    phoneCol?: string;
+    collegeCol?: string;
+    gradYearCol?: string;
     genderCol?: string;
     githubCol?: string;
     linkedinCol?: string;

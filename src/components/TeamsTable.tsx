@@ -273,6 +273,11 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                             Overridden
                           </span>
                         )}
+                        {team.members.some((m) => m.phone) && (
+                          <span title="Direct mobile contact numbers available" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                            📞 Contact
+                          </span>
+                        )}
                         {team.members.some((m) => m.rawSignals.linkedinMetrics?.has500PlusConnections) && (
                           <span title="Verified 500+ industry connections" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold">
                             500+
@@ -304,6 +309,14 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                       </div>
                       <p className="text-[11px] text-zinc-500 font-mono">
                         {team.members.length} members • {team.computed.coveredRoles.join(', ') || 'General'}
+                        {(() => {
+                          const colleges = Array.from(new Set(team.members.map((m) => m.college).filter(Boolean)));
+                          const gradYears = Array.from(new Set(team.members.map((m) => m.gradYear).filter(Boolean)));
+                          const meta = [];
+                          if (colleges.length > 0) meta.push(colleges[0]);
+                          if (gradYears.length > 0) meta.push(gradYears[0]);
+                          return meta.length > 0 ? ` • ${meta.join(' • ')}` : '';
+                        })()}
                       </p>
                     </div>
                   </div>
@@ -436,6 +449,11 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                               Overridden
                             </span>
                           )}
+                          {team.members.some((m) => m.phone) && (
+                            <span title="Direct mobile contact numbers available" className="text-[9px] bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1 py-0.2 rounded font-mono font-bold shrink-0 flex items-center gap-0.5">
+                              📞
+                            </span>
+                          )}
                           {team.computed.antiCheatFlags.length > 0 && (
                             <span title="Flagged for suspicious commits or forks" className="inline-flex items-center">
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -470,8 +488,16 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                             return null;
                           })()}
                         </div>
-                        <div className="text-[11px] text-zinc-500 truncate max-w-[240px]">
-                          {team.computed.coveredRoles.join(', ') || 'General / Unspecified'}
+                        <div className="text-[11px] text-zinc-500 truncate max-w-[260px]">
+                          {(() => {
+                            const colleges = Array.from(new Set(team.members.map((m) => m.college).filter(Boolean)));
+                            const gradYears = Array.from(new Set(team.members.map((m) => m.gradYear).filter(Boolean)));
+                            const meta = [];
+                            if (colleges.length > 0) meta.push(colleges[0]);
+                            if (gradYears.length > 0) meta.push(gradYears[0]);
+                            const roleText = team.computed.coveredRoles.join(', ') || 'General';
+                            return meta.length > 0 ? `${meta.join(' • ')} | ${roleText}` : roleText;
+                          })()}
                         </div>
                       </td>
 

@@ -4,7 +4,8 @@
 import { extractText } from 'unpdf';
 import { extractSkillsAndRoles } from './taxonomy';
 import { extractGithubUsername } from './github';
-import { RoleCategory } from '@/types';
+import { RoleCategory, WorkExperienceItem, ClubActivityItem } from '@/types';
+import { extractWorkAndClubExperiences } from './experienceParser';
 
 export interface ResumeParseResult {
   success: boolean;
@@ -17,6 +18,13 @@ export interface ResumeParseResult {
   embeddedGithub?: string;
   embeddedLinkedin?: string;
   embeddedPortfolio?: string;
+  workExperiences?: WorkExperienceItem[];
+  clubActivities?: ClubActivityItem[];
+  matchedCustomKeywords?: string[];
+  hasResearchInternship?: boolean;
+  hasTier1Company?: boolean;
+  hasSpamExperience?: boolean;
+  hasClubLeadership?: boolean;
   totalPages?: number;
   snippet?: string;
   errorMessage?: string;
@@ -28,7 +36,8 @@ export interface ResumeParseResult {
  */
 export async function parseCloudResumeUrl(
   url: string,
-  candidateName?: string
+  candidateName?: string,
+  customKeywords: Array<{ keyword: string; weight: number }> = []
 ): Promise<ResumeParseResult> {
   const isGoogleDrive = url.includes('drive.google.com');
   const sourceType = isGoogleDrive ? 'google_drive' : 'web_link';
@@ -37,7 +46,7 @@ export async function parseCloudResumeUrl(
     const res = await fetch('/api/parse-resume', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, candidateName }),
+      body: JSON.stringify({ url, candidateName, customKeywords }),
     });
 
     if (!res.ok) {
@@ -85,6 +94,13 @@ export async function parseCloudResumeUrl(
       embeddedGithub: data.extracted.embeddedGithub,
       embeddedLinkedin: data.extracted.embeddedLinkedin,
       embeddedPortfolio: data.extracted.embeddedPortfolio,
+      workExperiences: data.extracted.workExperiences,
+      clubActivities: data.extracted.clubActivities,
+      matchedCustomKeywords: data.extracted.matchedCustomKeywords,
+      hasResearchInternship: data.extracted.hasResearchInternship,
+      hasTier1Company: data.extracted.hasTier1Company,
+      hasSpamExperience: data.extracted.hasSpamExperience,
+      hasClubLeadership: data.extracted.hasClubLeadership,
       totalPages: data.totalPages,
       snippet: data.extracted.snippet,
     };
@@ -108,7 +124,8 @@ export async function parseCloudResumeUrl(
  */
 export async function parseLocalPdfFile(
   file: File,
-  candidateName?: string
+  candidateName?: string,
+  customKeywords: Array<{ keyword: string; weight: number }> = []
 ): Promise<ResumeParseResult> {
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -120,6 +137,7 @@ export async function parseLocalPdfFile(
       : (extracted.text || '');
 
     const taxonomy = extractSkillsAndRoles(fullText);
+    const expAnalysis = extractWorkAndClubExperiences(fullText, customKeywords);
 
     // Scan for any GitHub handle or links inside the resume text
     let embeddedGithub: string | undefined;
@@ -154,6 +172,13 @@ export async function parseLocalPdfFile(
       embeddedGithub,
       embeddedLinkedin,
       embeddedPortfolio,
+      workExperiences: expAnalysis.workExperiences,
+      clubActivities: expAnalysis.clubActivities,
+      matchedCustomKeywords: expAnalysis.matchedCustomKeywords,
+      hasResearchInternship: expAnalysis.hasResearchInternship,
+      hasTier1Company: expAnalysis.hasTier1Company,
+      hasSpamExperience: expAnalysis.hasSpamExperience,
+      hasClubLeadership: expAnalysis.hasClubLeadership,
       totalPages: extracted.totalPages,
       snippet: fullText.slice(0, 300).replace(/\s+/g, ' ').trim(),
     };

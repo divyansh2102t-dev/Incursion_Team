@@ -32,6 +32,23 @@ export const DEFAULT_FORMULA_COEFFICIENTS: FormulaCoefficients = {
   balancedMeanMaxCap: 1.40,
 };
 
+export const DEFAULT_WORK_EXPERIENCE_CONFIG: import('@/types').WorkExperienceConfig = {
+  enabled: true,
+  baseWorkExpEnabled: true,
+  baseWorkExpPoints: 10,
+  tier1CompanyEnabled: true,
+  tier1CompanyBonus: 20,
+  researchInternshipEnabled: true,
+  researchInternshipBonus: 25,
+  clubLeadershipEnabled: true,
+  clubLeadershipBonus: 15,
+  clubMemberBonus: 5,
+  penalizeSpam: true,
+  spamPenaltyDiscount: 0.5,
+  maxTotalExperiencePoints: 50,
+  customKeywordsEnabled: true,
+};
+
 export const PRESETS: Record<string, SelectionConfig> = {
   balanced: {
     presetName: 'Balanced Hackathon (Generalist)',
@@ -41,6 +58,12 @@ export const PRESETS: Record<string, SelectionConfig> = {
       projectExperience: 30,
       skillComplementarity: 25,
       dataCompleteness: 10,
+    },
+    weightsEnabled: {
+      technicalDepth: true,
+      projectExperience: true,
+      skillComplementarity: true,
+      dataCompleteness: true,
     },
     filters: {
       minTeamSize: 1,
@@ -60,6 +83,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
     },
     anonymizeMode: false,
     formulaCoefficients: { ...DEFAULT_FORMULA_COEFFICIENTS },
+    workExperienceConfig: { ...DEFAULT_WORK_EXPERIENCE_CONFIG },
+    customKeywords: [],
   },
 
   deepTech: {
@@ -94,6 +119,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       githubContribDivisor: 300,
       githubStarsMaxPoints: 25,
     },
+    workExperienceConfig: { ...DEFAULT_WORK_EXPERIENCE_CONFIG },
+    customKeywords: [],
   },
 
   beginnerFriendly: {
@@ -128,6 +155,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       skillPointsPerMatch: 6,
       verifiableLinksBonusPoints: 30,
     },
+    workExperienceConfig: { ...DEFAULT_WORK_EXPERIENCE_CONFIG },
+    customKeywords: [],
   },
 
   aiProduct: {
@@ -161,6 +190,8 @@ export const PRESETS: Record<string, SelectionConfig> = {
       hackathonPointsPerWin: 30,
       skillPointsPerMatch: 5,
     },
+    workExperienceConfig: { ...DEFAULT_WORK_EXPERIENCE_CONFIG },
+    customKeywords: [],
   },
 };
 

@@ -5,6 +5,7 @@ import { extractSkillsAndRoles } from './taxonomy';
 import { extractGithubUsername, generateHeuristicFallback } from './github';
 import { extractLinkedinUsername, isCustomVanitySlug, analyzeCrossMatch } from './linkedin';
 import { detectMemberGender } from './genderDetection';
+import { extractWorkAndClubExperiences } from './experienceParser';
 
 export interface ParseResult {
   headers: string[];
@@ -13,6 +14,9 @@ export interface ParseResult {
   teams: TeamRecord[];
 }
 
+/**
+ * Extracts a direct CSV export URL from any public Google Sheets URL or ID.
+ */
 export function extractGoogleSheetsExportUrl(inputUrl: string): string | null {
   const clean = inputUrl.trim();
   const match = clean.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/i);
@@ -29,42 +33,270 @@ export function extractGoogleSheetsExportUrl(inputUrl: string): string | null {
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
 }
 
+/**
+ * Helper to sniff column data types directly from cell values.
+ * Resolves completely arbitrary, foreign, or vague headers (e.g. "Col 4", "Drive Link", "Q2").
+ */
+function sniffColumnTypeFromValues(
+  colName: string,
+  rows: Record<string, string>[],
+  maxSample = 50
+): 'github' | 'linkedin' | 'resume' | 'email' | 'portfolio' | 'gender' | 'phone' | 'college' | 'gradYear' | 'unknown' {
+  if (!rows || rows.length === 0) return 'unknown';
+
+  let githubCount = 0;
+  let linkedinCount = 0;
+  let resumeCount = 0;
+  let emailCount = 0;
+  let portfolioCount = 0;
+  let genderCount = 0;
+  let phoneCount = 0;
+  let collegeCount = 0;
+  let gradYearCount = 0;
+  let sampleCount = 0;
+
+  for (let i = 0; i < Math.min(rows.length, maxSample); i++) {
+    const val = (rows[i][colName] || '').trim();
+    if (!val) continue;
+    sampleCount++;
+
+    if (/github\.com\/[a-zA-Z0-9-_]+/i.test(val) || (/^@?[a-zA-Z0-9-_]{2,39}$/i.test(val) && /git/i.test(colName))) {
+      githubCount++;
+    }
+    if (/linkedin\.com\/(?:in|pub)\/[a-zA-Z0-9-_]+/i.test(val)) {
+      linkedinCount++;
+    }
+    if (/drive\.google\.com|dropbox\.com|onedrive\.live|docsend|\.pdf(\?|$)/i.test(val)) {
+      resumeCount++;
+    }
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      emailCount++;
+    }
+    if (
+      /^(?:\+?\d{1,4}[-.\s]?)?\(?\d{2,5}\)?[-.\s]?\d{3,5}[-.\s]?\d{3,5}$/.test(val) ||
+      (/^\+?[0-9]{10,14}$/.test(val) && !/^\d{4}$/.test(val))
+    ) {
+      phoneCount++;
+    }
+    if (/university|college|institute|campus|school|academy|iit|nit|bits|iiit/i.test(val)) {
+      collegeCount++;
+    }
+    if (
+      /^(?:1st|2nd|3rd|4th|final|first|second|third|fourth)\s*(?:year)?$/i.test(val) ||
+      /^202[3-9]$/.test(val) ||
+      /^(?:freshman|sophomore|junior|senior)$/i.test(val)
+    ) {
+      gradYearCount++;
+    }
+    if (/^(?:https?:\/\/)?(?:[a-zA-Z0-9-_]+\.)*(?:github\.io|vercel\.app|netlify\.app|portfolio|dev|me)(\/|$)/i.test(val)) {
+      portfolioCount++;
+    }
+    if (/^(?:female|male|woman|man|non-binary|transgender|she\/her|he\/him|they\/them|f|m)$/i.test(val)) {
+      genderCount++;
+    }
+  }
+
+  if (sampleCount === 0) return 'unknown';
+
+  if (githubCount / sampleCount >= 0.2) return 'github';
+  if (linkedinCount / sampleCount >= 0.2) return 'linkedin';
+  if (resumeCount / sampleCount >= 0.2) return 'resume';
+  if (emailCount / sampleCount >= 0.4) return 'email';
+  if (phoneCount / sampleCount >= 0.4) return 'phone';
+  if (collegeCount / sampleCount >= 0.3) return 'college';
+  if (gradYearCount / sampleCount >= 0.3) return 'gradYear';
+  if (genderCount / sampleCount >= 0.3) return 'gender';
+  if (portfolioCount / sampleCount >= 0.2) return 'portfolio';
+
+  return 'unknown';
+}
+
+/**
+ * Intelligent Header Offset Detector.
+ * Handles Excel and CSV files with preambles, titles, or empty metadata rows at the top.
+ */
+function detectHeaderRowOffset(grid: string[][]): number {
+  if (!grid || grid.length === 0) return 0;
+
+  const headerKeywords = [
+    'team', 'name', 'email', 'github', 'git', 'repo', 'linkedin', 'resume', 'cv',
+    'drive', 'timestamp', 'date', 'gender', 'role', 'skill', 'member', 'participant',
+    'college', 'phone', 'lead', 'captain', 'project', 'submission', 'mobile', 'year', 'grad'
+  ];
+
+  let bestRowIndex = 0;
+  let highestScore = -1;
+
+  for (let r = 0; r < Math.min(grid.length, 6); r++) {
+    const row = grid[r];
+    if (!row || row.length === 0) continue;
+
+    const nonBlankCount = row.filter((c) => (c || '').trim().length > 0).length;
+    if (nonBlankCount < 2) continue; // Skip title banners with only 1 or 2 merged cells
+
+    let matchCount = 0;
+    row.forEach((cell) => {
+      const lower = (cell || '').toLowerCase().trim();
+      if (headerKeywords.some((kw) => lower.includes(kw))) {
+        matchCount++;
+      }
+    });
+
+    const score = matchCount * 10 + nonBlankCount;
+    if (score > highestScore) {
+      highestScore = score;
+      bestRowIndex = r;
+    }
+  }
+
+  return bestRowIndex;
+}
+
+/**
+ * Parses an Excel ArrayBuffer (.xlsx, .xls) into structured ParseResult.
+ */
 export function parseExcelArrayBuffer(buffer: ArrayBuffer): ParseResult {
   const workbook = XLSX.read(buffer, { type: 'array' });
   if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
     throw new Error('Excel workbook contains no sheets.');
   }
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
-  const csvContent = XLSX.utils.sheet_to_csv(worksheet);
-  return parseCSVString(csvContent);
+
+  let sheetName = workbook.SheetNames[0];
+  const preferredSheet = workbook.SheetNames.find((s) =>
+    /response|register|team|submission|form|data/i.test(s)
+  );
+  if (preferredSheet) {
+    sheetName = preferredSheet;
+  }
+
+  const worksheet = workbook.Sheets[sheetName];
+  const rawGrid = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: '' });
+  return processRawGridToResult(rawGrid);
 }
 
-export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig {
+/**
+ * Parses a raw CSV / TSV string into structured ParseResult.
+ */
+export function parseCSVString(csvContent: string): ParseResult {
+  const rawParsed = Papa.parse<string[]>(csvContent.trim(), {
+    header: false,
+    skipEmptyLines: 'greedy',
+  });
+
+  return processRawGridToResult(rawParsed.data);
+}
+
+/**
+ * Core processor taking a 2D grid of strings, auto-detecting headers, sniffing types,
+ * resolving Wide vs Tall format, and producing 100% data-safe TeamRecords.
+ */
+function processRawGridToResult(grid: string[][]): ParseResult {
+  if (!grid || grid.length === 0) {
+    return {
+      headers: [],
+      rawRows: [],
+      detectedMapping: {
+        teamNameCol: 'Team Name',
+        memberCountType: 'single_row_multiple_members',
+        maxMembersDetected: 1,
+        memberColumns: [{ memberIndex: 1 }],
+      },
+      teams: [],
+    };
+  }
+
+  // 1. Detect Header Row Offset
+  const headerRowIdx = detectHeaderRowOffset(grid);
+  const rawHeaderRow = grid[headerRowIdx] || [];
+  
+  const headers: string[] = [];
+  const headerCountMap = new Map<string, number>();
+
+  rawHeaderRow.forEach((h, idx) => {
+    let cleanHeader = (h || '').trim();
+    if (!cleanHeader) {
+      cleanHeader = `Column_${idx + 1}`;
+    }
+    if (headerCountMap.has(cleanHeader)) {
+      const count = headerCountMap.get(cleanHeader)! + 1;
+      headerCountMap.set(cleanHeader, count);
+      cleanHeader = `${cleanHeader}_${count}`;
+    } else {
+      headerCountMap.set(cleanHeader, 1);
+    }
+    headers.push(cleanHeader);
+  });
+
+  // 2. Build rawRows object dictionary
+  const rawRows: Record<string, string>[] = [];
+  for (let r = headerRowIdx + 1; r < grid.length; r++) {
+    const row = grid[r];
+    if (!row || row.length === 0) continue;
+
+    const hasData = row.some((c) => (c || '').trim().length > 0);
+    if (!hasData) continue;
+
+    const rowObj: Record<string, string> = {};
+    headers.forEach((h, colIdx) => {
+      rowObj[h] = (row[colIdx] !== undefined ? String(row[colIdx]) : '').trim();
+    });
+    rawRows.push(rowObj);
+  }
+
+  // 3. Auto-detect schema mapping
+  const detectedMapping = autoDetectColumnMapping(headers, rawRows);
+
+  // 4. Parse raw rows into complete TeamRecords
+  const teams = parseRawDataToTeams(rawRows, detectedMapping);
+
+  return {
+    headers,
+    rawRows,
+    detectedMapping,
+    teams,
+  };
+}
+
+/**
+ * Auto-detects column mapping using a combination of Header Keywords
+ * and Content-Aware Deep Cell Sniffing.
+ */
+export function autoDetectColumnMapping(
+  headers: string[],
+  rawRows?: Record<string, string>[]
+): ColumnMappingConfig {
   const lowerHeaders = headers.map((h) => h.toLowerCase());
 
   // 1. Find Team Name column
   let teamNameCol = headers[0] || 'Team Name';
   const teamNameIdx = lowerHeaders.findIndex((h) =>
-    h.includes('team name') || h === 'team' || h.includes('group name') || h.includes('project name')
+    h.includes('team name') ||
+    h === 'team' ||
+    h.includes('group name') ||
+    h.includes('project name') ||
+    h.includes('squad name') ||
+    h.includes('team_name') ||
+    h.includes('team / group')
   );
   if (teamNameIdx !== -1) {
     teamNameCol = headers[teamNameIdx];
+  } else {
+    const fallbackIdx = lowerHeaders.findIndex((h) => h.includes('team'));
+    if (fallbackIdx !== -1) {
+      teamNameCol = headers[fallbackIdx];
+    }
   }
 
   // 2. Find Timestamp column
   let submissionTimeCol: string | undefined;
   const timeIdx = lowerHeaders.findIndex((h) =>
-    h.includes('timestamp') || h.includes('submitted') || h.includes('date') || h.includes('time')
+    h.includes('timestamp') || h.includes('submitted') || h.includes('submission date') || h.includes('date') || h === 'time'
   );
   if (timeIdx !== -1) {
     submissionTimeCol = headers[timeIdx];
   }
 
-  // 3. Scan for member repetitions (e.g., Member 1, Member 2... or Leader, Teammate 1...)
-  const memberColumns: ColumnMappingConfig['memberColumns'] = [];
-  
-  // Dynamically detect the highest member index referenced in the headers (up to 100)
+  // 3. Detect Format: Wide (1 row = 1 team with Member 1, Member 2...) vs. Tall (1 row = 1 participant)
   let maxMemberIndexFound = 1;
   for (const h of headers) {
     const match = h.match(/(?:member|participant|teammate|person|applicant|m)[_\s]*(\d+)/i);
@@ -75,7 +307,25 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
       }
     }
   }
-  const scanLimit = Math.max(6, maxMemberIndexFound);
+
+  let isTallFormat = false;
+  if (maxMemberIndexFound === 1 && rawRows && rawRows.length > 1 && teamNameCol) {
+    const teamNameOccurrences = new Map<string, number>();
+    rawRows.forEach((r) => {
+      const val = (r[teamNameCol] || '').trim().toLowerCase();
+      if (val) {
+        teamNameOccurrences.set(val, (teamNameOccurrences.get(val) || 0) + 1);
+      }
+    });
+
+    const duplicateTeamsCount = Array.from(teamNameOccurrences.values()).filter((c) => c > 1).length;
+    if (duplicateTeamsCount >= 2 || (teamNameOccurrences.size > 0 && rawRows.length / teamNameOccurrences.size >= 1.5)) {
+      isTallFormat = true;
+    }
+  }
+
+  const memberColumns: ColumnMappingConfig['memberColumns'] = [];
+  const scanLimit = isTallFormat ? 1 : Math.max(6, maxMemberIndexFound);
 
   for (let m = 1; m <= scanLimit; m++) {
     const memberPrefixPatterns = [
@@ -83,11 +333,11 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
       new RegExp(`member_${m}\\b`, 'i'),
       new RegExp(`m${m}\\b`, 'i'),
       new RegExp(`participant\\s*${m}\\b`, 'i'),
-      ...(m === 1 ? [/leader\b/i, /captain\b/i, /applicant\b/i] : []),
+      new RegExp(`teammate\\s*${m}\\b`, 'i'),
+      ...(m === 1 ? [/leader\b/i, /captain\b/i, /applicant\b/i, /lead\b/i] : []),
     ];
 
-    const findCol = (keywords: string[]): string | undefined => {
-      // First look for prefix + keyword
+    const findColByKeyword = (keywords: string[]): string | undefined => {
       for (let i = 0; i < headers.length; i++) {
         const h = headers[i];
         const lh = lowerHeaders[i];
@@ -96,12 +346,11 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
           return h;
         }
       }
-      // If m === 1 and not prefixed, look for standalone (e.g. "Full Name", "GitHub URL")
-      if (m === 1) {
+      if (m === 1 || isTallFormat) {
         for (let i = 0; i < headers.length; i++) {
           const lh = lowerHeaders[i];
-          const hasAnyMemberPrefix = /member\s*[1-9]/i.test(headers[i]);
-          if (!hasAnyMemberPrefix && keywords.some((kw) => lh.includes(kw))) {
+          const hasAnyMemberPrefix = /(?:member|participant|teammate)[_\s]*[2-9]/i.test(headers[i]);
+          if (!hasAnyMemberPrefix && keywords.some((kw) => lh.includes(kw)) && headers[i] !== teamNameCol) {
             return headers[i];
           }
         }
@@ -109,20 +358,68 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
       return undefined;
     };
 
-    const nameCol = findCol(['name', 'full name', 'first name']);
-    const emailCol = findCol(['email', 'mail']);
-    const genderCol = findCol(['gender', 'sex', 'pronoun']);
-    const githubCol = findCol(['github', 'git', 'repo', 'gh']);
-    const linkedinCol = findCol(['linkedin', 'linked in']);
-    const portfolioCol = findCol(['portfolio', 'website', 'personal site']);
-    const resumeCol = findCol(['resume', 'cv', 'drive', 'doc']);
-    const roleOrBioCol = findCol(['role', 'bio', 'skills', 'about', 'experience']);
+    let nameCol = findColByKeyword(['full name', 'candidate name', 'participant name', 'student name', 'name', 'first name']);
+    let emailCol = findColByKeyword(['email', 'mail', 'e-mail']);
+    let phoneCol = findColByKeyword(['mobile', 'phone', 'contact', 'whatsapp', 'cell', 'ph no', 'phone number', 'mobile number', 'contact number']);
+    let collegeCol = findColByKeyword(['college', 'university', 'institute', 'campus', 'institution', 'school', 'org', 'department']);
+    let gradYearCol = findColByKeyword(['year of study', 'year of college', 'year', 'grad year', 'graduation year', 'batch', 'semester', 'class of', 'passout year', 'academic year']);
+    let genderCol = findColByKeyword(['gender', 'sex', 'pronoun', 'female']);
+    let githubCol = findColByKeyword(['github', 'git', 'repo', 'gh', 'code link', 'repository']);
+    let linkedinCol = findColByKeyword(['linkedin', 'linked in', 'linked_in']);
+    let portfolioCol = findColByKeyword(['portfolio', 'website', 'personal site', 'webpage']);
+    let resumeCol = findColByKeyword(['resume', 'cv', 'curriculum', 'drive', 'google drive', 'pdf', 'doc']);
+    let roleOrBioCol = findColByKeyword(['role', 'bio', 'skills', 'about', 'experience', 'tech stack', 'primary tech']);
 
-    if (nameCol || githubCol || resumeCol || emailCol || genderCol) {
+    // Content-Aware Sniffing Fallback
+    if (rawRows && rawRows.length > 0) {
+      if (!githubCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'github');
+        if (sniffed) githubCol = sniffed;
+      }
+      if (!linkedinCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'linkedin');
+        if (sniffed) linkedinCol = sniffed;
+      }
+      if (!resumeCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'resume');
+        if (sniffed) resumeCol = sniffed;
+      }
+      if (!emailCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'email');
+        if (sniffed) emailCol = sniffed;
+      }
+      if (!phoneCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'phone');
+        if (sniffed) phoneCol = sniffed;
+      }
+      if (!collegeCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'college');
+        if (sniffed) collegeCol = sniffed;
+      }
+      if (!gradYearCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'gradYear');
+        if (sniffed) gradYearCol = sniffed;
+      }
+      if (!genderCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'gender');
+        if (sniffed) genderCol = sniffed;
+      }
+      if (!portfolioCol) {
+        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'portfolio');
+        if (sniffed && sniffed !== githubCol && sniffed !== linkedinCol && sniffed !== resumeCol) {
+          portfolioCol = sniffed;
+        }
+      }
+    }
+
+    if (nameCol || githubCol || resumeCol || emailCol || genderCol || phoneCol || collegeCol) {
       memberColumns.push({
         memberIndex: m,
         nameCol,
         emailCol,
+        phoneCol,
+        collegeCol,
+        gradYearCol,
         genderCol,
         githubCol,
         linkedinCol,
@@ -133,12 +430,15 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
     }
   }
 
-  // If no structured member columns detected, bind generic columns to member 1
+  // Fallback
   if (memberColumns.length === 0) {
     memberColumns.push({
       memberIndex: 1,
       nameCol: headers.find((h) => /name/i.test(h) && !/team/i.test(h)),
       emailCol: headers.find((h) => /email/i.test(h)),
+      phoneCol: headers.find((h) => /phone|mobile|whatsapp/i.test(h)),
+      collegeCol: headers.find((h) => /college|univ|institute/i.test(h)),
+      gradYearCol: headers.find((h) => /year|batch|grad/i.test(h)),
       genderCol: headers.find((h) => /gender|sex|pronoun/i.test(h)),
       githubCol: headers.find((h) => /github|git/i.test(h)),
       linkedinCol: headers.find((h) => /linkedin/i.test(h)),
@@ -151,47 +451,287 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMappingConfig 
   return {
     teamNameCol,
     submissionTimeCol,
-    memberCountType: 'single_row_multiple_members',
+    memberCountType: isTallFormat ? 'delimited_or_stacked' : 'single_row_multiple_members',
     maxMembersDetected: Math.max(1, memberColumns.length),
     memberColumns,
   };
 }
 
+/**
+ * Converts rawRows into structured TeamRecords based on ColumnMappingConfig.
+ * Handles both Wide (single row per team) and Tall (grouped rows per team) formats,
+ * while deduplicating redundant submissions and preserving 100% of raw data.
+ */
 export function parseRawDataToTeams(
   rawRows: Record<string, string>[],
   mapping: ColumnMappingConfig
 ): TeamRecord[] {
-  return rawRows.map((row, rowIdx) => {
+  // --- BRANCH A: Tall / Row-Per-Member Format (Group rows by Team Name) ---
+  if (mapping.memberCountType === 'delimited_or_stacked') {
+    const teamMap = new Map<string, Record<string, string>[]>();
+
+    rawRows.forEach((row, rowIdx) => {
+      const rawTeamName = (row[mapping.teamNameCol] || '').trim();
+      const teamKey = rawTeamName.toLowerCase() || `team-unnamed-${rowIdx + 1}`;
+      if (!teamMap.has(teamKey)) {
+        teamMap.set(teamKey, []);
+      }
+      teamMap.get(teamKey)!.push(row);
+    });
+
+    const teams: TeamRecord[] = [];
+    let teamCounter = 0;
+
+    teamMap.forEach((rows) => {
+      teamCounter++;
+      const primaryRow = rows[0];
+      const teamName = (primaryRow[mapping.teamNameCol] || '').trim() || `Team #${teamCounter}`;
+      const submissionTimestamp = mapping.submissionTimeCol ? primaryRow[mapping.submissionTimeCol] : undefined;
+
+      const members: MemberProfile[] = [];
+      const mCol = mapping.memberColumns[0] || {};
+
+      rows.forEach((row, mIdx) => {
+        const name = mCol.nameCol ? (row[mCol.nameCol] || '').trim() : '';
+        const email = mCol.emailCol ? (row[mCol.emailCol] || '').trim() : '';
+        const phone = mCol.phoneCol ? (row[mCol.phoneCol] || '').trim() : '';
+        const college = mCol.collegeCol ? (row[mCol.collegeCol] || '').trim() : '';
+        const gradYear = mCol.gradYearCol ? (row[mCol.gradYearCol] || '').trim() : '';
+        const githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
+        const linkedinUrl = mCol.linkedinCol ? (row[mCol.linkedinCol] || '').trim() : '';
+        const portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
+        const resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
+        const roleOrBio = mCol.roleOrBioCol ? (row[mCol.roleOrBioCol] || '').trim() : '';
+
+        const hasAnyData = Boolean(name || email || githubUrl || resumeUrl || portfolioUrl || roleOrBio || phone || college);
+        if (!hasAnyData && mIdx > 0) return;
+
+        // Collect custom/unmapped fields for this member
+        const mappedCols = new Set([
+          mapping.teamNameCol,
+          mapping.submissionTimeCol,
+          mCol.nameCol,
+          mCol.emailCol,
+          mCol.phoneCol,
+          mCol.collegeCol,
+          mCol.gradYearCol,
+          mCol.genderCol,
+          mCol.githubCol,
+          mCol.linkedinCol,
+          mCol.portfolioCol,
+          mCol.resumeCol,
+          mCol.roleOrBioCol,
+        ].filter(Boolean) as string[]);
+
+        const customFields: Record<string, string> = {};
+        Object.entries(row).forEach(([k, v]) => {
+          if (!mappedCols.has(k) && v && v.trim().length > 0) {
+            customFields[k] = v.trim();
+          }
+        });
+
+        // Scan all row text for unmapped skills and accolades (Zero Data Loss)
+        const allRowText = Object.values(row).join(' ');
+        const extracted = extractSkillsAndRoles(`${roleOrBio} ${name} ${portfolioUrl} ${allRowText}`);
+
+        const ghUsername = extractGithubUsername(githubUrl);
+        const ghMetrics = ghUsername ? generateHeuristicFallback(ghUsername) : undefined;
+        if (ghMetrics && ghMetrics.topLanguages) {
+          ghMetrics.topLanguages.forEach((l) => {
+            if (!extracted.skills.includes(l)) {
+              extracted.skills.push(l);
+            }
+          });
+        }
+
+        const linkedinUsername = extractLinkedinUsername(linkedinUrl) || undefined;
+        const isCustomSlug = isCustomVanitySlug(linkedinUsername);
+        const crossMatch = analyzeCrossMatch(linkedinUsername, ghUsername || undefined, name);
+        const linkedinMetrics = linkedinUsername
+          ? {
+              username: linkedinUsername,
+              seniorityLevel: 'unknown' as const,
+              has500PlusConnections: false,
+              isCustomVanitySlug: isCustomSlug,
+              crossMatchesGithub: crossMatch,
+              extractedSkills: [],
+              verifiedScore: isCustomSlug ? 35 : 20,
+            }
+          : undefined;
+
+        const signalsPresent = [
+          Boolean(name),
+          Boolean(email),
+          Boolean(githubUrl || ghUsername),
+          Boolean(resumeUrl),
+          Boolean(portfolioUrl || linkedinUrl),
+          Boolean(extracted.skills.length > 0),
+        ].filter(Boolean).length;
+
+        const completenessRatio = Number((signalsPresent / 6).toFixed(2));
+
+        const rawGender = mCol.genderCol ? (row[mCol.genderCol] || '').trim() : '';
+        const genderRes = detectMemberGender({
+          rawGender,
+          name,
+          roleOrBio,
+        });
+
+        const initialExp = extractWorkAndClubExperiences(roleOrBio || '');
+
+        members.push({
+          id: `mem-${teamCounter}-${mIdx + 1}`,
+          name: name || `Member ${mIdx + 1}`,
+          email,
+          phone: phone || undefined,
+          college: college || undefined,
+          gradYear: gradYear || undefined,
+          gender: genderRes.gender,
+          isFemale: genderRes.isFemale,
+          githubUrl,
+          linkedinUrl,
+          portfolioUrl,
+          resumeUrl,
+          roleOrBio,
+          customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
+          rawSignals: {
+            skills: extracted.skills,
+            roleDistribution: extracted.roleDistribution,
+            githubUsername: ghUsername || undefined,
+            githubMetrics: ghMetrics,
+            hackathonExperienceCount: extracted.hackathonMentionCount,
+            workExperiences: initialExp.workExperiences.length > 0 ? initialExp.workExperiences : undefined,
+            clubActivities: initialExp.clubActivities.length > 0 ? initialExp.clubActivities : undefined,
+            matchedCustomKeywords: initialExp.matchedCustomKeywords.length > 0 ? initialExp.matchedCustomKeywords : undefined,
+            hasResume: Boolean(resumeUrl),
+            hasGithub: Boolean(githubUrl || ghUsername),
+            hasLinkedin: Boolean(linkedinUrl || linkedinUsername),
+            linkedinUsername,
+            linkedinMetrics,
+            hasPortfolio: Boolean(portfolioUrl),
+            completenessRatio,
+            rawTextSummary: roleOrBio,
+          },
+        });
+      });
+
+      // Merge all row attributes into rawRowData so zero columns are lost
+      const mergedRawRowData = Object.assign({}, ...rows);
+
+      // Check team-level female signal in any row
+      const hasTeamLevelFemaleSignal = rows.some((r) =>
+        Object.entries(r).some(([colName, val]) => {
+          const lcCol = colName.toLowerCase();
+          const lcVal = (val || '').toLowerCase().trim();
+          return (
+            (lcCol.includes('female') || lcCol.includes('women') || lcCol.includes('diversity')) &&
+            (lcVal === 'yes' || lcVal === 'true' || lcVal === '1' || lcVal.includes('female'))
+          );
+        })
+      );
+      if (hasTeamLevelFemaleSignal && !members.some((m) => m.isFemale) && members.length > 0) {
+        members[0].isFemale = true;
+        members[0].gender = 'female';
+      }
+
+      teams.push({
+        id: `team-${teamCounter}`,
+        teamName,
+        submissionTimestamp,
+        members: members.length > 0 ? members : createFallbackMembers(teamCounter),
+        rawRowData: mergedRawRowData,
+        computed: createInitialComputedMetrics(teamCounter),
+      });
+    });
+
+    return teams;
+  }
+
+  // --- BRANCH B: Wide Format (1 row = 1 team with multiple member columns) ---
+  const uniqueTeamsMap = new Map<string, Record<string, string>>();
+
+  rawRows.forEach((row, rowIdx) => {
+    const rawTeamName = (row[mapping.teamNameCol] || '').trim();
+    const teamKey = rawTeamName ? rawTeamName.toLowerCase() : `__row_${rowIdx}`;
+
+    if (uniqueTeamsMap.has(teamKey)) {
+      const existing = uniqueTeamsMap.get(teamKey)!;
+      const merged: Record<string, string> = { ...existing };
+      Object.entries(row).forEach(([k, v]) => {
+        if (v && v.trim().length > 0) {
+          merged[k] = v.trim();
+        }
+      });
+      uniqueTeamsMap.set(teamKey, merged);
+    } else {
+      uniqueTeamsMap.set(teamKey, row);
+    }
+  });
+
+  const dedupedRows = Array.from(uniqueTeamsMap.values());
+
+  return dedupedRows.map((row, rowIdx) => {
     const rawTeamName = (row[mapping.teamNameCol] || '').trim();
     const teamName = rawTeamName || `Team #${rowIdx + 1}`;
     const submissionTimestamp = mapping.submissionTimeCol ? row[mapping.submissionTimeCol] : undefined;
 
     const members: MemberProfile[] = [];
+    const allRowText = Object.values(row).join(' ');
+
+    // Collect all explicitly mapped columns across all members
+    const allMappedColumns = new Set<string>([
+      mapping.teamNameCol,
+      mapping.submissionTimeCol || '',
+    ]);
+
+    mapping.memberColumns.forEach((mCol) => {
+      [
+        mCol.nameCol,
+        mCol.emailCol,
+        mCol.phoneCol,
+        mCol.collegeCol,
+        mCol.gradYearCol,
+        mCol.genderCol,
+        mCol.githubCol,
+        mCol.linkedinCol,
+        mCol.portfolioCol,
+        mCol.resumeCol,
+        mCol.roleOrBioCol,
+      ].forEach((col) => {
+        if (col) allMappedColumns.add(col);
+      });
+    });
+
+    // Unmapped team/candidate custom fields
+    const customFields: Record<string, string> = {};
+    Object.entries(row).forEach(([k, v]) => {
+      if (!allMappedColumns.has(k) && v && v.trim().length > 0) {
+        customFields[k] = v.trim();
+      }
+    });
 
     mapping.memberColumns.forEach((mCol, idx) => {
       const name = mCol.nameCol ? (row[mCol.nameCol] || '').trim() : '';
       const email = mCol.emailCol ? (row[mCol.emailCol] || '').trim() : '';
+      const phone = mCol.phoneCol ? (row[mCol.phoneCol] || '').trim() : '';
+      const college = mCol.collegeCol ? (row[mCol.collegeCol] || '').trim() : '';
+      const gradYear = mCol.gradYearCol ? (row[mCol.gradYearCol] || '').trim() : '';
       const githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
       const linkedinUrl = mCol.linkedinCol ? (row[mCol.linkedinCol] || '').trim() : '';
       const portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
       const resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
       const roleOrBio = mCol.roleOrBioCol ? (row[mCol.roleOrBioCol] || '').trim() : '';
 
-      // Check if this member has at least one piece of data
-      const hasAnyData = Boolean(name || email || githubUrl || resumeUrl || portfolioUrl || roleOrBio);
+      const hasAnyData = Boolean(name || email || githubUrl || resumeUrl || portfolioUrl || roleOrBio || phone || college);
       if (!hasAnyData && idx > 0) {
-        // Skip empty member slots beyond member 1
         return;
       }
 
-      // Extract skills and roles from text
-      const extracted = extractSkillsAndRoles(`${roleOrBio} ${name} ${portfolioUrl}`);
+      const extracted = extractSkillsAndRoles(`${roleOrBio} ${name} ${portfolioUrl} ${idx === 0 ? allRowText : ''}`);
 
-      // GitHub extraction
       const ghUsername = extractGithubUsername(githubUrl);
       const ghMetrics = ghUsername ? generateHeuristicFallback(ghUsername) : undefined;
 
-      // Add languages from GitHub to skills if available
       if (ghMetrics && ghMetrics.topLanguages) {
         ghMetrics.topLanguages.forEach((l) => {
           if (!extracted.skills.includes(l)) {
@@ -200,7 +740,6 @@ export function parseRawDataToTeams(
         });
       }
 
-      // LinkedIn extraction
       const linkedinUsername = extractLinkedinUsername(linkedinUrl) || undefined;
       const isCustomSlug = isCustomVanitySlug(linkedinUsername);
       const crossMatch = analyzeCrossMatch(linkedinUsername, ghUsername || undefined, name);
@@ -216,7 +755,6 @@ export function parseRawDataToTeams(
           }
         : undefined;
 
-      // Calculate completeness ratio
       const signalsPresent = [
         Boolean(name),
         Boolean(email),
@@ -228,7 +766,6 @@ export function parseRawDataToTeams(
 
       const completenessRatio = Number((signalsPresent / 6).toFixed(2));
 
-      // Intelligent Gender Detection
       const rawGender = mCol.genderCol ? (row[mCol.genderCol] || '').trim() : '';
       const genderRes = detectMemberGender({
         rawGender,
@@ -236,10 +773,15 @@ export function parseRawDataToTeams(
         roleOrBio,
       });
 
+      const initialExp = extractWorkAndClubExperiences(roleOrBio || '');
+
       members.push({
         id: `mem-${rowIdx + 1}-${idx + 1}`,
         name: name || `Member ${idx + 1}`,
         email,
+        phone: phone || undefined,
+        college: college || undefined,
+        gradYear: gradYear || undefined,
         gender: genderRes.gender,
         isFemale: genderRes.isFemale,
         githubUrl,
@@ -247,12 +789,16 @@ export function parseRawDataToTeams(
         portfolioUrl,
         resumeUrl,
         roleOrBio,
+        customFields: idx === 0 && Object.keys(customFields).length > 0 ? customFields : undefined,
         rawSignals: {
           skills: extracted.skills,
           roleDistribution: extracted.roleDistribution,
           githubUsername: ghUsername || undefined,
           githubMetrics: ghMetrics,
           hackathonExperienceCount: extracted.hackathonMentionCount,
+          workExperiences: initialExp.workExperiences.length > 0 ? initialExp.workExperiences : undefined,
+          clubActivities: initialExp.clubActivities.length > 0 ? initialExp.clubActivities : undefined,
+          matchedCustomKeywords: initialExp.matchedCustomKeywords.length > 0 ? initialExp.matchedCustomKeywords : undefined,
           hasResume: Boolean(resumeUrl),
           hasGithub: Boolean(githubUrl || ghUsername),
           hasLinkedin: Boolean(linkedinUrl || linkedinUsername),
@@ -265,7 +811,7 @@ export function parseRawDataToTeams(
       });
     });
 
-    // Team-level diversity check fallback (e.g. "Has Female Member" column)
+    // Team-level female signal fallback
     const hasTeamLevelFemaleSignal = Object.entries(row).some(([colName, val]) => {
       const lcCol = colName.toLowerCase();
       const lcVal = (val || '').toLowerCase().trim();
@@ -279,63 +825,51 @@ export function parseRawDataToTeams(
       members[0].gender = 'female';
     }
 
-    // Default uncalculated computed state (will be populated by scoring engine)
     return {
       id: `team-${rowIdx + 1}`,
       teamName,
       submissionTimestamp,
-      members: members.length > 0 ? members : [
-        {
-          id: `mem-${rowIdx + 1}-1`,
-          name: 'Lead Hacker',
-          rawSignals: {
-            skills: [],
-            roleDistribution: { frontend: 0, backend: 0, ai_ml: 0, mobile: 0, design: 0, devops: 0, general: 1 },
-            hackathonExperienceCount: 0,
-            hasResume: false,
-            hasGithub: false,
-            hasLinkedin: false,
-            hasPortfolio: false,
-            completenessRatio: 0.1,
-          },
-        },
-      ],
+      members: members.length > 0 ? members : createFallbackMembers(rowIdx + 1),
       rawRowData: row,
-      computed: {
-        isEligible: true,
-        failedFilters: [],
-        passedFilters: [],
-        technicalDepthScore: 0,
-        projectExperienceScore: 0,
-        skillComplementarityScore: 0,
-        dataCompletenessScore: 0,
-        finalScore: 0,
-        rank: rowIdx + 1,
-        coveredRoles: [],
-        missingRoles: [],
-        missingDataWarnings: [],
-        antiCheatFlags: [],
-        manualStatus: 'normal',
-      },
+      computed: createInitialComputedMetrics(rowIdx + 1),
     };
   });
 }
 
-export function parseCSVString(csvContent: string): ParseResult {
-  const parsed = Papa.parse<Record<string, string>>(csvContent.trim(), {
-    header: true,
-    skipEmptyLines: 'greedy',
-  });
+function createFallbackMembers(idIndex: number): MemberProfile[] {
+  return [
+    {
+      id: `mem-${idIndex}-1`,
+      name: 'Lead Hacker',
+      rawSignals: {
+        skills: [],
+        roleDistribution: { frontend: 0, backend: 0, ai_ml: 0, mobile: 0, design: 0, devops: 0, general: 1 },
+        hackathonExperienceCount: 0,
+        hasResume: false,
+        hasGithub: false,
+        hasLinkedin: false,
+        hasPortfolio: false,
+        completenessRatio: 0.1,
+      },
+    },
+  ];
+}
 
-  const headers = parsed.meta.fields || [];
-  const rawRows = parsed.data;
-  const detectedMapping = autoDetectColumnMapping(headers);
-  const teams = parseRawDataToTeams(rawRows, detectedMapping);
-
+function createInitialComputedMetrics(rankIdx: number) {
   return {
-    headers,
-    rawRows,
-    detectedMapping,
-    teams,
+    isEligible: true,
+    failedFilters: [],
+    passedFilters: [],
+    technicalDepthScore: 0,
+    projectExperienceScore: 0,
+    skillComplementarityScore: 0,
+    dataCompletenessScore: 0,
+    finalScore: 0,
+    rank: rankIdx,
+    coveredRoles: [],
+    missingRoles: [],
+    missingDataWarnings: [],
+    antiCheatFlags: [],
+    manualStatus: 'normal' as const,
   };
 }

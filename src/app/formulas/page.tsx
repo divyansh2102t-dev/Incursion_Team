@@ -79,8 +79,11 @@ export default function FormulasPage() {
         presetName: config.presetName,
         formulaCoefficients: config.formulaCoefficients,
         weights: config.weights,
+        weightsEnabled: config.weightsEnabled,
         filters: config.filters,
         aggregationStrategy: config.aggregationStrategy,
+        customKeywords: config.customKeywords,
+        workExperienceConfig: config.workExperienceConfig,
         customFormulaEnabled: config.customFormulaEnabled,
         customFormulaExpression: config.customFormulaExpression,
         customFormulaName: config.customFormulaName,
@@ -99,7 +102,7 @@ export default function FormulasPage() {
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-        if (parsed.formulaCoefficients || parsed.customFormulaExpression !== undefined) {
+        if (parsed.formulaCoefficients || parsed.customFormulaExpression !== undefined || parsed.weights || parsed.workExperienceConfig) {
           updateConfig({
             ...config,
             ...(parsed.formulaCoefficients
@@ -107,6 +110,17 @@ export default function FormulasPage() {
                   formulaCoefficients: {
                     ...config.formulaCoefficients,
                     ...parsed.formulaCoefficients,
+                  },
+                }
+              : {}),
+            ...(parsed.weights ? { weights: { ...config.weights, ...parsed.weights } } : {}),
+            ...(parsed.weightsEnabled ? { weightsEnabled: { ...config.weightsEnabled, ...parsed.weightsEnabled } } : {}),
+            ...(parsed.customKeywords ? { customKeywords: parsed.customKeywords } : {}),
+            ...(parsed.workExperienceConfig
+              ? {
+                  workExperienceConfig: {
+                    ...(config.workExperienceConfig || {}),
+                    ...parsed.workExperienceConfig,
                   },
                 }
               : {}),

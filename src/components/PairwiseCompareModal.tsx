@@ -163,7 +163,61 @@ export const PairwiseCompareModal: React.FC<PairwiseCompareModalProps> = ({
                   Array.from(new Set(teamA.members.flatMap((m) => m.rawSignals.skills))).length,
                   Array.from(new Set(teamB.members.flatMap((m) => m.rawSignals.skills))).length
                 )}
+                {renderComparisonRow(
+                  'Female Participants',
+                  teamA.members.filter((m) => m.isFemale).length,
+                  teamB.members.filter((m) => m.isFemale).length
+                )}
+                {renderComparisonRow(
+                  'Contact Numbers Available',
+                  teamA.members.filter((m) => m.phone).length,
+                  teamB.members.filter((m) => m.phone).length
+                )}
               </div>
+
+              {/* Academic & Demographics Summary */}
+              {(() => {
+                const collegesA = Array.from(new Set(teamA.members.map((m) => m.college).filter(Boolean)));
+                const collegesB = Array.from(new Set(teamB.members.map((m) => m.college).filter(Boolean)));
+                const yearsA = Array.from(new Set(teamA.members.map((m) => m.gradYear).filter(Boolean)));
+                const yearsB = Array.from(new Set(teamB.members.map((m) => m.gradYear).filter(Boolean)));
+
+                if (collegesA.length === 0 && collegesB.length === 0 && yearsA.length === 0 && yearsB.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div className="grid grid-cols-2 gap-3 text-xs bg-black/40 border border-zinc-800 p-3 rounded-xl">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase block">
+                        {config.anonymizeMode ? 'Team A' : teamA.teamName} Academic Profile:
+                      </span>
+                      <div className="text-zinc-200">
+                        {collegesA.length > 0 ? `🏛️ ${collegesA.join(', ')}` : 'Institution unlisted'}
+                      </div>
+                      {yearsA.length > 0 && (
+                        <div className="text-zinc-400 text-[11px]">
+                          🎓 {yearsA.join(', ')}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 text-right">
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase block">
+                        {config.anonymizeMode ? 'Team B' : teamB.teamName} Academic Profile:
+                      </span>
+                      <div className="text-zinc-200">
+                        {collegesB.length > 0 ? `🏛️ ${collegesB.join(', ')}` : 'Institution unlisted'}
+                      </div>
+                      {yearsB.length > 0 && (
+                        <div className="text-zinc-400 text-[11px]">
+                          🎓 {yearsB.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Side by Side Radars */}
               <div className="grid grid-cols-2 gap-4">

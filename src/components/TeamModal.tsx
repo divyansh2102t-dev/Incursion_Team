@@ -839,6 +839,40 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                         </div>
                       </div>
 
+                      {/* Mobile / Phone & College & Academic Year */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-zinc-400 block font-medium">Mobile / Phone:</label>
+                          <input
+                            type="text"
+                            value={member.phone || ''}
+                            onChange={(e) => updateMember(i, { phone: e.target.value })}
+                            placeholder="+1 555-0199 / 9876543210"
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-200 outline-none text-[11px]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-zinc-400 block font-medium">College / Institute:</label>
+                          <input
+                            type="text"
+                            value={member.college || ''}
+                            onChange={(e) => updateMember(i, { college: e.target.value })}
+                            placeholder="e.g. Stanford / IIT Bombay"
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-200 outline-none text-[11px]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-zinc-400 block font-medium">Year of Study / Grad:</label>
+                          <input
+                            type="text"
+                            value={member.gradYear || ''}
+                            onChange={(e) => updateMember(i, { gradYear: e.target.value })}
+                            placeholder="e.g. 3rd Year / 2026"
+                            className="w-full bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-200 outline-none text-[11px]"
+                          />
+                        </div>
+                      </div>
+
                       {/* Gender Selector */}
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-zinc-400 font-medium">Gender Representation:</span>
@@ -1185,8 +1219,54 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                       </div>
                     </div>
 
-                    {memberEmail && (
-                      <div className="text-[11px] text-zinc-500 truncate">{memberEmail}</div>
+                    {/* Contact & Academic Profile: Email, Mobile, College, Year of Study */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-zinc-400">
+                      {memberEmail && (
+                        <span className="text-zinc-300 flex items-center gap-1">
+                          <span className="text-zinc-500">✉</span>
+                          <span>{memberEmail}</span>
+                        </span>
+                      )}
+                      {member.phone && (
+                        <a
+                          href={`tel:${member.phone.replace(/[^0-9+]/g, '')}`}
+                          className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono transition-colors"
+                          title="Call / Contact participant"
+                        >
+                          <span>📞</span>
+                          <span>{member.phone}</span>
+                        </a>
+                      )}
+                      {member.college && (
+                        <span className="text-cyan-300 flex items-center gap-1 font-medium">
+                          <span>🏛️</span>
+                          <span className="truncate max-w-[200px]" title={member.college}>{member.college}</span>
+                        </span>
+                      )}
+                      {member.gradYear && (
+                        <span className="bg-zinc-900 border border-zinc-700/80 text-zinc-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
+                          🎓 {member.gradYear}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Member Custom Fields (e.g. Branch, T-Shirt, Roll No, Custom survey questions) */}
+                    {member.customFields && Object.keys(member.customFields).length > 0 && (
+                      <div className="bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/80 space-y-1 text-[10px]">
+                        <span className="text-zinc-500 font-bold uppercase tracking-wider block">
+                          Form Responses & Metadata:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(member.customFields).map(([k, v]) => (
+                            <span
+                              key={k}
+                              className="bg-zinc-950 border border-zinc-700/60 px-2 py-0.5 rounded text-zinc-300 font-mono"
+                            >
+                              <strong className="text-zinc-400">{k}:</strong> {v}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
 
                     {/* Links */}
@@ -1315,10 +1395,126 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                         ))}
                       </div>
                     )}
+
+                    {/* Extracted Work Experiences & Internships */}
+                    {member.rawSignals.workExperiences && member.rawSignals.workExperiences.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-zinc-800/60">
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+                          💼 Work & Research Experience:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {member.rawSignals.workExperiences.map((exp, idx) => (
+                            <div
+                              key={idx}
+                              className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-mono ${
+                                exp.isSpamOrSuspicious
+                                  ? 'bg-rose-950/60 border-rose-800 text-rose-300'
+                                  : exp.isResearchInternship
+                                  ? 'bg-indigo-950/80 border-indigo-700 text-indigo-300 font-semibold'
+                                  : exp.isTier1Company
+                                  ? 'bg-amber-950/80 border-amber-700 text-amber-300 font-semibold'
+                                  : 'bg-zinc-900 border-zinc-700 text-zinc-300'
+                              }`}
+                              title={exp.suspiciousReason || `${exp.title} at ${exp.organization}`}
+                            >
+                              {exp.isResearchInternship && <span>🏛️</span>}
+                              {exp.isTier1Company && <span>🏢</span>}
+                              {exp.isSpamOrSuspicious && <span>⚠️</span>}
+                              <span>{exp.organization}</span>
+                              <span className="text-[9px] opacity-75">({exp.title})</span>
+                              {exp.isSpamOrSuspicious && (
+                                <span className="text-[8px] bg-rose-900 text-rose-200 px-1 rounded uppercase font-bold">
+                                  Unverified / Spam
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* College Clubs & Extracurricular Leadership */}
+                    {member.rawSignals.clubActivities && member.rawSignals.clubActivities.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-zinc-800/60">
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+                          🎯 Clubs & Extracurricular:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {member.rawSignals.clubActivities.map((club, idx) => (
+                            <div
+                              key={idx}
+                              className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-mono ${
+                                club.isHighImpactLead
+                                  ? 'bg-cyan-950/80 border-cyan-700 text-cyan-300 font-bold'
+                                  : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                              }`}
+                            >
+                              <span>{club.isHighImpactLead ? '👑' : '👥'}</span>
+                              <span>{club.clubName}</span>
+                              <span className="text-[9px] opacity-75">[{club.role}]</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Matched Organizer Custom Keywords */}
+                    {member.rawSignals.matchedCustomKeywords && member.rawSignals.matchedCustomKeywords.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-emerald-950/60">
+                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
+                          🏷️ Matched Organizer Keywords:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {member.rawSignals.matchedCustomKeywords.map((kw, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-emerald-950/80 border border-emerald-700 text-emerald-300 text-[10px] px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1"
+                            >
+                              <span>✓</span>
+                              <span>{kw}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
+
+            {/* 4. Complete Registration Form Raw Fields & Custom Survey Questions */}
+            {currentTeam.rawRowData && Object.keys(currentTeam.rawRowData).length > 0 && (
+              <div className="pt-3 border-t border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📋</span>
+                    <span>Complete Form Submission & Custom Fields ({Object.keys(currentTeam.rawRowData).length} Columns)</span>
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">100% Volatile Data Preserved</span>
+                </div>
+                
+                <div className="bg-black/60 border border-zinc-800 rounded-xl p-3 max-h-56 overflow-y-auto space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                    {Object.entries(currentTeam.rawRowData).map(([colName, cellVal]) => {
+                      if (!cellVal || cellVal.trim().length === 0) return null;
+                      return (
+                        <div
+                          key={colName}
+                          className="bg-zinc-950 border border-zinc-800/80 p-2 rounded-lg space-y-0.5"
+                        >
+                          <span className="text-[10px] text-zinc-400 font-bold block truncate" title={colName}>
+                            {colName}
+                          </span>
+                          <span className="text-zinc-200 font-mono text-[11px] block break-words">
+                            {cellVal}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractText } from 'unpdf';
 import { extractSkillsAndRoles } from '@/engine/taxonomy';
 import { extractGithubUsername } from '@/engine/github';
+import { extractWorkAndClubExperiences } from '@/engine/experienceParser';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,11 +63,16 @@ export async function POST(req: NextRequest) {
     let sourceUrl = '';
     let candidateName = '';
 
+    let customKeywords: Array<{ keyword: string; weight: number }> = [];
+
     // Handle JSON payload containing a cloud URL (Google Drive, Dropbox, etc.)
     if (contentType.includes('application/json')) {
       const body = await req.json();
       sourceUrl = body.url || '';
       candidateName = body.candidateName || '';
+      if (Array.isArray(body.customKeywords)) {
+        customKeywords = body.customKeywords;
+      }
 
       if (!sourceUrl) {
         return NextResponse.json({ error: 'No resume URL provided' }, { status: 400 });
@@ -212,6 +218,9 @@ export async function POST(req: NextRequest) {
       embeddedPortfolio = portMatch[0].startsWith('http') ? portMatch[0] : `https://${portMatch[0]}`;
     }
 
+    // Extract work experiences, research internships, tier-1 companies, spam, clubs, and custom keywords
+    const expAnalysis = extractWorkAndClubExperiences(fullText, customKeywords);
+
     return NextResponse.json({
       success: true,
       status: 'parsed',
@@ -225,6 +234,13 @@ export async function POST(req: NextRequest) {
         embeddedGithub,
         embeddedLinkedin,
         embeddedPortfolio,
+        workExperiences: expAnalysis.workExperiences,
+        clubActivities: expAnalysis.clubActivities,
+        matchedCustomKeywords: expAnalysis.matchedCustomKeywords,
+        hasResearchInternship: expAnalysis.hasResearchInternship,
+        hasTier1Company: expAnalysis.hasTier1Company,
+        hasSpamExperience: expAnalysis.hasSpamExperience,
+        hasClubLeadership: expAnalysis.hasClubLeadership,
         snippet: fullText.slice(0, 300).replace(/\s+/g, ' ').trim(),
       },
     });
