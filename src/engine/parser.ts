@@ -56,7 +56,7 @@ function sniffColumnTypeFromValues(
   let sampleCount = 0;
 
   for (let i = 0; i < Math.min(rows.length, maxSample); i++) {
-    const val = (rows[i][colName] || '').trim();
+    const val = String(rows[i][colName] ?? '').trim();
     if (!val) continue;
     sampleCount++;
 
@@ -131,12 +131,12 @@ function detectHeaderRowOffset(grid: string[][]): number {
     const row = grid[r];
     if (!row || row.length === 0) continue;
 
-    const nonBlankCount = row.filter((c) => (c || '').trim().length > 0).length;
+    const nonBlankCount = row.filter((c) => String(c ?? '').trim().length > 0).length;
     if (nonBlankCount < 2) continue; // Skip title banners with only 1 or 2 merged cells
 
     let matchCount = 0;
     row.forEach((cell) => {
-      const lower = (cell || '').toLowerCase().trim();
+      const lower = String(cell ?? '').toLowerCase().trim();
       if (headerKeywords.some((kw) => lower.includes(kw))) {
         matchCount++;
       }
@@ -213,7 +213,7 @@ function processRawGridToResult(grid: string[][]): ParseResult {
   const headerCountMap = new Map<string, number>();
 
   rawHeaderRow.forEach((h, idx) => {
-    let cleanHeader = (h || '').trim();
+    let cleanHeader = String(h ?? '').trim();
     if (!cleanHeader) {
       cleanHeader = `Column_${idx + 1}`;
     }
@@ -233,7 +233,7 @@ function processRawGridToResult(grid: string[][]): ParseResult {
     const row = grid[r];
     if (!row || row.length === 0) continue;
 
-    const hasData = row.some((c) => (c || '').trim().length > 0);
+    const hasData = row.some((c) => String(c ?? '').trim().length > 0);
     if (!hasData) continue;
 
     const rowObj: Record<string, string> = {};
@@ -524,9 +524,10 @@ export function parseRawDataToTeams(
         ].filter(Boolean) as string[]);
 
         const customFields: Record<string, string> = {};
-        Object.entries(row).forEach(([k, v]) => {
-          if (!mappedCols.has(k) && v && v.trim().length > 0) {
-            customFields[k] = v.trim();
+        Object.entries(row).forEach(([k, rawVal]) => {
+          const v = String(rawVal ?? '').trim();
+          if (!mappedCols.has(k) && v.length > 0) {
+            customFields[k] = v;
           }
         });
 
@@ -622,7 +623,7 @@ export function parseRawDataToTeams(
       const hasTeamLevelFemaleSignal = rows.some((r) =>
         Object.entries(r).some(([colName, val]) => {
           const lcCol = colName.toLowerCase();
-          const lcVal = (val || '').toLowerCase().trim();
+          const lcVal = String(val ?? '').toLowerCase().trim();
           return (
             (lcCol.includes('female') || lcCol.includes('women') || lcCol.includes('diversity')) &&
             (lcVal === 'yes' || lcVal === 'true' || lcVal === '1' || lcVal.includes('female'))
@@ -657,9 +658,10 @@ export function parseRawDataToTeams(
     if (uniqueTeamsMap.has(teamKey)) {
       const existing = uniqueTeamsMap.get(teamKey)!;
       const merged: Record<string, string> = { ...existing };
-      Object.entries(row).forEach(([k, v]) => {
-        if (v && v.trim().length > 0) {
-          merged[k] = v.trim();
+      Object.entries(row).forEach(([k, rawVal]) => {
+        const v = String(rawVal ?? '').trim();
+        if (v.length > 0) {
+          merged[k] = v;
         }
       });
       uniqueTeamsMap.set(teamKey, merged);
@@ -671,7 +673,7 @@ export function parseRawDataToTeams(
   const dedupedRows = Array.from(uniqueTeamsMap.values());
 
   return dedupedRows.map((row, rowIdx) => {
-    const rawTeamName = (row[mapping.teamNameCol] || '').trim();
+    const rawTeamName = String(row[mapping.teamNameCol] ?? '').trim();
     const teamName = rawTeamName || `Team #${rowIdx + 1}`;
     const submissionTimestamp = mapping.submissionTimeCol ? row[mapping.submissionTimeCol] : undefined;
 
@@ -704,9 +706,10 @@ export function parseRawDataToTeams(
 
     // Unmapped team/candidate custom fields
     const customFields: Record<string, string> = {};
-    Object.entries(row).forEach(([k, v]) => {
-      if (!allMappedColumns.has(k) && v && v.trim().length > 0) {
-        customFields[k] = v.trim();
+    Object.entries(row).forEach(([k, rawVal]) => {
+      const v = String(rawVal ?? '').trim();
+      if (!allMappedColumns.has(k) && v.length > 0) {
+        customFields[k] = v;
       }
     });
 
@@ -814,7 +817,7 @@ export function parseRawDataToTeams(
     // Team-level female signal fallback
     const hasTeamLevelFemaleSignal = Object.entries(row).some(([colName, val]) => {
       const lcCol = colName.toLowerCase();
-      const lcVal = (val || '').toLowerCase().trim();
+      const lcVal = String(val ?? '').toLowerCase().trim();
       return (
         (lcCol.includes('female') || lcCol.includes('women') || lcCol.includes('diversity')) &&
         (lcVal === 'yes' || lcVal === 'true' || lcVal === '1' || lcVal.includes('female'))

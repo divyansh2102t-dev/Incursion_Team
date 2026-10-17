@@ -320,7 +320,7 @@ export function matchMemberCustomKeywords(
     member.rawSignals.linkedinMetrics?.company || '',
     (member.rawSignals.linkedinMetrics?.extractedSkills || []).join(' '),
     (member.rawSignals.matchedCustomKeywords || []).join(' '),
-    ...Object.values(member.customFields || {}),
+    ...Object.values(member.customFields || {}).map((v) => String(v ?? '')),
   ];
   const combinedText = textChunks.join(' ');
 

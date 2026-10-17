@@ -49,11 +49,13 @@ export function detectMemberGender(params: {
   name?: string;
   roleOrBio?: string;
 }): GenderDetectionResult {
-  const { rawGender, name, roleOrBio } = params;
+  const rawGenderStr = String(params.rawGender ?? '').trim();
+  const roleOrBioStr = String(params.roleOrBio ?? '').trim();
+  const nameStr = String(params.name ?? '').trim();
 
   // 1. Explicit Gender Column (highest authority)
-  if (rawGender && rawGender.trim()) {
-    const cleanGender = rawGender.trim().toLowerCase();
+  if (rawGenderStr) {
+    const cleanGender = rawGenderStr.toLowerCase();
 
     if (
       cleanGender === 'female' ||
@@ -68,7 +70,7 @@ export function detectMemberGender(params: {
         isFemale: true,
         gender: 'female',
         confidence: 'explicit',
-        matchReason: `Declared in registration: "${rawGender.trim()}"`,
+        matchReason: `Declared in registration: "${rawGenderStr}"`,
       };
     }
 
@@ -85,7 +87,7 @@ export function detectMemberGender(params: {
         isFemale: false,
         gender: 'male',
         confidence: 'explicit',
-        matchReason: `Declared in registration: "${rawGender.trim()}"`,
+        matchReason: `Declared in registration: "${rawGenderStr}"`,
       };
     }
 
@@ -100,8 +102,8 @@ export function detectMemberGender(params: {
   }
 
   // 2. Pronoun & Keyword Signals in bio / role
-  if (roleOrBio && roleOrBio.trim()) {
-    const lowerBio = roleOrBio.toLowerCase();
+  if (roleOrBioStr) {
+    const lowerBio = roleOrBioStr.toLowerCase();
 
     if (/\b(she\/her|she\s*\/\s*her|ms\.|mrs\.|female developer|women in tech|girl hacker)\b/i.test(lowerBio)) {
       return {
@@ -123,9 +125,9 @@ export function detectMemberGender(params: {
   }
 
   // 3. First-Name Heuristic Dictionary (Indian & Global coverage)
-  if (name && name.trim()) {
+  if (nameStr) {
     // Extract first token/given name
-    const cleanName = name.trim().toLowerCase().replace(/[^a-z\s]/g, '');
+    const cleanName = nameStr.toLowerCase().replace(/[^a-z\s]/g, '');
     const tokens = cleanName.split(/\s+/).filter(Boolean);
     const firstName = tokens[0] || '';
 

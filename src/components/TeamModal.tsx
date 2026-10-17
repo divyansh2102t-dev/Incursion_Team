@@ -1262,7 +1262,7 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                               key={k}
                               className="bg-zinc-950 border border-zinc-700/60 px-2 py-0.5 rounded text-zinc-300 font-mono"
                             >
-                              <strong className="text-zinc-400">{k}:</strong> {v}
+                              <strong className="text-zinc-400">{k}:</strong> {typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v ?? '')}
                             </span>
                           ))}
                         </div>
@@ -1495,8 +1495,11 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                 
                 <div className="bg-black/60 border border-zinc-800 rounded-xl p-3 max-h-56 overflow-y-auto space-y-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
-                    {Object.entries(currentTeam.rawRowData).map(([colName, cellVal]) => {
-                      if (!cellVal || cellVal.trim().length === 0) return null;
+                    {Object.entries(currentTeam.rawRowData).map(([colName, rawVal]) => {
+                      const displayVal = typeof rawVal === 'object' && rawVal !== null
+                        ? JSON.stringify(rawVal)
+                        : String(rawVal ?? '').trim();
+                      if (!displayVal || displayVal.length === 0) return null;
                       return (
                         <div
                           key={colName}
@@ -1506,7 +1509,7 @@ export const TeamModal: React.FC<TeamModalProps> = ({
                             {colName}
                           </span>
                           <span className="text-zinc-200 font-mono text-[11px] block break-words">
-                            {cellVal}
+                            {displayVal}
                           </span>
                         </div>
                       );
