@@ -155,7 +155,7 @@ flowchart TD
 
     subgraph S2["Stage 2: Weighted Aggregation & Multipliers"]
         W["Organizer Weighting Formula\nSliders, Toggles, or Custom Math Expression"]
-        P["Missing Data Policy Multiplier\nNeutral: 1.0x | Penalty 10: 0.9x | Penalty 25: 0.75x"]
+        P["Missing Data Policy Multiplier\nCustomizable 0% to 100% Score Penalty\n(Triggered when completeness < Threshold%)"]
     end
 
     S1 --> S2
@@ -165,14 +165,15 @@ flowchart TD
 ### Overall Composite Score Formula:
 $$\text{Final Score} = \left(\frac{W_{\text{tech}} \times S_{\text{tech}} + W_{\text{exp}} \times S_{\text{exp}} + W_{\text{roles}} \times S_{\text{roles}} + W_{\text{comp}} \times S_{\text{comp}}}{\sum W_{\text{active}}}\right) \times \text{Policy Multiplier}$$
 
-- **$S_{\text{tech}}$ (Technical Depth, 0–100):** Combines verified annual commit velocity, repository stars, and active programming languages. Flagged accounts with 100% forks and 0 commits receive an anti-cheat discount.
+- **$S_{\text{tech}}$ (Technical Depth, 0–100):** Combines verified annual commit velocity, repository stars, and active programming languages. Flagged accounts with 100% forks and 0 commits receive an anti-cheat penalty deduction.
 - **$S_{\text{exp}}$ (Project Experience & Accolades, 0–100):** Combines verified hackathon podiums ($+25\text{ pts}$ each), matched skill count, verifiable proof-of-work ($+20\text{ pts}$), Tier-1 research at IIT/NIT/IIIT/MIT ($+25\text{ pts}$), FAANG/Unicorn industry roles ($+20\text{ pts}$), club leadership ($+15\text{ pts}$), and organizer custom keywords.
 - **$S_{\text{roles}}$ (Skill Synergy & Role Complementarity, 0–100):** Evaluates cross-functional squad balance across the 4 core disciplines (**Frontend**, **Backend**, **AI/ML**, and **Design**), awarding $25\text{ pts}$ per covered role ($100\text{ pts}$ for a complete squad).
 - **$S_{\text{comp}}$ (Data Completeness, 0–100):** Measures the ratio of submitted profiles, portfolio links, phone contacts, and resumes.
+- **$\text{Policy Multiplier}$ (Customizable Missing Data Policy):** Fully tunable from 0% to 100% score penalty (slider and numeric input) with configurable completeness trigger threshold (e.g. completeness $< 70\%$). Setting penalty to 0% disables deductions entirely.
 
 ### 100% Changeable & Tunable from the User End:
 1. **Interactive Sliders & Dynamic Toggles:** Open the **"Scoring Model & Filters"** drawer to adjust weights via slider or numeric input, or toggle any dimension OFF with one click (the formula automatically re-normalizes the remaining active weights to 100%).
-2. **Formula & Algorithm Studio (`/formulas`):** Organizers can author custom algebraic equations (e.g. `tech * 0.4 + exp * 0.35 + roles * 0.25 + min(keywords, 25)`) with real-time AST syntax validation and sandbox simulation.
+2. **Formula & Algorithm Studio (`/formulas`):** Organizers can author custom algebraic equations (e.g. `tech * 0.4 + exp * 0.35 + roles * 0.25 + min(keywords, 25)`) with real-time AST syntax validation, sandbox preview, and persistent formula saving.
 3. **Manual Overrides on any Individual Team:** Open any team's scorecard to override specific scores or hard gate decisions without re-evaluating the rest of the cohort.
 
 ---
@@ -185,7 +186,10 @@ The hard-qualification pipeline enforces eligibility before candidates enter the
   - **`All Members Mandatory` (`ALL_MEMBERS`):** Strictly disqualifies any team where even a single member lacks a GitHub profile. Designed for hardcore systems, low-level, or web3 tracks.
   - **`None / Optional` (`NONE`):** Disables GitHub verification for beginner tracks or design-first hackathons.
 - **Team Size Bounds:** Configurable minimum and maximum team sizes (e.g., 1 to 4 members).
-- **Minimum GitHub Velocity:** Minimum combined commits threshold (e.g., $\ge 20$ commits).
+- **Minimum GitHub Velocity & Repository Scope:**
+  - **All Repositories (`ALL_REPOS`, Default):** Evaluates total commits across all repositories (both original and forked).
+  - **Original Repositories Only (`ORIGINAL_ONLY`):** Strictly enforces that the minimum commit threshold must be met exclusively within fully original, un-forked repositories. Fork commits are excluded from the gate.
+  - **Custom Split Thresholds (`CUSTOM_SPLIT`):** Sets independent minimum commit thresholds for original vs. forked repositories (e.g., $\ge 15$ commits in original repos AND $\ge 5$ commits in forked repos).
 - **Minimum Skills Breadth:** Rejects submissions with fewer than $N$ unique verified technologies.
 - **Portfolio & Resume Requirements:** Enforces at least one verified resume or portfolio link.
 - **Compulsory Female Participation Gate (SIH / Diversity Rule):**
@@ -235,11 +239,14 @@ flowchart LR
 ### Key Capabilities:
 - **Compact Collapsed Mode:** When OFF, the Custom Formula Studio rests at the very bottom of the `/formulas` page as a sleek, single-row compact bar taking minimal vertical space. Clicking **Turn ON** or **Open Studio** instantly reveals the full interactive expression editor.
 - **Supported Math Syntax & Variables:**
-  - **Candidate Variables:** `tech` (0-100), `exp` (0-100), `synergy` (0-100), `completeness` (0-100), `commits`, `stars`, `wins`, `team_size`, `skills`.
+  - **Candidate Variables:** `tech` (0-100), `exp` (0-100), `synergy` (0-100), `completeness` (0-100), `linkedin` (0-100), `linkedin_seniority` (0-30), `linkedin_connections` (0 or 1), `linkedin_verified` (0-1), `commits`, `stars`, `wins`, `hackathon_wins`, `team_size`, `skills`, `work_exp`, `research_intern`, `tier1_company`, `acm_score`.
   - **Operators:** `+`, `-`, `*`, `/`, `%`, `^` (power), `==`, `!=`, `>`, `<`, `>=`, `<=`, and ternary `condition ? trueVal : falseVal`.
   - **Math Functions:** `min(...)`, `max(...)`, `log10(...)`, `sqrt(...)`, `abs(...)`, `round(...)`, `clamp(val, min, max)`.
 - **Live Syntax & Error Validator:** Instant feedback verifying math validity and displaying benchmark test output in green or pinpointing syntax errors in red.
-- **Live Sandbox Simulation:** Real-time side-by-side comparison table showing how top teams' scores and ranks shift before applying.
+- **Live Sandbox Simulation (Real Cohort Data):** Real-time side-by-side simulation running the actual shortlisting engine on candidate cohort data (no placeholder zeros), showing baseline scores, custom formula scores, and real-time impact deltas across all candidates as the user edits equations. Allows toggling preview counts (`Top 4`, `Top 8`, `All Teams`).
+- **One-Click Live Application & Indicator:** Clicking **"Apply to Live Shortlist"** or toggling the master switch activates the formula on the live leaderboard (`customFormulaEnabled: true`), dynamically re-ranking all teams. The candidate leaderboard displays a prominent `⚡ CUSTOM MATHEMATICAL FORMULA APPLIED` banner and `CUSTOM MATH` badges on final scores.
+- **Persistent Saved Formula Library (Bank):** Organizers can save custom equations with custom titles and purpose notes into browser `localStorage` (`incursion_saved_custom_formulas_v2`). The library allows loading any equation into the editor, immediately activating it, or deleting custom formulas across browser sessions and reboots.
+- **Curated Starter Templates:** Built-in presets ready to use or customize: *Balanced Core V1*, *LinkedIn Pedigree Weighted*, *Hackathon Champions Bias*, *Solo Prodigy Equalizer*, *Logarithmic Velocity Scaling*, and *Merit Capped Index*.
 - **Ubiquitous Navigation:** Direct one-click shortcuts to `/formulas` are embedded across the platform (Sidebar Header, Weights Section, Active Cohort Banner, Dashboard Action Bar, Telemetry Strip, and Upload Hero).
 
 ---
@@ -452,7 +459,7 @@ Incursion extracts and evaluates candidate employment, research, and extracurric
     - Paid summer training/course certificates disguised as company internships.
     - Self-proclaimed solo founders of "stealth" personal project placeholders.
     - Ultra-short superficial programs (< 2 weeks).
-  - Automatically flags warnings in the Anti-Cheat audit log and discounts or voids experience points (configurable penalty multiplier).
+  - Automatically flags warnings in the Anti-Cheat audit log and penalizes or voids experience points (configurable penalty multiplier).
 
 ---
 

@@ -785,11 +785,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     </button>
                     <span className="text-zinc-300 flex items-center gap-1">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Detect & Discount Spam Experiences</span>
+                      <span>Detect & Penalize Fake / Spam Experiences</span>
                     </span>
                   </div>
                   <span className="text-[10px] text-amber-400/80">
-                    {wCfg.penalizeSpam !== false ? 'Auto-discount & Flag' : 'Ignored'}
+                    {wCfg.penalizeSpam !== false ? 'Penalize & Flag' : 'Ignored'}
                   </span>
                 </div>
               </div>
@@ -1668,127 +1668,128 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       <hr className="border-cyan-950/60" />
 
       {/* Missing Data Policy */}
-      <div className="space-y-2.5 text-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <FileSpreadsheet className="w-4 h-4 text-amber-400" />
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
-              Missing Data Policy
-            </h3>
-          </div>
-          {config.missingDataPolicy === 'CUSTOM' && (
-            <span className="text-[10px] font-mono text-amber-400 font-bold px-1.5 py-0.2 rounded bg-amber-950/80 border border-amber-700/60">
-              {config.missingDataCustomPenalty ?? 15}% Penalty
-            </span>
-          )}
-        </div>
+      {(() => {
+        const currentPenalty =
+          config.missingDataCustomPenalty !== undefined
+            ? config.missingDataCustomPenalty
+            : config.missingDataPolicy === 'PENALTY_25'
+            ? 25
+            : config.missingDataPolicy === 'PENALTY_10'
+            ? 10
+            : config.missingDataPolicy === 'NEUTRAL'
+            ? 0
+            : 15;
+        const currentThreshold = config.missingDataThreshold ?? 70;
 
-        <select
-          value={config.missingDataPolicy}
-          onChange={(e) =>
-            onChange({
-              ...config,
-              missingDataPolicy: e.target.value as MissingDataPolicy,
-              ...(e.target.value === 'CUSTOM' && {
-                missingDataCustomPenalty: config.missingDataCustomPenalty ?? 15,
-                missingDataThreshold: config.missingDataThreshold ?? 70,
-              }),
-            })
-          }
-          className="w-full bg-black/60 border border-zinc-800 focus:border-cyan-400 px-3 py-2 rounded-lg text-zinc-300 font-mono text-xs cursor-pointer"
-        >
-          <option value="NEUTRAL">
-            Neutral / No Penalty (Flag warning, score on available signals)
-          </option>
-          <option value="PENALTY_10">
-            Soft Penalty (10% discount on final score if completeness &lt; 70%)
-          </option>
-          <option value="PENALTY_25">
-            Strict Penalty (25% discount on final score if completeness &lt; 70%)
-          </option>
-          <option value="CUSTOM">
-            Custom Penalty (Customizable 0% to 100% penalty discount)
-          </option>
-        </select>
-
-        {config.missingDataPolicy === 'CUSTOM' && (
-          <div className="bg-black/50 border border-amber-900/60 p-3 rounded-xl space-y-3 shadow-inner">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-zinc-200 font-bold">Custom Score Penalty Discount:</span>
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={config.missingDataCustomPenalty ?? 15}
-                  onChange={(e) => {
-                    const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
-                    onChange({
-                      ...config,
-                      missingDataCustomPenalty: val,
-                    });
-                  }}
-                  className="w-14 px-2 py-0.5 bg-zinc-900 border border-amber-500/70 text-amber-300 rounded text-center font-bold text-xs font-mono outline-none focus:border-amber-400"
-                />
-                <span className="text-amber-400 font-bold">%</span>
-              </div>
-            </div>
-
-            {/* Interactive Slider 0 to 100 */}
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={config.missingDataCustomPenalty ?? 15}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                onChange({
-                  ...config,
-                  missingDataCustomPenalty: val,
-                });
-              }}
-              className="w-full accent-amber-400 cursor-pointer"
-            />
-
-            <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
-              <span>0% (Neutral)</span>
-              <span>25% (Strict)</span>
-              <span>50% (Half)</span>
-              <span>100% (Zero Score)</span>
-            </div>
-
-            {/* Trigger Threshold */}
-            <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-[11px] font-mono">
-              <span className="text-zinc-400">Trigger Threshold:</span>
+        return (
+          <div className="space-y-3 text-xs bg-black/40 border border-amber-950/80 p-3.5 rounded-xl font-mono">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="text-zinc-500">completeness &lt;</span>
-                <input
-                  type="number"
-                  min="10"
-                  max="100"
-                  step="5"
-                  value={config.missingDataThreshold ?? 70}
-                  onChange={(e) => {
-                    const val = Math.max(10, Math.min(100, parseInt(e.target.value) || 70));
-                    onChange({
-                      ...config,
-                      missingDataThreshold: val,
-                    });
-                  }}
-                  className="w-12 px-1.5 py-0.5 bg-zinc-900 border border-zinc-700 text-zinc-200 rounded text-center text-[11px]"
-                />
-                <span className="text-zinc-400">%</span>
+                <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+                  Missing Data Policy
+                </h3>
               </div>
+              <span
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                  currentPenalty === 0
+                    ? 'bg-zinc-900 text-zinc-400 border-zinc-700'
+                    : 'bg-amber-950/80 text-amber-300 border-amber-700/60'
+                }`}
+              >
+                {currentPenalty === 0 ? 'No Penalty (0%)' : `${currentPenalty}% Penalty`}
+              </span>
             </div>
 
-            <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
-              Applies a <strong>{config.missingDataCustomPenalty ?? 15}% score penalty discount</strong> to teams whose completeness ratio is under {config.missingDataThreshold ?? 70}%.
-            </p>
+            {/* Direct Customizable Penalty Input & Slider */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-300 font-semibold">Custom Score Penalty:</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={currentPenalty}
+                    onChange={(e) => {
+                      const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                      onChange({
+                        ...config,
+                        missingDataPolicy: 'CUSTOM',
+                        missingDataCustomPenalty: val,
+                      });
+                    }}
+                    className="w-14 px-2 py-0.5 bg-zinc-900 border border-amber-500/70 text-amber-300 rounded text-center font-bold text-xs font-mono outline-none focus:border-amber-400"
+                    title="Type exact score penalty percentage"
+                  />
+                  <span className="text-amber-400 font-bold">%</span>
+                </div>
+              </div>
+
+              {/* Interactive Slider 0 to 100 */}
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={currentPenalty}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  onChange({
+                    ...config,
+                    missingDataPolicy: 'CUSTOM',
+                    missingDataCustomPenalty: val,
+                  });
+                }}
+                className="w-full accent-amber-400 cursor-pointer"
+              />
+
+              <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                <span>0% (No Penalty)</span>
+                <span>25% (Soft)</span>
+                <span>50% (Moderate)</span>
+                <span>100% (Zero Score)</span>
+              </div>
+
+              {/* Trigger Threshold */}
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-[11px] font-mono">
+                <span className="text-zinc-400">Trigger Threshold:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-500">completeness &lt;</span>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    step="5"
+                    value={currentThreshold}
+                    onChange={(e) => {
+                      const val = Math.max(10, Math.min(100, parseInt(e.target.value) || 70));
+                      onChange({
+                        ...config,
+                        missingDataPolicy: 'CUSTOM',
+                        missingDataThreshold: val,
+                      });
+                    }}
+                    className="w-12 px-1.5 py-0.5 bg-zinc-900 border border-zinc-700 text-zinc-200 rounded text-center text-[11px]"
+                  />
+                  <span className="text-zinc-400">%</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
+                {currentPenalty === 0 ? (
+                  <span>No penalty applied. Incomplete profiles will be scored on available signals without penalty.</span>
+                ) : (
+                  <span>
+                    Applies a <strong>{currentPenalty}% score penalty</strong> to teams whose profile completeness ratio is under {currentThreshold}%.
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Save Scoring Run Snapshot Button */}
       {onSaveRun && (

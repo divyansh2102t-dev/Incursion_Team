@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { SelectionConfig, TeamRecord } from '@/types';
 import {
   Search,
@@ -643,6 +644,35 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                 ? `🏆 OFFICIAL SCORE (${config.acmEventConfig.acmWeight ?? 35}%)`
                 : '🧮 CUSTOM FORMULA'}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Formula Active Banner */}
+      {config.customFormulaEnabled && config.customFormulaExpression && (
+        <div className="bg-gradient-to-r from-purple-950/70 via-cyan-950/60 to-zinc-950 px-4 py-2 border-b border-cyan-500/40 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shadow-inner">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+            <span className="text-cyan-300 font-bold flex items-center gap-1.5">
+              ⚡ CUSTOM MATHEMATICAL FORMULA APPLIED
+            </span>
+            <span className="text-zinc-500 hidden sm:inline">|</span>
+            <span className="text-zinc-300 hidden md:inline truncate max-w-[450px]">
+              <span className="font-semibold text-zinc-200">{config.customFormulaName || 'Custom Model'}:</span>{' '}
+              <code className="text-cyan-400 font-mono text-[11px] bg-black/60 px-1.5 py-0.5 rounded border border-cyan-900/50">
+                {config.customFormulaExpression}
+              </code>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/formulas"
+              className="px-2.5 py-1 rounded text-[10px] font-bold border bg-cyan-950 hover:bg-cyan-900/80 text-cyan-300 border-cyan-600 transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+            >
+              <Code2 className="w-3 h-3" />
+              <span>Tune in Formula Studio</span>
+            </Link>
           </div>
         </div>
       )}
