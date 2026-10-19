@@ -181,18 +181,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             /* When no data is active, show minimal action buttons on the right of the header */
             <div className="flex items-center gap-2 text-xs font-mono">
-              <button
-                onClick={onGoHome ? onGoHome : () => fileInputRef.current?.click()}
-                className={`px-3 py-1.5 font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
-                  currentView === 'home'
-                    ? 'bg-cyan-500 text-black border-cyan-400 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-zinc-800 hover:border-cyan-500/50'
-                }`}
-                title="Open Incursion Home Upload Terminal"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload</span>
-              </button>
               <Link
                 href="/formulas"
                 className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 font-bold rounded-lg border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
