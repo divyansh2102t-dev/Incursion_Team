@@ -120,24 +120,27 @@ function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
     if (m.phone) contactCount++;
 
     // GitHub extraction
-    if (m.githubUrl || m.rawSignals.githubUsername || m.rawSignals.githubMetrics) {
+    const ghUser = m.rawSignals.githubUsername;
+    const hasGhMetrics = Boolean(m.rawSignals.githubMetrics);
+
+    if (ghUser || hasGhMetrics) {
       githubMemberCount++;
     }
-    if (m.rawSignals.githubUsername) {
-      ghHandleSet.add(m.rawSignals.githubUsername);
+    if (ghUser) {
+      ghHandleSet.add(ghUser);
     }
     if (m.rawSignals.githubMetrics) {
       totalCommits += m.rawSignals.githubMetrics.estimatedContributions || 0;
       totalStars += m.rawSignals.githubMetrics.totalStars || 0;
       (m.rawSignals.githubMetrics.topLanguages || []).forEach((l) => langSet.add(l));
 
-      if (m.rawSignals.githubMetrics.syncStatus !== 'live_verified') {
+      if (ghUser && m.rawSignals.githubMetrics.syncStatus !== 'live_verified') {
         unverifiedGhCount++;
         if (m.rawSignals.githubMetrics.fallbackHash) {
           ghFallbackHashes.push(m.rawSignals.githubMetrics.fallbackHash);
         }
       }
-    } else if (m.githubUrl || m.rawSignals.githubUsername) {
+    } else if (ghUser) {
       unverifiedGhCount++;
     }
 
@@ -264,15 +267,19 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
     return map;
   }, [teams]);
 
-  // Cohort-wide count of candidates whose GitHub stats are currently unverified (using hash fallback)
+  // Cohort-wide count of candidate handles whose GitHub stats are currently unverified (using hash fallback)
   const cohortUnverifiedGhCount = useMemo(() => {
-    let count = 0;
+    const unverifiedSet = new Set<string>();
     teams.forEach((t) => {
-      const st = statsMap.get(t.id);
-      if (st) count += st.unverifiedGhCount;
+      t.members.forEach((m) => {
+        const ghUser = m.rawSignals.githubUsername;
+        if (ghUser && m.rawSignals.githubMetrics?.syncStatus !== 'live_verified') {
+          unverifiedSet.add(ghUser.toLowerCase());
+        }
+      });
     });
-    return count;
-  }, [teams, statsMap]);
+    return unverifiedSet.size;
+  }, [teams]);
 
   // Tab count metrics
   const tabCounts = useMemo(() => {
@@ -858,9 +865,13 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         <span>⚠️ Hash Estimate: #{st.ghFallbackHashes[0] || 'TEMP'}</span>
                         <span className="text-[9px] text-amber-400/80">API Limit Fallback</span>
                       </div>
-                    ) : (
+                    ) : st.githubMemberCount > 0 ? (
                       <div className="bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] text-emerald-300 font-bold flex items-center justify-center gap-1">
                         <span>✓ Live Verified GitHub Stats</span>
+                      </div>
+                    ) : (
+                      <div className="bg-zinc-900/40 border border-zinc-800 px-2 py-0.5 rounded text-[10px] text-zinc-500 font-bold flex items-center justify-center gap-1">
+                        <span>No GitHub Handles</span>
                       </div>
                     )}
                   </div>
@@ -1465,9 +1476,13 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-800">
                                 ⚠️ Suspicious
                               </span>
-                            ) : (
+                            ) : st.githubMemberCount > 0 ? (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800 font-mono">
                                 ✓ Live Verified
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-900 text-zinc-500 border border-zinc-800 font-mono">
+                                —
                               </span>
                             )}
                           </td>
