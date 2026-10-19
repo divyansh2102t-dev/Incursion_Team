@@ -1,6 +1,10 @@
 # Incursion — Hackathon Team Recruitment Automation Tool
 > **Track 3:** Automated, Tunable, and Explainable Team Recruitment Platform
 
+[![1st time User: See Guide!](https://img.shields.io/badge/📖%201st%20time%20User-See%20Guide!%20(PDF)-06b6d4?style=for-the-badge&logoColor=white)](Incursion_User_Guide.pdf)
+
+> 📘 **New to Incursion?** Read our official visual operating manual: [**`Incursion_User_Guide.pdf`**](Incursion_User_Guide.pdf) (or web copy: [**`public/Incursion_User_Guide.pdf`**](public/Incursion_User_Guide.pdf)). Complete with UI screenshots, annotated callouts, and step-by-step instructions teaching you how the tool works with zero technical depth jargon.
+
 A reusable, 100% zero-cost ($0 API bills) recruitment automation platform designed for hackathon organizers to shortlist the top $X$ teams from tabular registration exports (CSV / JSON from Google Forms, Typeform, Devpost, Tally, etc.).
 
 ---

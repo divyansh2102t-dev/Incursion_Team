@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Database,
   Globe,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 
 interface UploadZoneProps {
@@ -167,10 +168,26 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload, onGoogleSh
               </span>
             </h1>
 
-            <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed max-w-lg">
-              Deterministic, explainable candidate ranking platform for hackathons.
-              Evaluates GitHub velocity, cross-disciplinary synergy, and verifiable accolades with <strong>$0 API bills</strong> and <strong>zero database retention</strong>.
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed max-w-lg">
+                Deterministic, explainable candidate ranking platform for hackathons.
+                Evaluates GitHub velocity, cross-disciplinary synergy, and verifiable accolades with <strong>$0 API bills</strong> and <strong>zero database retention</strong>.
+              </p>
+              <div className="pt-0.5">
+                <a
+                  href="/Incursion_User_Guide.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/40 hover:border-cyan-400 rounded-xl text-xs font-bold text-cyan-300 hover:text-white transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:scale-102 cursor-pointer group"
+                  title="Open PDF User Guide for Beginners"
+                >
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <FileText className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                  <span>1st time User: See Guide!</span>
+                  <span className="text-[10px] text-zinc-400 font-sans font-normal ml-1">· Illustrated PDF Walkthrough</span>
+                </a>
+              </div>
+            </div>
 
             {/* Direct Upload & Folder Picker Box right above the fold! */}
             <div
