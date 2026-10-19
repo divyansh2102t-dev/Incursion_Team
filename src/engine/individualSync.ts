@@ -5,6 +5,7 @@ import { MemberProfile, TeamRecord } from '@/types';
 import { extractGithubUsername, fetchGitHubStats, GitHubStats } from './github';
 import { extractLinkedinUsername, isCustomVanitySlug, analyzeCrossMatch } from './linkedin';
 import { extractSkillsAndRoles } from './taxonomy';
+import { parseCloudResumeUrl } from './resumeParser';
 import { decryptTokenString } from '@/utils/cryptoUtils';
 
 const TOKENS_STORAGE_KEY = 'incursion_enc_tokens_list_v1';
@@ -119,35 +120,46 @@ export async function syncSingleMemberSignals(
       member.resumeUrl.startsWith('http'))
   ) {
     try {
-      const res = await fetch('/api/parse-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeUrl: member.resumeUrl.trim() }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          updated.rawSignals.hasResume = true;
-          if (data.skillsFound && Array.isArray(data.skillsFound)) {
-            data.skillsFound.forEach((s: string) => currentSkills.add(s));
-          }
-          if (data.hackathonMentionCount) {
-            updated.rawSignals.hackathonExperienceCount = Math.max(
-              updated.rawSignals.hackathonExperienceCount || 0,
-              data.hackathonMentionCount
-            );
-          }
-          if (data.githubHandle && !updated.githubUrl && !updated.rawSignals.githubUsername) {
-            updated.githubUrl = `https://github.com/${data.githubHandle}`;
-            updated.rawSignals.githubUsername = data.githubHandle;
-            updated.rawSignals.hasGithub = true;
-          }
-
-          details.push(
-            `Resume: Verified (${data.skillsFound?.length || 0} skills, ${data.hackathonMentionCount || 0} hackathon mentions)`
+      const parsedResume = await parseCloudResumeUrl(member.resumeUrl.trim(), nameToUse);
+      if (parsedResume.success) {
+        updated.rawSignals.hasResume = true;
+        if (parsedResume.skills && Array.isArray(parsedResume.skills)) {
+          parsedResume.skills.forEach((s: string) => currentSkills.add(s));
+        }
+        if (parsedResume.hackathonMentionCount) {
+          updated.rawSignals.hackathonExperienceCount = Math.max(
+            updated.rawSignals.hackathonExperienceCount || 0,
+            parsedResume.hackathonMentionCount
           );
         }
+        if (parsedResume.embeddedGithub && !updated.githubUrl && !updated.rawSignals.githubUsername) {
+          updated.githubUrl = `https://github.com/${parsedResume.embeddedGithub}`;
+          updated.rawSignals.githubUsername = parsedResume.embeddedGithub;
+          updated.rawSignals.hasGithub = true;
+        }
+        if (parsedResume.embeddedLinkedin && !updated.linkedinUrl && !updated.rawSignals.hasLinkedin) {
+          updated.linkedinUrl = parsedResume.embeddedLinkedin;
+          updated.rawSignals.hasLinkedin = true;
+        }
+        if (parsedResume.embeddedPortfolio && !updated.portfolioUrl) {
+          updated.portfolioUrl = parsedResume.embeddedPortfolio;
+          updated.rawSignals.hasPortfolio = true;
+        }
+        if (parsedResume.workExperiences && parsedResume.workExperiences.length > 0) {
+          updated.rawSignals.workExperiences = parsedResume.workExperiences;
+        }
+        if (parsedResume.clubActivities && parsedResume.clubActivities.length > 0) {
+          updated.rawSignals.clubActivities = parsedResume.clubActivities;
+        }
+        if (parsedResume.matchedCustomKeywords && parsedResume.matchedCustomKeywords.length > 0) {
+          updated.rawSignals.matchedCustomKeywords = parsedResume.matchedCustomKeywords;
+        }
+
+        details.push(
+          `Resume: Verified (${parsedResume.skills?.length || 0} skills, ${parsedResume.hackathonMentionCount || 0} hackathon mentions)`
+        );
+      } else {
+        details.push(`Resume: ${parsedResume.errorMessage || 'Failed to parse cloud resume'}`);
       }
     } catch {
       // Ignore network errors

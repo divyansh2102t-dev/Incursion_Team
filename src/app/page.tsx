@@ -21,6 +21,7 @@ import { GitHubSyncModal } from '@/components/GitHubSyncModal';
 import { ResumeSyncModal } from '@/components/ResumeSyncModal';
 import { ParallelSyncModal } from '@/components/ParallelSyncModal';
 import { ScoringHistoryModal } from '@/components/ScoringHistoryModal';
+import { ColumnMapperModal } from '@/components/ColumnMapperModal';
 import {
   BookmarkPlus,
   History,
@@ -64,6 +65,7 @@ export default function Home() {
   const [isResumeSyncOpen, setIsResumeSyncOpen] = useState(false);
   const [isParallelSyncOpen, setIsParallelSyncOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isColumnMapperOpen, setIsColumnMapperOpen] = useState(false);
   const [isConfigDrawerOpen, setIsConfigDrawerOpen] = useState(false);
   const [compareTeamAId, setCompareTeamAId] = useState<string | undefined>();
   const [compareTeamBId, setCompareTeamBId] = useState<string | undefined>();
@@ -321,6 +323,7 @@ export default function Home() {
         onFileUpload={handleFileUpload}
         onOpenSensitivity={() => setIsSensitivityOpen(true)}
         onOpenCompare={() => handleLaunchCompare()}
+        onOpenColumnMapper={() => setIsColumnMapperOpen(true)}
         onOpenGitHubSync={() => setIsGitHubSyncOpen(true)}
         onOpenResumeSync={() => setIsResumeSyncOpen(true)}
         onOpenParallelSync={() => setIsParallelSyncOpen(true)}
@@ -604,6 +607,23 @@ export default function Home() {
         <ScoringHistoryModal
           onClose={() => setIsHistoryOpen(false)}
           hasActiveCohort={baseTeams.length > 0}
+        />
+      )}
+
+      {/* CSV Column Mapping & Schema Configuration Modal */}
+      {isColumnMapperOpen && columnMapping && (
+        <ColumnMapperModal
+          headers={rawHeaders}
+          currentMapping={columnMapping}
+          onSave={(newMapping) => {
+            setColumnMapping(newMapping);
+            if (rawRows.length > 0) {
+              const reParsed = parseRawDataToTeams(rawRows, newMapping);
+              setBaseTeams(reParsed);
+            }
+            setIsColumnMapperOpen(false);
+          }}
+          onClose={() => setIsColumnMapperOpen(false)}
         />
       )}
     </div>
