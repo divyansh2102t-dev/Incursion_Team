@@ -87,7 +87,7 @@ export default function Home() {
   const enrichWithPdfs = async (teams: TeamRecord[], pdfFiles: File[]): Promise<TeamRecord[]> => {
     let updated = [...teams];
     const candidateList = updated.flatMap((t) =>
-      t.members.map((m) => ({ memberId: m.id, name: m.name, email: m.email }))
+      t.members.map((m) => ({ memberId: m.id, name: m.name, email: m.email, resumeUrl: m.resumeUrl }))
     );
 
     for (const pdf of pdfFiles) {
@@ -156,8 +156,19 @@ export default function Home() {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const content = e.target?.result as string;
-      if (content) {
+      const buffer = e.target?.result as ArrayBuffer;
+      if (buffer) {
+        let content = '';
+        const bytes = new Uint8Array(buffer);
+        // Automatic encoding detection (UTF-16 LE BOM, UTF-16 BE BOM, or standard UTF-8)
+        if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+          content = new TextDecoder('utf-16le').decode(bytes);
+        } else if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+          content = new TextDecoder('utf-16be').decode(bytes);
+        } else {
+          content = new TextDecoder('utf-8').decode(bytes);
+        }
+
         let initialTeams: TeamRecord[] = [];
         if (file.name.endsWith('.json')) {
           try {
@@ -195,7 +206,7 @@ export default function Home() {
         setCurrentView('dashboard');
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleGoogleSheetSubmit = async (url: string) => {

@@ -178,7 +178,16 @@ export function parseExcelArrayBuffer(buffer: ArrayBuffer): ParseResult {
  * Parses a raw CSV / TSV string into structured ParseResult.
  */
 export function parseCSVString(csvContent: string): ParseResult {
-  const rawParsed = Papa.parse<string[]>(csvContent.trim(), {
+  let cleanContent = csvContent;
+  if (cleanContent.charCodeAt(0) === 0xfeff) {
+    cleanContent = cleanContent.slice(1);
+  }
+  if (cleanContent.includes('\u0000')) {
+    cleanContent = cleanContent.replace(/\u0000/g, '');
+  }
+  cleanContent = cleanContent.replace(/^\ufffd\ufffd?/, '');
+
+  const rawParsed = Papa.parse<string[]>(cleanContent.trim(), {
     header: false,
     skipEmptyLines: 'greedy',
   });
@@ -498,6 +507,8 @@ export function parseRawDataToTeams(
     teamMap.forEach((rows) => {
       teamCounter++;
       const primaryRow = rows[0];
+      const teamIdFromRow = (primaryRow['team_id'] || primaryRow['team id'] || primaryRow['teamId'] || '').trim();
+      const effectiveTeamId = teamIdFromRow || `team-${teamCounter}`;
       const teamName = (primaryRow[mapping.teamNameCol] || '').trim() || `Team #${teamCounter}`;
       const submissionTimestamp = mapping.submissionTimeCol ? primaryRow[mapping.submissionTimeCol] : undefined;
 
@@ -510,10 +521,10 @@ export function parseRawDataToTeams(
         const phone = mCol.phoneCol ? (row[mCol.phoneCol] || '').trim() : '';
         const college = mCol.collegeCol ? (row[mCol.collegeCol] || '').trim() : '';
         const gradYear = mCol.gradYearCol ? (row[mCol.gradYearCol] || '').trim() : '';
-        let githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
-        const linkedinUrl = mCol.linkedinCol ? (row[mCol.linkedinCol] || '').trim() : '';
+        let githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : (row['github_url'] || row['github_id'] || row['github'] || '').trim();
+        const linkedinUrl = mCol.linkedinCol ? (row[mCol.linkedinCol] || '').trim() : (row['linkedin_url'] || row['linkedin'] || '').trim();
         let portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
-        let resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
+        let resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : (row['resume_path'] || row['resume'] || '').trim();
         const roleOrBio = mCol.roleOrBioCol ? (row[mCol.roleOrBioCol] || '').trim() : '';
 
         const hasAnyData = Boolean(name || email || githubUrl || resumeUrl || portfolioUrl || roleOrBio || phone || college);
@@ -547,6 +558,18 @@ export function parseRawDataToTeams(
         // Scan all row text for unmapped skills and accolades (Zero Data Loss)
         const allRowText = Object.values(row).join(' ');
         const extracted = extractSkillsAndRoles(`${roleOrBio} ${name} ${portfolioUrl} ${allRowText}`);
+
+        // Also check if there's an explicit skills column or field in row
+        const explicitSkillsCol = Object.keys(row).find((k) => /^(skills|tech\s*stack|technologies|skill_set)$/i.test(k.trim()));
+        if (explicitSkillsCol && row[explicitSkillsCol]) {
+          const rawSkillsStr = row[explicitSkillsCol];
+          const tokens = rawSkillsStr.split(/[;,|/]/).map((s) => s.trim()).filter((s) => s.length > 1);
+          tokens.forEach((t) => {
+            if (!extracted.skills.some((existing) => existing.toLowerCase() === t.toLowerCase())) {
+              extracted.skills.push(t);
+            }
+          });
+        }
 
         let ghUsername = extractGithubUsername(githubUrl);
         // Column recovery if respondent swapped or shifted fields
@@ -615,8 +638,11 @@ export function parseRawDataToTeams(
 
         const initialExp = extractWorkAndClubExperiences(roleOrBio || '');
 
+        const memberNumFromRow = (row['member_number'] || row['member number'] || row['member_no'] || row['memberId'] || '').trim();
+        const effectiveMemberId = memberNumFromRow ? `mem-${effectiveTeamId}-${memberNumFromRow}` : `mem-${effectiveTeamId}-${mIdx + 1}`;
+
         members.push({
-          id: `mem-${teamCounter}-${mIdx + 1}`,
+          id: effectiveMemberId,
           name: name || `Member ${mIdx + 1}`,
           email,
           phone: phone || undefined,
@@ -671,7 +697,7 @@ export function parseRawDataToTeams(
       }
 
       teams.push({
-        id: `team-${teamCounter}`,
+        id: effectiveTeamId,
         teamName,
         submissionTimestamp,
         members: members.length > 0 ? members : createFallbackMembers(teamCounter),
