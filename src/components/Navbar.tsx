@@ -249,6 +249,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Formulas</span>
             </Link>
 
+            {/* User Guide PDF Link */}
+            <a
+              href="/Incursion_User_Guide.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 hover:text-white font-bold rounded-lg border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+              title="Open Beginner's PDF User Guide"
+            >
+              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+              <span>User Guide</span>
+            </a>
+
             {/* Scoring History Button */}
             <button
               onClick={onOpenHistory}
