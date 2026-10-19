@@ -203,16 +203,24 @@ export async function parseLocalPdfFile(
 export function matchResumeToCandidate(
   fileName: string,
   resumeSnippet: string,
-  candidates: Array<{ memberId: string; name: string; email?: string }>
+  candidates: Array<{ memberId: string; name: string; email?: string; resumeUrl?: string }>
 ): string | null {
   const cleanFileName = fileName.toLowerCase().replace(/[^a-z0-9]/g, ' ');
   const cleanSnippet = resumeSnippet.toLowerCase();
 
   for (const candidate of candidates) {
-    const rawName = candidate.name.toLowerCase().trim();
-    if (!rawName || rawName === 'unnamed' || rawName.startsWith('member')) continue;
+    // 0. Direct match against candidate.resumeUrl (e.g. "resumes/T001_1.pdf" matches "T001_1.pdf")
+    if (candidate.resumeUrl) {
+      const normalizedResumeUrl = candidate.resumeUrl.toLowerCase().replace(/\\/g, '/');
+      const baseResumeFile = normalizedResumeUrl.split('/').pop() || '';
+      if (baseResumeFile && baseResumeFile === fileName.toLowerCase()) {
+        return candidate.memberId;
+      }
+    }
 
-    const nameParts = rawName.split(/\s+/).filter((p) => p.length >= 3);
+    const rawName = candidate.name.toLowerCase().trim();
+    const isNamed = rawName && rawName !== 'unnamed' && !rawName.startsWith('member');
+    const nameParts = isNamed ? rawName.split(/\s+/).filter((p) => p.length >= 3) : [];
 
     // 1. Direct match in filename (e.g. "aarav_sharma_resume.pdf" matches "Aarav Sharma")
     if (nameParts.length > 0 && nameParts.every((part) => cleanFileName.includes(part))) {
@@ -225,9 +233,13 @@ export function matchResumeToCandidate(
       if (emailUser.length >= 4 && cleanFileName.includes(emailUser)) {
         return candidate.memberId;
       }
+      // 2b. Candidate email occurrence inside the resume text itself
+      if (candidate.email.length >= 5 && cleanSnippet.includes(candidate.email.toLowerCase())) {
+        return candidate.memberId;
+      }
     }
 
-    // 3. Candidate full name present in the first few hundred chars of the resume
+    // 3. Candidate full name present in resume text
     if (nameParts.length >= 2 && nameParts.every((part) => cleanSnippet.includes(part))) {
       return candidate.memberId;
     }
