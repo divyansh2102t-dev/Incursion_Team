@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   FileText,
   BookmarkPlus,
+  Columns,
 } from 'lucide-react';
 import { SelectionConfig } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -28,6 +29,7 @@ interface NavbarProps {
   onFileUpload: (file: File) => void;
   onOpenSensitivity: () => void;
   onOpenCompare: () => void;
+  onOpenColumnMapper?: () => void;
   onOpenGitHubSync: () => void;
   onOpenResumeSync?: () => void;
   onOpenParallelSync?: () => void;
@@ -49,6 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onFileUpload,
   onOpenSensitivity,
   onOpenCompare,
+  onOpenColumnMapper,
   onOpenGitHubSync,
   onOpenResumeSync,
   onOpenParallelSync,
@@ -350,6 +353,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Activity className="w-3.5 h-3.5 text-cyan-400" />
               <span className="hidden md:inline">Sensitivity</span>
             </button>
+
+            {/* Custom Column Mapper */}
+            {onOpenColumnMapper && (
+              <button
+                onClick={onOpenColumnMapper}
+                className="px-2.5 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-medium rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
+                title="CSV Column Mapping & Schema Configuration"
+              >
+                <Columns className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden md:inline">Columns</span>
+              </button>
+            )}
           </div>
         )}
       </div>

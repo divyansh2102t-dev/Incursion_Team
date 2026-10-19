@@ -325,7 +325,10 @@ export function autoDetectColumnMapping(
   }
 
   const memberColumns: ColumnMappingConfig['memberColumns'] = [];
-  const scanLimit = isTallFormat ? 1 : Math.max(6, maxMemberIndexFound);
+  const scanLimit = isTallFormat ? 1 : Math.max(1, maxMemberIndexFound);
+  const usedColumns = new Set<string>();
+  if (teamNameCol) usedColumns.add(teamNameCol);
+  if (submissionTimeCol) usedColumns.add(submissionTimeCol);
 
   for (let m = 1; m <= scanLimit; m++) {
     const memberPrefixPatterns = [
@@ -338,16 +341,21 @@ export function autoDetectColumnMapping(
     ];
 
     const findColByKeyword = (keywords: string[]): string | undefined => {
+      // First try matching memberPrefixPatterns on unused columns
       for (let i = 0; i < headers.length; i++) {
         const h = headers[i];
+        if (usedColumns.has(h)) continue;
         const lh = lowerHeaders[i];
         const hasPrefix = memberPrefixPatterns.some((p) => p.test(h));
         if (hasPrefix && keywords.some((kw) => lh.includes(kw))) {
           return h;
         }
       }
+      // If member 1 or tall format, try matching without member prefix on unused columns
       if (m === 1 || isTallFormat) {
         for (let i = 0; i < headers.length; i++) {
+          const h = headers[i];
+          if (usedColumns.has(h)) continue;
           const lh = lowerHeaders[i];
           const hasAnyMemberPrefix = /(?:member|participant|teammate)[_\s]*[2-9]/i.test(headers[i]);
           if (!hasAnyMemberPrefix && keywords.some((kw) => lh.includes(kw)) && headers[i] !== teamNameCol) {
@@ -370,47 +378,52 @@ export function autoDetectColumnMapping(
     let resumeCol = findColByKeyword(['resume', 'cv', 'curriculum', 'drive', 'google drive', 'pdf', 'doc']);
     let roleOrBioCol = findColByKeyword(['role', 'bio', 'skills', 'about', 'experience', 'tech stack', 'primary tech']);
 
-    // Content-Aware Sniffing Fallback
-    if (rawRows && rawRows.length > 0) {
+    // Content-Aware Sniffing Fallback (strictly for member 1 or tall format, on unused columns only)
+    if ((m === 1 || isTallFormat) && rawRows && rawRows.length > 0) {
       if (!githubCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'github');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'github');
         if (sniffed) githubCol = sniffed;
       }
       if (!linkedinCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'linkedin');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'linkedin');
         if (sniffed) linkedinCol = sniffed;
       }
       if (!resumeCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'resume');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'resume');
         if (sniffed) resumeCol = sniffed;
       }
       if (!emailCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'email');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'email');
         if (sniffed) emailCol = sniffed;
       }
       if (!phoneCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'phone');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'phone');
         if (sniffed) phoneCol = sniffed;
       }
       if (!collegeCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'college');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'college');
         if (sniffed) collegeCol = sniffed;
       }
       if (!gradYearCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'gradYear');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'gradYear');
         if (sniffed) gradYearCol = sniffed;
       }
       if (!genderCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'gender');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'gender');
         if (sniffed) genderCol = sniffed;
       }
       if (!portfolioCol) {
-        const sniffed = headers.find((h) => sniffColumnTypeFromValues(h, rawRows) === 'portfolio');
+        const sniffed = headers.find((h) => !usedColumns.has(h) && sniffColumnTypeFromValues(h, rawRows) === 'portfolio');
         if (sniffed && sniffed !== githubCol && sniffed !== linkedinCol && sniffed !== resumeCol) {
           portfolioCol = sniffed;
         }
       }
     }
+
+    // Mark matched columns as used so later members don't duplicate them
+    [nameCol, emailCol, phoneCol, collegeCol, gradYearCol, genderCol, githubCol, linkedinCol, portfolioCol, resumeCol, roleOrBioCol].forEach((col) => {
+      if (col) usedColumns.add(col);
+    });
 
     if (nameCol || githubCol || resumeCol || emailCol || genderCol || phoneCol || collegeCol) {
       memberColumns.push({

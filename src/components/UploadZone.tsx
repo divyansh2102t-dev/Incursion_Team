@@ -34,6 +34,22 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload, onGoogleSh
   const [sheetUrl, setSheetUrl] = useState('');
   const [isFetchingSheet, setIsFetchingSheet] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
+  const [isFetchingDemo, setIsFetchingDemo] = useState(false);
+
+  const handleLoadDemo = async () => {
+    try {
+      setIsFetchingDemo(true);
+      const resp = await fetch('/demo_hackathon_registrations.csv');
+      if (!resp.ok) throw new Error('Demo CSV could not be fetched');
+      const text = await resp.text();
+      const demoFile = new File([text], 'demo_hackathon_registrations.csv', { type: 'text/csv' });
+      onFileUpload(demoFile);
+    } catch (err: any) {
+      alert('Failed to load demo dataset: ' + err.message);
+    } finally {
+      setIsFetchingDemo(false);
+    }
+  };
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
@@ -231,6 +247,21 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileUpload, onGoogleSh
                   >
                     <Globe className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Google Sheets</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadDemo}
+                    disabled={isFetchingDemo}
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 font-bold text-xs uppercase tracking-wider rounded-xl border border-amber-500/50 hover:border-amber-400 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.2)] disabled:opacity-50"
+                    title="Instantly load the verified 23-team hackathon demo dataset"
+                  >
+                    {isFetchingDemo ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span>Demo (23 Teams)</span>
                   </button>
                 </div>
               </div>
