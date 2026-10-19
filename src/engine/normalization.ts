@@ -3,6 +3,8 @@ import { AggregationStrategy, FormulaCoefficients, MemberProfile, RoleCategory }
 export interface AggregatedSignals {
   avgGithubContributions: number;
   maxGithubContributions: number;
+  maxGithubContributionsOriginal: number;
+  maxGithubContributionsForked: number;
   totalGithubStars: number;
   totalUniqueSkills: string[];
   roleCoverage: Record<RoleCategory, number>; // 0 to 1 coverage
@@ -24,6 +26,8 @@ export function aggregateTeamSignals(
     return {
       avgGithubContributions: 0,
       maxGithubContributions: 0,
+      maxGithubContributionsOriginal: 0,
+      maxGithubContributionsForked: 0,
       totalGithubStars: 0,
       totalUniqueSkills: [],
       roleCoverage: { frontend: 0, backend: 0, ai_ml: 0, mobile: 0, design: 0, devops: 0, general: 0 },
@@ -36,6 +40,8 @@ export function aggregateTeamSignals(
 
   const allSkills = new Set<string>();
   const contributionsList: number[] = [];
+  const originalContribsList: number[] = [];
+  const forkedContribsList: number[] = [];
   const starsList: number[] = [];
   const completenessList: number[] = [];
   let totalHackathons = 0;
@@ -57,7 +63,25 @@ export function aggregateTeamSignals(
     // GitHub
     const contribs = m.rawSignals.githubMetrics?.estimatedContributions || 0;
     const stars = m.rawSignals.githubMetrics?.totalStars || 0;
+    const origRepos = m.rawSignals.githubMetrics?.originalRepos || 0;
+    const forkedRepos = m.rawSignals.githubMetrics?.forkedRepos || 0;
+    const totalRepos = origRepos + forkedRepos;
+
+    let origContribs = 0;
+    let forkContribs = 0;
+    if (contribs > 0) {
+      if (totalRepos > 0) {
+        const ratio = origRepos / totalRepos;
+        origContribs = Math.round(contribs * ratio);
+        forkContribs = contribs - origContribs;
+      } else {
+        origContribs = contribs;
+      }
+    }
+
     contributionsList.push(contribs);
+    originalContribsList.push(origContribs);
+    forkedContribsList.push(forkContribs);
     starsList.push(stars);
 
     // Completeness
@@ -73,9 +97,13 @@ export function aggregateTeamSignals(
   }
 
   contributionsList.sort((a, b) => b - a);
+  originalContribsList.sort((a, b) => b - a);
+  forkedContribsList.sort((a, b) => b - a);
   starsList.sort((a, b) => b - a);
 
   const maxContrib = contributionsList[0] || 0;
+  const maxOriginalContrib = originalContribsList[0] || 0;
+  const maxForkedContrib = forkedContribsList[0] || 0;
   const avgContrib = Math.round(contributionsList.reduce((a, b) => a + b, 0) / members.length);
   const totalStars = starsList.reduce((a, b) => a + b, 0);
   const avgCompleteness = Number(
@@ -116,6 +144,8 @@ export function aggregateTeamSignals(
   return {
     avgGithubContributions: effectiveContrib,
     maxGithubContributions: maxContrib,
+    maxGithubContributionsOriginal: maxOriginalContrib,
+    maxGithubContributionsForked: maxForkedContrib,
     totalGithubStars: totalStars,
     totalUniqueSkills: Array.from(allSkills),
     roleCoverage: roleMax,
