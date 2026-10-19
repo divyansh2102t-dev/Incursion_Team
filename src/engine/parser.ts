@@ -506,14 +506,14 @@ export function parseRawDataToTeams(
 
       rows.forEach((row, mIdx) => {
         const name = mCol.nameCol ? (row[mCol.nameCol] || '').trim() : '';
-        const email = mCol.emailCol ? (row[mCol.emailCol] || '').trim() : '';
+        let email = mCol.emailCol ? (row[mCol.emailCol] || '').trim() : '';
         const phone = mCol.phoneCol ? (row[mCol.phoneCol] || '').trim() : '';
         const college = mCol.collegeCol ? (row[mCol.collegeCol] || '').trim() : '';
         const gradYear = mCol.gradYearCol ? (row[mCol.gradYearCol] || '').trim() : '';
-        const githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
+        let githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
         const linkedinUrl = mCol.linkedinCol ? (row[mCol.linkedinCol] || '').trim() : '';
-        const portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
-        const resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
+        let portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
+        let resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
         const roleOrBio = mCol.roleOrBioCol ? (row[mCol.roleOrBioCol] || '').trim() : '';
 
         const hasAnyData = Boolean(name || email || githubUrl || resumeUrl || portfolioUrl || roleOrBio || phone || college);
@@ -548,7 +548,29 @@ export function parseRawDataToTeams(
         const allRowText = Object.values(row).join(' ');
         const extracted = extractSkillsAndRoles(`${roleOrBio} ${name} ${portfolioUrl} ${allRowText}`);
 
-        const ghUsername = extractGithubUsername(githubUrl);
+        let ghUsername = extractGithubUsername(githubUrl);
+        // Column recovery if respondent swapped or shifted fields
+        if (!ghUsername) {
+          if (resumeUrl && extractGithubUsername(resumeUrl)) {
+            ghUsername = extractGithubUsername(resumeUrl);
+            githubUrl = resumeUrl;
+            resumeUrl = '';
+          } else if (portfolioUrl && extractGithubUsername(portfolioUrl)) {
+            ghUsername = extractGithubUsername(portfolioUrl);
+            githubUrl = portfolioUrl;
+            portfolioUrl = '';
+          }
+        }
+        if (!ghUsername && githubUrl && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(githubUrl) && !email.includes('@')) {
+          email = githubUrl;
+          githubUrl = '';
+        }
+        if (ghUsername) {
+          githubUrl = githubUrl.startsWith('http') ? githubUrl : `https://github.com/${ghUsername}`;
+        } else {
+          githubUrl = '';
+        }
+
         const ghMetrics = ghUsername ? generateHeuristicFallback(ghUsername) : undefined;
         if (ghMetrics && ghMetrics.topLanguages) {
           ghMetrics.topLanguages.forEach((l) => {
@@ -576,7 +598,7 @@ export function parseRawDataToTeams(
         const signalsPresent = [
           Boolean(name),
           Boolean(email),
-          Boolean(githubUrl || ghUsername),
+          Boolean(ghUsername),
           Boolean(resumeUrl),
           Boolean(portfolioUrl || linkedinUrl),
           Boolean(extracted.skills.length > 0),
@@ -602,10 +624,10 @@ export function parseRawDataToTeams(
           gradYear: gradYear || undefined,
           gender: genderRes.gender,
           isFemale: genderRes.isFemale,
-          githubUrl,
-          linkedinUrl,
-          portfolioUrl,
-          resumeUrl,
+          githubUrl: githubUrl || undefined,
+          linkedinUrl: linkedinUrl || undefined,
+          portfolioUrl: portfolioUrl || undefined,
+          resumeUrl: resumeUrl || undefined,
           roleOrBio,
           customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
           rawSignals: {
@@ -618,7 +640,7 @@ export function parseRawDataToTeams(
             clubActivities: initialExp.clubActivities.length > 0 ? initialExp.clubActivities : undefined,
             matchedCustomKeywords: initialExp.matchedCustomKeywords.length > 0 ? initialExp.matchedCustomKeywords : undefined,
             hasResume: Boolean(resumeUrl),
-            hasGithub: Boolean(githubUrl || ghUsername),
+            hasGithub: Boolean(ghUsername),
             hasLinkedin: Boolean(linkedinUrl || linkedinUsername),
             linkedinUsername,
             linkedinMetrics,
@@ -728,14 +750,14 @@ export function parseRawDataToTeams(
 
     mapping.memberColumns.forEach((mCol, idx) => {
       const name = mCol.nameCol ? (row[mCol.nameCol] || '').trim() : '';
-      const email = mCol.emailCol ? (row[mCol.emailCol] || '').trim() : '';
+      let email = mCol.emailCol ? (row[mCol.emailCol] || '').trim() : '';
       const phone = mCol.phoneCol ? (row[mCol.phoneCol] || '').trim() : '';
       const college = mCol.collegeCol ? (row[mCol.collegeCol] || '').trim() : '';
       const gradYear = mCol.gradYearCol ? (row[mCol.gradYearCol] || '').trim() : '';
-      const githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
+      let githubUrl = mCol.githubCol ? (row[mCol.githubCol] || '').trim() : '';
       const linkedinUrl = mCol.linkedinCol ? (row[mCol.linkedinCol] || '').trim() : '';
-      const portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
-      const resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
+      let portfolioUrl = mCol.portfolioCol ? (row[mCol.portfolioCol] || '').trim() : '';
+      let resumeUrl = mCol.resumeCol ? (row[mCol.resumeCol] || '').trim() : '';
       const roleOrBio = mCol.roleOrBioCol ? (row[mCol.roleOrBioCol] || '').trim() : '';
 
       const hasAnyData = Boolean(name || email || githubUrl || resumeUrl || portfolioUrl || roleOrBio || phone || college);
@@ -745,7 +767,29 @@ export function parseRawDataToTeams(
 
       const extracted = extractSkillsAndRoles(`${roleOrBio} ${name} ${portfolioUrl} ${idx === 0 ? allRowText : ''}`);
 
-      const ghUsername = extractGithubUsername(githubUrl);
+      let ghUsername = extractGithubUsername(githubUrl);
+      // Column recovery if respondent swapped or shifted fields
+      if (!ghUsername) {
+        if (resumeUrl && extractGithubUsername(resumeUrl)) {
+          ghUsername = extractGithubUsername(resumeUrl);
+          githubUrl = resumeUrl;
+          resumeUrl = '';
+        } else if (portfolioUrl && extractGithubUsername(portfolioUrl)) {
+          ghUsername = extractGithubUsername(portfolioUrl);
+          githubUrl = portfolioUrl;
+          portfolioUrl = '';
+        }
+      }
+      if (!ghUsername && githubUrl && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(githubUrl) && !email.includes('@')) {
+        email = githubUrl;
+        githubUrl = '';
+      }
+      if (ghUsername) {
+        githubUrl = githubUrl.startsWith('http') ? githubUrl : `https://github.com/${ghUsername}`;
+      } else {
+        githubUrl = '';
+      }
+
       const ghMetrics = ghUsername ? generateHeuristicFallback(ghUsername) : undefined;
 
       if (ghMetrics && ghMetrics.topLanguages) {
@@ -774,7 +818,7 @@ export function parseRawDataToTeams(
       const signalsPresent = [
         Boolean(name),
         Boolean(email),
-        Boolean(githubUrl || ghUsername),
+        Boolean(ghUsername),
         Boolean(resumeUrl),
         Boolean(portfolioUrl || linkedinUrl),
         Boolean(extracted.skills.length > 0),
@@ -821,10 +865,10 @@ export function parseRawDataToTeams(
         rollNumber: detectedRollNumber,
         gender: genderRes.gender,
         isFemale: genderRes.isFemale,
-        githubUrl,
-        linkedinUrl,
-        portfolioUrl,
-        resumeUrl,
+        githubUrl: githubUrl || undefined,
+        linkedinUrl: linkedinUrl || undefined,
+        portfolioUrl: portfolioUrl || undefined,
+        resumeUrl: resumeUrl || undefined,
         roleOrBio,
         customFields: idx === 0 && Object.keys(customFields).length > 0 ? customFields : undefined,
         rawSignals: {
@@ -837,7 +881,7 @@ export function parseRawDataToTeams(
           clubActivities: initialExp.clubActivities.length > 0 ? initialExp.clubActivities : undefined,
           matchedCustomKeywords: initialExp.matchedCustomKeywords.length > 0 ? initialExp.matchedCustomKeywords : undefined,
           hasResume: Boolean(resumeUrl),
-          hasGithub: Boolean(githubUrl || ghUsername),
+          hasGithub: Boolean(ghUsername),
           hasLinkedin: Boolean(linkedinUrl || linkedinUsername),
           linkedinUsername,
           linkedinMetrics,

@@ -785,11 +785,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     </button>
                     <span className="text-zinc-300 flex items-center gap-1">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Detect & Discount Spam Experiences</span>
+                      <span>Detect & Penalize Fake / Spam Experiences</span>
                     </span>
                   </div>
                   <span className="text-[10px] text-amber-400/80">
-                    {wCfg.penalizeSpam !== false ? 'Auto-discount & Flag' : 'Ignored'}
+                    {wCfg.penalizeSpam !== false ? 'Penalize & Flag' : 'Ignored'}
                   </span>
                 </div>
               </div>
@@ -1404,23 +1404,120 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </div>
           </div>
 
-          {/* Min Commits */}
-          <div className="bg-black/50 p-2.5 rounded-lg border border-zinc-800 space-y-1">
-            <span className="text-zinc-400 text-[11px]">Min GitHub Commits:</span>
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="number"
-                min="0"
-                max="500"
-                step="10"
-                value={config.filters.minGithubContributionsOverall}
-                onChange={(e) =>
-                  updateFilter('minGithubContributionsOverall', parseInt(e.target.value) || 0)
-                }
-                className="w-16 px-2 py-1 bg-zinc-900 border border-zinc-700 text-cyan-300 rounded text-center"
-              />
-              <span className="text-zinc-500 text-[11px]">commits</span>
+          {/* Min Commits with Repo Type Target (Forked vs Original) */}
+          <div className="bg-black/50 p-2.5 rounded-lg border border-zinc-800 space-y-2">
+            <div className="flex items-center justify-between gap-1 flex-wrap">
+              <span className="text-zinc-400 text-[11px] font-semibold">Min GitHub Commits:</span>
+              {/* Scope Switcher: All vs Original Only vs Split */}
+              <div className="flex items-center bg-zinc-900 border border-zinc-700/80 rounded-md p-0.5 text-[9px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => updateFilter('githubRepoScope', 'ALL_REPOS')}
+                  className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                    (!config.filters.githubRepoScope || config.filters.githubRepoScope === 'ALL_REPOS')
+                      ? 'bg-cyan-500 text-black font-bold shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="Count commits across all repositories (original + forked)"
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateFilter('githubRepoScope', 'ORIGINAL_ONLY')}
+                  className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                    config.filters.githubRepoScope === 'ORIGINAL_ONLY'
+                      ? 'bg-cyan-500 text-black font-bold shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="Only count commits in fully original repositories (exclude forks)"
+                >
+                  Original Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateFilter('githubRepoScope', 'CUSTOM_SPLIT')}
+                  className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                    config.filters.githubRepoScope === 'CUSTOM_SPLIT'
+                      ? 'bg-cyan-500 text-black font-bold shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="Set separate minimum commit thresholds for original and forked repositories"
+                >
+                  Split
+                </button>
+              </div>
             </div>
+
+            {config.filters.githubRepoScope === 'CUSTOM_SPLIT' ? (
+              <div className="space-y-1.5 pt-0.5 font-mono">
+                <div className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="text-emerald-400 font-bold">⭐ Original Repos:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="500"
+                      step="5"
+                      value={config.filters.minGithubContributionsOriginal ?? config.filters.minGithubContributionsOverall ?? 20}
+                      onChange={(e) => updateFilter('minGithubContributionsOriginal', parseInt(e.target.value) || 0)}
+                      className="w-14 px-1.5 py-0.5 bg-zinc-900 border border-emerald-500/50 text-emerald-300 rounded text-center text-xs"
+                    />
+                    <span className="text-zinc-500">commits</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="text-amber-400 font-bold">🍴 Forked Repos:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="500"
+                      step="5"
+                      value={config.filters.minGithubContributionsForked ?? 0}
+                      onChange={(e) => updateFilter('minGithubContributionsForked', parseInt(e.target.value) || 0)}
+                      className="w-14 px-1.5 py-0.5 bg-zinc-900 border border-amber-500/50 text-amber-300 rounded text-center text-xs"
+                    />
+                    <span className="text-zinc-500">commits</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  step="10"
+                  value={
+                    config.filters.githubRepoScope === 'ORIGINAL_ONLY'
+                      ? (config.filters.minGithubContributionsOriginal ?? config.filters.minGithubContributionsOverall ?? 20)
+                      : config.filters.minGithubContributionsOverall
+                  }
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    if (config.filters.githubRepoScope === 'ORIGINAL_ONLY') {
+                      onChange({
+                        ...config,
+                        filters: {
+                          ...config.filters,
+                          minGithubContributionsOriginal: val,
+                          minGithubContributionsOverall: val,
+                        },
+                      });
+                    } else {
+                      updateFilter('minGithubContributionsOverall', val);
+                    }
+                  }}
+                  className="w-16 px-2 py-1 bg-zinc-900 border border-zinc-700 text-cyan-300 rounded text-center text-xs font-mono"
+                />
+                <span className="text-zinc-400 text-[10px]">
+                  {config.filters.githubRepoScope === 'ORIGINAL_ONLY'
+                    ? 'commits (original repos only)'
+                    : 'commits (all repos)'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1571,29 +1668,128 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       <hr className="border-cyan-950/60" />
 
       {/* Missing Data Policy */}
-      <div className="space-y-2 text-xs">
-        <div className="flex items-center gap-1.5">
-          <FileSpreadsheet className="w-4 h-4 text-amber-400" />
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
-            Missing Data Policy
-          </h3>
-        </div>
-        <select
-          value={config.missingDataPolicy}
-          onChange={(e) => onChange({ ...config, missingDataPolicy: e.target.value as MissingDataPolicy })}
-          className="w-full bg-black/60 border border-zinc-800 focus:border-cyan-400 px-3 py-2 rounded-lg text-zinc-300 font-mono text-xs"
-        >
-          <option value="NEUTRAL">
-            Neutral / No Penalty (Flag warning, score on available signals)
-          </option>
-          <option value="PENALTY_10">
-            Soft Penalty (10% discount on final score if completeness &lt; 70%)
-          </option>
-          <option value="PENALTY_25">
-            Strict Penalty (25% discount on final score if completeness &lt; 70%)
-          </option>
-        </select>
-      </div>
+      {(() => {
+        const currentPenalty =
+          config.missingDataCustomPenalty !== undefined
+            ? config.missingDataCustomPenalty
+            : config.missingDataPolicy === 'PENALTY_25'
+            ? 25
+            : config.missingDataPolicy === 'PENALTY_10'
+            ? 10
+            : config.missingDataPolicy === 'NEUTRAL'
+            ? 0
+            : 15;
+        const currentThreshold = config.missingDataThreshold ?? 70;
+
+        return (
+          <div className="space-y-3 text-xs bg-black/40 border border-amber-950/80 p-3.5 rounded-xl font-mono">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+                  Missing Data Policy
+                </h3>
+              </div>
+              <span
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                  currentPenalty === 0
+                    ? 'bg-zinc-900 text-zinc-400 border-zinc-700'
+                    : 'bg-amber-950/80 text-amber-300 border-amber-700/60'
+                }`}
+              >
+                {currentPenalty === 0 ? 'No Penalty (0%)' : `${currentPenalty}% Penalty`}
+              </span>
+            </div>
+
+            {/* Direct Customizable Penalty Input & Slider */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-300 font-semibold">Custom Score Penalty:</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={currentPenalty}
+                    onChange={(e) => {
+                      const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                      onChange({
+                        ...config,
+                        missingDataPolicy: 'CUSTOM',
+                        missingDataCustomPenalty: val,
+                      });
+                    }}
+                    className="w-14 px-2 py-0.5 bg-zinc-900 border border-amber-500/70 text-amber-300 rounded text-center font-bold text-xs font-mono outline-none focus:border-amber-400"
+                    title="Type exact score penalty percentage"
+                  />
+                  <span className="text-amber-400 font-bold">%</span>
+                </div>
+              </div>
+
+              {/* Interactive Slider 0 to 100 */}
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={currentPenalty}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  onChange({
+                    ...config,
+                    missingDataPolicy: 'CUSTOM',
+                    missingDataCustomPenalty: val,
+                  });
+                }}
+                className="w-full accent-amber-400 cursor-pointer"
+              />
+
+              <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                <span>0% (No Penalty)</span>
+                <span>25% (Soft)</span>
+                <span>50% (Moderate)</span>
+                <span>100% (Zero Score)</span>
+              </div>
+
+              {/* Trigger Threshold */}
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-[11px] font-mono">
+                <span className="text-zinc-400">Trigger Threshold:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-500">completeness &lt;</span>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    step="5"
+                    value={currentThreshold}
+                    onChange={(e) => {
+                      const val = Math.max(10, Math.min(100, parseInt(e.target.value) || 70));
+                      onChange({
+                        ...config,
+                        missingDataPolicy: 'CUSTOM',
+                        missingDataThreshold: val,
+                      });
+                    }}
+                    className="w-12 px-1.5 py-0.5 bg-zinc-900 border border-zinc-700 text-zinc-200 rounded text-center text-[11px]"
+                  />
+                  <span className="text-zinc-400">%</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
+                {currentPenalty === 0 ? (
+                  <span>No penalty applied. Incomplete profiles will be scored on available signals without penalty.</span>
+                ) : (
+                  <span>
+                    Applies a <strong>{currentPenalty}% score penalty</strong> to teams whose profile completeness ratio is under {currentThreshold}%.
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Save Scoring Run Snapshot Button */}
       {onSaveRun && (

@@ -67,20 +67,66 @@ export function evaluateHardFilters(
     }
   }
 
-  // 3. Minimum GitHub contributions threshold
-  if (filters.minGithubContributionsOverall > 0) {
-    if (aggregated.maxGithubContributions < filters.minGithubContributionsOverall) {
+  // 3. Minimum GitHub contributions threshold (with Forked vs Fully Original Scope)
+  const repoScope = filters.githubRepoScope || 'ALL_REPOS';
+  const minCommits = filters.minGithubContributionsOverall;
+  const minOriginal = filters.minGithubContributionsOriginal ?? minCommits;
+  const minForked = filters.minGithubContributionsForked ?? 0;
+
+  if (repoScope === 'ORIGINAL_ONLY') {
+    if (minOriginal > 0) {
+      if (aggregated.maxGithubContributionsOriginal < minOriginal) {
+        failedFilters.push({
+          filterName: 'Minimum GitHub Commits (Original Repos)',
+          passed: false,
+          reason: `Highest member commits in fully original repos is ${aggregated.maxGithubContributionsOriginal}, which is below required ${minOriginal}.`,
+        });
+      } else {
+        passedFilters.push({
+          filterName: 'Minimum GitHub Commits (Original Repos)',
+          passed: true,
+          reason: `Top contributor has ${aggregated.maxGithubContributionsOriginal} commits in original repos (meets required ${minOriginal}).`,
+        });
+      }
+    }
+  } else if (repoScope === 'CUSTOM_SPLIT') {
+    const failures: string[] = [];
+    if (minOriginal > 0 && aggregated.maxGithubContributionsOriginal < minOriginal) {
+      failures.push(`Original: ${aggregated.maxGithubContributionsOriginal} < ${minOriginal}`);
+    }
+    if (minForked > 0 && aggregated.maxGithubContributionsForked < minForked) {
+      failures.push(`Forked: ${aggregated.maxGithubContributionsForked} < ${minForked}`);
+    }
+
+    if (failures.length > 0) {
       failedFilters.push({
-        filterName: 'Minimum GitHub Contributions',
+        filterName: 'Minimum GitHub Commits (Original/Forked Split)',
         passed: false,
-        reason: `Highest member GitHub contributions estimate is ${aggregated.maxGithubContributions}, which is below required ${filters.minGithubContributionsOverall}.`,
+        reason: `Commits threshold not met: ${failures.join(', ')}.`,
       });
-    } else {
+    } else if (minOriginal > 0 || minForked > 0) {
       passedFilters.push({
-        filterName: 'Minimum GitHub Contributions',
+        filterName: 'Minimum GitHub Commits (Original/Forked Split)',
         passed: true,
-        reason: `Top contributor has ${aggregated.maxGithubContributions} contributions (meets required ${filters.minGithubContributionsOverall}).`,
+        reason: `Top contributor satisfies split commit thresholds (${aggregated.maxGithubContributionsOriginal} original, ${aggregated.maxGithubContributionsForked} forked).`,
       });
+    }
+  } else {
+    // ALL_REPOS
+    if (minCommits > 0) {
+      if (aggregated.maxGithubContributions < minCommits) {
+        failedFilters.push({
+          filterName: 'Minimum GitHub Contributions',
+          passed: false,
+          reason: `Highest member GitHub contributions estimate is ${aggregated.maxGithubContributions}, which is below required ${minCommits}.`,
+        });
+      } else {
+        passedFilters.push({
+          filterName: 'Minimum GitHub Contributions',
+          passed: true,
+          reason: `Top contributor has ${aggregated.maxGithubContributions} contributions (meets required ${minCommits}).`,
+        });
+      }
     }
   }
 

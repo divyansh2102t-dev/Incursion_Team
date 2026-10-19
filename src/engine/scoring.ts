@@ -161,12 +161,21 @@ export function runFullShortlistingEngine(
       }
     });
 
-    // Apply Missing Data Policy
+    // Apply Missing Data Policy (Customizable 0% to 100% penalty)
+    let penaltyPercent = 0;
+    const completenessThreshold = config.missingDataThreshold ?? 70;
+
+    if (config.missingDataPolicy === 'PENALTY_10') {
+      penaltyPercent = 10;
+    } else if (config.missingDataPolicy === 'PENALTY_25') {
+      penaltyPercent = 25;
+    } else if (config.missingDataPolicy === 'CUSTOM') {
+      penaltyPercent = Math.max(0, Math.min(100, config.missingDataCustomPenalty ?? 15));
+    }
+
     let policyMultiplier = 1.0;
-    if (config.missingDataPolicy === 'PENALTY_10' && rawCompletenessScore < 70) {
-      policyMultiplier = 0.9;
-    } else if (config.missingDataPolicy === 'PENALTY_25' && rawCompletenessScore < 70) {
-      policyMultiplier = 0.75;
+    if (penaltyPercent > 0 && rawCompletenessScore < completenessThreshold) {
+      policyMultiplier = Math.max(0, (100 - penaltyPercent) / 100);
     }
 
     // Calculate total weighted score respecting weightsEnabled toggles

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { SelectionConfig, TeamRecord } from '@/types';
 import {
   Search,
@@ -120,24 +121,27 @@ function computeTeamDimensionStats(team: TeamRecord): TeamDimensionStats {
     if (m.phone) contactCount++;
 
     // GitHub extraction
-    if (m.githubUrl || m.rawSignals.githubUsername || m.rawSignals.githubMetrics) {
+    const ghUser = m.rawSignals.githubUsername;
+    const hasGhMetrics = Boolean(m.rawSignals.githubMetrics);
+
+    if (ghUser || hasGhMetrics) {
       githubMemberCount++;
     }
-    if (m.rawSignals.githubUsername) {
-      ghHandleSet.add(m.rawSignals.githubUsername);
+    if (ghUser) {
+      ghHandleSet.add(ghUser);
     }
     if (m.rawSignals.githubMetrics) {
       totalCommits += m.rawSignals.githubMetrics.estimatedContributions || 0;
       totalStars += m.rawSignals.githubMetrics.totalStars || 0;
       (m.rawSignals.githubMetrics.topLanguages || []).forEach((l) => langSet.add(l));
 
-      if (m.rawSignals.githubMetrics.syncStatus !== 'live_verified') {
+      if (ghUser && m.rawSignals.githubMetrics.syncStatus !== 'live_verified') {
         unverifiedGhCount++;
         if (m.rawSignals.githubMetrics.fallbackHash) {
           ghFallbackHashes.push(m.rawSignals.githubMetrics.fallbackHash);
         }
       }
-    } else if (m.githubUrl || m.rawSignals.githubUsername) {
+    } else if (ghUser) {
       unverifiedGhCount++;
     }
 
@@ -264,15 +268,19 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
     return map;
   }, [teams]);
 
-  // Cohort-wide count of candidates whose GitHub stats are currently unverified (using hash fallback)
+  // Cohort-wide count of candidate handles whose GitHub stats are currently unverified (using hash fallback)
   const cohortUnverifiedGhCount = useMemo(() => {
-    let count = 0;
+    const unverifiedSet = new Set<string>();
     teams.forEach((t) => {
-      const st = statsMap.get(t.id);
-      if (st) count += st.unverifiedGhCount;
+      t.members.forEach((m) => {
+        const ghUser = m.rawSignals.githubUsername;
+        if (ghUser && m.rawSignals.githubMetrics?.syncStatus !== 'live_verified') {
+          unverifiedSet.add(ghUser.toLowerCase());
+        }
+      });
     });
-    return count;
-  }, [teams, statsMap]);
+    return unverifiedSet.size;
+  }, [teams]);
 
   // Tab count metrics
   const tabCounts = useMemo(() => {
@@ -640,6 +648,35 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
         </div>
       )}
 
+      {/* Custom Formula Active Banner */}
+      {config.customFormulaEnabled && config.customFormulaExpression && (
+        <div className="bg-gradient-to-r from-purple-950/70 via-cyan-950/60 to-zinc-950 px-4 py-2 border-b border-cyan-500/40 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shadow-inner">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+            <span className="text-cyan-300 font-bold flex items-center gap-1.5">
+              ⚡ CUSTOM MATHEMATICAL FORMULA APPLIED
+            </span>
+            <span className="text-zinc-500 hidden sm:inline">|</span>
+            <span className="text-zinc-300 hidden md:inline truncate max-w-[450px]">
+              <span className="font-semibold text-zinc-200">{config.customFormulaName || 'Custom Model'}:</span>{' '}
+              <code className="text-cyan-400 font-mono text-[11px] bg-black/60 px-1.5 py-0.5 rounded border border-cyan-900/50">
+                {config.customFormulaExpression}
+              </code>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/formulas"
+              className="px-2.5 py-1 rounded text-[10px] font-bold border bg-cyan-950 hover:bg-cyan-900/80 text-cyan-300 border-cyan-600 transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+            >
+              <Code2 className="w-3 h-3" />
+              <span>Tune in Formula Studio</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* GitHub Rate Limit / Temporary Hash Fallback Notice */}
       {cohortUnverifiedGhCount > 0 && (
         <div className="bg-gradient-to-r from-amber-950/80 via-zinc-950 to-zinc-950 px-4 py-2 border-b border-amber-500/30 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
@@ -858,9 +895,13 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                         <span>⚠️ Hash Estimate: #{st.ghFallbackHashes[0] || 'TEMP'}</span>
                         <span className="text-[9px] text-amber-400/80">API Limit Fallback</span>
                       </div>
-                    ) : (
+                    ) : st.githubMemberCount > 0 ? (
                       <div className="bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] text-emerald-300 font-bold flex items-center justify-center gap-1">
                         <span>✓ Live Verified GitHub Stats</span>
+                      </div>
+                    ) : (
+                      <div className="bg-zinc-900/40 border border-zinc-800 px-2 py-0.5 rounded text-[10px] text-zinc-500 font-bold flex items-center justify-center gap-1">
+                        <span>No GitHub Handles</span>
                       </div>
                     )}
                   </div>
@@ -1465,9 +1506,13 @@ export const TeamsTable: React.FC<TeamsTableProps> = ({
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-800">
                                 ⚠️ Suspicious
                               </span>
-                            ) : (
+                            ) : st.githubMemberCount > 0 ? (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800 font-mono">
                                 ✓ Live Verified
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-900 text-zinc-500 border border-zinc-800 font-mono">
+                                —
                               </span>
                             )}
                           </td>

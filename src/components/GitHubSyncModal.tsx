@@ -162,7 +162,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
       new Set(
         teams.flatMap((t) =>
           t.members
-            .map((m) => m.rawSignals.githubUsername)
+            .map((m) => m.rawSignals.githubUsername?.trim().toLowerCase())
             .filter((u): u is string => Boolean(u))
         )
       )
@@ -179,7 +179,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                 m.rawSignals.githubUsername &&
                 m.rawSignals.githubMetrics?.syncStatus === 'live_verified'
             )
-            .map((m) => m.rawSignals.githubUsername!)
+            .map((m) => m.rawSignals.githubUsername!.trim().toLowerCase())
         )
       )
     );
@@ -195,7 +195,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                 m.rawSignals.githubUsername &&
                 m.rawSignals.githubMetrics?.syncStatus !== 'live_verified'
             )
-            .map((m) => m.rawSignals.githubUsername!)
+            .map((m) => m.rawSignals.githubUsername!.trim().toLowerCase())
         )
       )
     );

@@ -260,9 +260,10 @@ export interface TeamRecord {
 }
 
 export type AggregationStrategy = 'MAX_SKILL' | 'DIMINISHING_RETURNS' | 'BALANCED_MEAN';
-export type MissingDataPolicy = 'NEUTRAL' | 'PENALTY_10' | 'PENALTY_25';
+export type MissingDataPolicy = 'NEUTRAL' | 'PENALTY_10' | 'PENALTY_25' | 'CUSTOM';
 
 export type GithubRequirementMode = 'NONE' | 'AT_LEAST_ONE' | 'ALL_MEMBERS';
+export type GitHubRepoScope = 'ALL_REPOS' | 'ORIGINAL_ONLY' | 'FORKED_ONLY' | 'CUSTOM_SPLIT';
 
 export interface HardFilterConfig {
   minTeamSize: number;
@@ -270,6 +271,9 @@ export interface HardFilterConfig {
   requireAtLeastOneGithub: boolean;
   githubRequirement?: GithubRequirementMode;
   minGithubContributionsOverall: number;
+  minGithubContributionsOriginal?: number;
+  minGithubContributionsForked?: number;
+  githubRepoScope?: GitHubRepoScope;
   requireAtLeastOneResumeOrPortfolio: boolean;
   minTotalSkillsCount: number;
   requireFemaleMember?: boolean; // Compulsory female participation (e.g. SIH / diversity rules)
@@ -327,6 +331,8 @@ export interface SelectionConfig {
   filters: HardFilterConfig;
   aggregationStrategy: AggregationStrategy;
   missingDataPolicy: MissingDataPolicy;
+  missingDataCustomPenalty?: number; // 0 to 100 percentage discount
+  missingDataThreshold?: number;     // completeness threshold percentage, default 70
   tieBreakers: TieBreakerConfig;
   anonymizeMode: boolean; // Blind review mode
   formulaCoefficients: FormulaCoefficients;
