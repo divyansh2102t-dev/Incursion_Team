@@ -42,6 +42,7 @@ import {
   Database,
   Check,
   ExternalLink,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ConfigPanelProps {
@@ -59,13 +60,36 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onHideFilters,
   onSaveRun,
 }) => {
-  const { acmDatabase, isAcmLoading, acmLastSync, fetchAcmData } = useApp();
+  const {
+    acmDatabase,
+    isAcmLoading,
+    acmLastSync,
+    fetchAcmData,
+    hasPermanentDefault,
+    saveCurrentAsPermanentDefault,
+    restoreOriginalFactoryDefault,
+  } = useApp();
+  const [defaultActionNotice, setDefaultActionNotice] = useState<string | null>(null);
   const [showAcmDetails, setShowAcmDetails] = useState(true);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState('');
   const [newWeight, setNewWeight] = useState(10);
   const [showWorkDetails, setShowWorkDetails] = useState(true);
   const [showKeywordDetails, setShowKeywordDetails] = useState(true);
+
+  const handleSavePermanentDefault = () => {
+    const res = saveCurrentAsPermanentDefault(config);
+    setDefaultActionNotice(res.message);
+    setTimeout(() => setDefaultActionNotice(null), 4000);
+  };
+
+  const handleRestoreOriginalDefault = () => {
+    if (confirm('Are you sure you want to restore the original factory default settings? All custom default weights and rules will be reset to factory defaults.')) {
+      const res = restoreOriginalFactoryDefault();
+      setDefaultActionNotice(res.message);
+      setTimeout(() => setDefaultActionNotice(null), 4000);
+    }
+  };
 
   const updateAcmConfig = (updates: Partial<AcmEventConfig>) => {
     const current = config.acmEventConfig || DEFAULT_ACM_EVENT_CONFIG;
@@ -1790,6 +1814,60 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         );
       })()}
+
+      {/* Default Settings Management (Permanent Default vs Factory Restore) */}
+      <div className="p-3.5 bg-black/60 border border-zinc-800/90 rounded-2xl space-y-3 shadow-inner">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+              Default Settings
+            </h3>
+          </div>
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold border ${
+              hasPermanentDefault
+                ? 'bg-cyan-950/80 text-cyan-300 border-cyan-700/80 shadow-[0_0_8px_rgba(6,182,212,0.25)]'
+                : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+            }`}
+          >
+            {hasPermanentDefault ? 'Custom Default' : 'Factory Default'}
+          </span>
+        </div>
+
+        <p className="text-[11px] text-zinc-400 font-sans leading-relaxed">
+          Save your current customized scoring model as the permanent default for all sessions, or restore the original factory preset.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={handleSavePermanentDefault}
+            className="w-full py-2 px-3 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 hover:text-cyan-100 border border-cyan-700/60 hover:border-cyan-400 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+            title="Permanently save current weights, cutoffs, and rules as your new personal default"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <span>Save as Default</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRestoreOriginalDefault}
+            className="w-full py-2 px-3 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-rose-300 border border-zinc-700 hover:border-rose-500/60 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+            title="Restore the original out-of-the-box factory configuration"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-zinc-400 group-hover:text-rose-400 group-hover:-rotate-45 transition-transform" />
+            <span>Restore Original</span>
+          </button>
+        </div>
+
+        {defaultActionNotice && (
+          <div className="text-[11px] font-mono text-cyan-300 bg-cyan-950/50 border border-cyan-700/60 px-3 py-1.5 rounded-lg flex items-center gap-2 animate-fade-in">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+            <span>{defaultActionNotice}</span>
+          </div>
+        )}
+      </div>
 
       {/* Save Scoring Run Snapshot Button */}
       {onSaveRun && (

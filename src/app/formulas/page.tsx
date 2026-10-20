@@ -32,6 +32,9 @@ export default function FormulasPage() {
     previousConfig,
     revertToPreviousConfig,
     resetToDefaultFormulas,
+    hasPermanentDefault,
+    saveCurrentAsPermanentDefault,
+    restoreOriginalFactoryDefault,
     scoringHistory,
     baseTeams,
   } = useApp();
