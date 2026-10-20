@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { PWARegistration } from '@/components/PWARegistration';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 const geistSans = { variable: 'font-sans' };
 const geistMono = { variable: 'font-mono' };
@@ -136,6 +137,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-[#030712] text-zinc-100 selection:bg-cyan-500 selection:text-black">
         <AppProvider>
+          <OfflineBanner />
           {children}
           <PWARegistration />
         </AppProvider>

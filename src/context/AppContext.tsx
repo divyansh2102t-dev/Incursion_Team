@@ -11,6 +11,9 @@ interface AppContextType {
   previousConfig: SelectionConfig | null;
   revertToPreviousConfig: () => boolean;
   resetToDefaultFormulas: () => void;
+  hasPermanentDefault: boolean;
+  saveCurrentAsPermanentDefault: (cfg?: SelectionConfig) => { success: boolean; message: string };
+  restoreOriginalFactoryDefault: () => { success: boolean; message: string };
   baseTeams: TeamRecord[];
   setBaseTeams: React.Dispatch<React.SetStateAction<TeamRecord[]>>;
   rawHeaders: string[];
@@ -42,6 +45,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const CONFIG_STORAGE_KEY = 'incursion_selection_config_v2';
+const PERMANENT_DEFAULT_KEY = 'incursion_permanent_user_default_config_v2';
 const TEAMS_STORAGE_KEY = 'incursion_base_teams_v2';
 const SCORING_HISTORY_KEY = 'incursion_scoring_history_v2';
 const ACM_DB_STORAGE_KEY = 'incursion_acm_leaderboard_cache_v2';
@@ -55,6 +59,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMappingConfig | null>(null);
   const [scoringHistory, setScoringHistory] = useState<ScoringHistoryEntry[]>([]);
+  const [hasPermanentDefault, setHasPermanentDefault] = useState<boolean>(false);
 
   // ACM NIT Surat integration state
   const [acmDatabase, setAcmDatabase] = useState<AcmStudentProfile[]>([]);
@@ -64,6 +69,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Load config, teams, and scoring history from localStorage on initial mount
   useEffect(() => {
     try {
+      const permanentDefaultStr = localStorage.getItem(PERMANENT_DEFAULT_KEY);
+      if (permanentDefaultStr) {
+        setHasPermanentDefault(true);
+      }
       const storedConfig = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (storedConfig) {
         const parsed = JSON.parse(storedConfig);
@@ -333,6 +342,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
+  const saveCurrentAsPermanentDefault = (cfg?: SelectionConfig): { success: boolean; message: string } => {
+    const toSave = cfg || config;
+    try {
+      localStorage.setItem(PERMANENT_DEFAULT_KEY, JSON.stringify(toSave));
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(toSave));
+      setHasPermanentDefault(true);
+      setConfigState(toSave);
+      return { success: true, message: 'Current settings saved as permanent default!' };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Storage error';
+      return { success: false, message: 'Failed to save permanent default: ' + msg };
+    }
+  };
+
+  const restoreOriginalFactoryDefault = (): { success: boolean; message: string } => {
+    try {
+      localStorage.removeItem(PERMANENT_DEFAULT_KEY);
+      setPreviousConfig(config);
+      setHasPermanentDefault(false);
+      const factoryDefault: SelectionConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      setConfigState(factoryDefault);
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(factoryDefault));
+      return { success: true, message: 'Restored original factory default settings!' };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Storage error';
+      return { success: false, message: 'Failed to restore original defaults: ' + msg };
+    }
+  };
+
   const clearCohort = () => {
     setBaseTeams([]);
     setRawRows([]);
@@ -353,6 +391,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         previousConfig,
         revertToPreviousConfig,
         resetToDefaultFormulas,
+        hasPermanentDefault,
+        saveCurrentAsPermanentDefault,
+        restoreOriginalFactoryDefault,
         baseTeams,
         setBaseTeams,
         rawHeaders,
